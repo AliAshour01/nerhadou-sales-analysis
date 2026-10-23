@@ -36,7 +36,7 @@
  document.addEventListener('keydown',event=>{if(event.key!=='Escape')return;if(more?.open){closeFilters();more.querySelector('summary')?.focus();return}if(body.classList.contains('nav-peek')){setPeek(false,true);return}if(body.classList.contains('nav-open'))closeMenu(true);else if(expanded&&!document.fullscreenElement){expanded=false;native=false;sync();status.textContent='Standard view. Sidebar restored.';button.focus()}});
  menu.onclick=()=>{if(expanded){setPeek(!body.classList.contains('nav-peek'));return;}const open=!body.classList.contains('nav-open');body.classList.toggle('nav-open',open);menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close navigation':'Open navigation');scrim.hidden=!open};
  scrim.onclick=()=>closeMenu(true);
- const labels={sales:'Actual performance',comparison:'Historical comparison',upload:'Data management',approvals:'Users & approvals'};
+ const labels={sales:'Sales performance',comparison:'Year comparison',upload:'Data management',approvals:'Users & access'};
  document.querySelectorAll('[data-page]').forEach(nav=>nav.addEventListener('click',()=>{$('chrome-page-label').textContent=labels[nav.dataset.page]||'Nerhadou Sales Analysis';closeMenu();if(expanded)setPeek(false,true)}));
  sync();
 })();

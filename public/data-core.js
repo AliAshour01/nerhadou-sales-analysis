@@ -1,11 +1,15 @@
 export const METRICS=['units','value','target_units','target_value','stock'];
 const owns=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+export const lineProductKey=product=>String(product??'').replace(/\s+/g,'').toLowerCase();
+export const lineAssignmentKey=product=>'@line:all:'+encodeURIComponent(lineProductKey(product));
 export function effectiveRecords(seed,overrides={},options={}){
  const base=new Map(seed.records.map(r=>[r.id,r]));
  for(const [id,o] of Object.entries(overrides))if(o.record&&!base.has(id))base.set(id,o.record);
  const excludedPeriods=new Set(),excludedProductPeriods=new Set();for(const r of base.values())if(r.dataset==='actual'&&r.month>0&&overrides[r.id]?.excluded&&!overrides[r.id]?.replacedByImport){excludedPeriods.add(r.year+'|'+r.month);excludedProductPeriods.add(r.year+'|'+r.month+'|'+(r.comparison_product||r.product))}
  return [...base.values()].filter(r=>options.includeExcluded||(!overrides[r.id]?.excluded&&!overrides[r.id]?.replacedByImport)).map(r=>{
-  const o=overrides[r.id]?.fields||{},out={...r,excluded:!!overrides[r.id]?.excluded,replacedByImport:!!overrides[r.id]?.replacedByImport,reportingIncomplete:excludedPeriods.has(r.year+'|'+r.month),reportingProductIncomplete:excludedProductPeriods.has(r.year+'|'+r.month+'|'+(r.comparison_product||r.product)),provenance:{},estimated:[...(r.estimated||[])]};
+  const o=overrides[r.id]?.fields||{},out={...r,source_line:r.line,excluded:!!overrides[r.id]?.excluded,replacedByImport:!!overrides[r.id]?.replacedByImport,reportingIncomplete:excludedPeriods.has(r.year+'|'+r.month),reportingProductIncomplete:excludedProductPeriods.has(r.year+'|'+r.month+'|'+(r.comparison_product||r.product)),provenance:{},estimated:[...(r.estimated||[])]};
+  const assignment=overrides[lineAssignmentKey(r.product)]?.lineAssignment;
+  if(assignment?.scope==='all_years'&&lineProductKey(assignment.product)===lineProductKey(r.product)&&typeof assignment.line==='string'){out.line=assignment.line;out.provenance.line='manual'}
   for(const m of METRICS){
    if(owns(o,m)){out[m]=o[m];out.provenance[m]='manual';out.estimated=out.estimated.filter(x=>x!==m)}
    else out.provenance[m]=(r.estimated||[]).includes(m)?'estimated':(r.confirmed||[]).includes(m)?'user confirmed':'source';
@@ -70,7 +74,7 @@ export function previewImport(raw,seed,overrides={},options={}){
   const row=rows[i];try{
    let record;
    if(row.record_id){record=byId.get(String(row.record_id).trim());if(!record)throw Error('Unknown record_id. Copy it from Data tables.');
-    for(const k of ['product_id','year','dataset','channel','distributor','product','line'])if(row[k]!=null&&String(row[k]).trim()!==''&&String(record[k])!==String(row[k]).trim())throw Error(k+' conflicts with record_id.');
+    for(const k of ['product_id','year','dataset','channel','distributor','product','line'])if(row[k]!=null&&String(row[k]).trim()!==''&&String(record[k])!==String(row[k]).trim()&&!(k==='line'&&String(record.source_line)===String(row[k]).trim()))throw Error(k+' conflicts with record_id.');
     if(row.month!=null&&String(row.month).trim()!==''&&record.month!==monthNumber(row.month))throw Error('month conflicts with record_id.');
    }else{
     const pid=String(row.product_id??'').trim();let template=catalog.get(pid),nameMatched=false;
@@ -78,7 +82,7 @@ export function previewImport(raw,seed,overrides={},options={}){
     if(!pid){
      for(const k of ['product','channel','distributor'])if(!String(row[k]??'').trim())throw Error('Without an ID, supply product, channel and distributor.');
      for(const k of ['product','channel','distributor','line'])if(String(row[k]??'').trim().length>160||/[\r\n\x00-\x1f]/.test(String(row[k]??'')))throw Error('Names must be below 160 characters without line breaks.');
-     const candidates=[...new Map(current.filter(r=>r.dataset!=='retired'&&['product','channel','distributor'].every(k=>cleanName(r[k])===cleanName(row[k]))&&(!String(row.line??'').trim()||cleanName(row.line)===cleanName(r.line))).map(r=>[r.product_id,r])).values()];
+     const candidates=[...new Map(current.filter(r=>r.dataset!=='retired'&&['product','channel','distributor'].every(k=>cleanName(r[k])===cleanName(row[k]))&&(!String(row.line??'').trim()||cleanName(row.line)===cleanName(r.line)||cleanName(row.line)===cleanName(r.source_line))).map(r=>[r.product_id,r])).values()];
      if(candidates.length>1)throw Error('Several catalog series match. Supply the exact product_id from the catalog.');
      template=candidates[0];nameMatched=!!template;
      if(!template){
@@ -91,11 +95,11 @@ export function previewImport(raw,seed,overrides={},options={}){
 
     const year=Number(row.year);if(!Number.isInteger(year)||year<2000||year>2100)throw Error('Year must be 2000–2100.');
     const month=monthNumber(row.month),dataset=String(row.dataset||(template.dataset==='catalog'?'actual':template.dataset)).trim();if(!['actual','target','stock'].includes(dataset))throw Error('dataset must be actual, target or stock.');
-    for(const k of ['channel','distributor','product','line'])if(row[k]&&cleanName(row[k])!==cleanName(template[k]))throw Error(k+' differs from the catalog. Choose the correct product_id.');
+    for(const k of ['channel','distributor','product','line'])if(row[k]&&cleanName(row[k])!==cleanName(template[k])&&!(k==='line'&&cleanName(row[k])===cleanName(template.source_line)))throw Error(k+' differs from the catalog. Choose the correct product_id.');
     const matching=nameMatched?current.filter(r=>r.product_id===template.product_id&&r.year===year&&r.month===month&&r.dataset===dataset):[];
     if(matching.length>1)throw Error('Several records match this period. Use the exact record_id from Data tables.');
     const id=matching[0]?.id||`${template.series_id}-${year}-${String(month).padStart(2,'0')}-${dataset}`;
-    record=byId.get(id)||{...template,id,year,month,dataset,coverage:template.coverage||(template.report_group==='Current actual'||template.dataset==='catalog'?'reporting-month':undefined),units:null,value:null,target_units:null,target_value:null,stock:null,estimated:[],provenance:{},source:'Manual entry'};
+    record=byId.get(id)||{...template,line:template.source_line??template.line,id,year,month,dataset,coverage:template.coverage||(template.report_group==='Current actual'||template.dataset==='catalog'?'reporting-month':undefined),units:null,value:null,target_units:null,target_value:null,stock:null,estimated:[],provenance:{},source:'Manual entry'};
     if(!catalog.has(template.product_id))record.newSeriesDetails=template;
    }
    if(record.dataset==='retired')throw Error('This source was superseded. Reload and use the current record ID.');
@@ -152,6 +156,25 @@ export function applyImport(overrides,preview){
  return next;
 }
 export function actualYears(records){return [...new Set(records.filter(r=>r.dataset==='actual'&&r.month>0).map(r=>r.year))].sort((a,b)=>a-b)}
+export function previewLineAssignments(seed,overrides={},input={}){
+ const {assignments}=input;
+ if(Object.keys(input).some(k=>k!=='assignments'))throw Error('Line corrections apply to all years; send assignments only.');
+ if(!Array.isArray(assignments)||!assignments.length||assignments.length>1000)throw Error('Review between 1 and 1,000 products.');
+ const rows=effectiveRecords(seed,overrides,{includeExcluded:true}).filter(r=>!['retired','catalog'].includes(r.dataset));
+ const validLines=new Set(rows.flatMap(r=>[r.line,r.source_line]).filter(v=>typeof v==='string'&&v.trim()));
+ const seen=new Set(),changes=[];
+ for(const item of assignments){
+  if(!item||typeof item!=='object'||typeof item.product!=='string'||!item.product.trim()||item.product.length>160||seen.has(lineProductKey(item.product))||Object.keys(item).some(k=>!['product','line'].includes(k)))throw Error('Choose each exact source product once.');
+  seen.add(lineProductKey(item.product));
+  const members=rows.filter(r=>lineProductKey(r.product)===lineProductKey(item.product));
+  if(!members.some(r=>r.dataset==='actual'&&r.month>0))throw Error('This source product has no sales.');
+  if(item.line!==null&&(typeof item.line!=='string'||item.line.length>160||/[\r\n\x00-\x1f]/.test(item.line)||!validLines.has(item.line)))throw Error('Choose an existing source line.');
+  const id=lineAssignmentKey(item.product),beforeOverride=overrides[id]??null;
+  if(item.line===null&&!beforeOverride||beforeOverride?.lineAssignment?.line===item.line||!beforeOverride&&members.every(r=>r.line===item.line))continue;
+  changes.push({id,beforeOverride,afterOverride:item.line===null?null:{fields:{},lineAssignment:{scope:'all_years',product:members[0].product,line:item.line}},product:members[0].product,years:[...new Set(members.map(r=>r.year))].sort(),beforeLines:[...new Set(members.map(r=>r.line))],line:item.line,records:members.length});
+ }
+ return {changes};
+}
 export function snapshotFrom(seed,overrides={},options={}){
  const records=effectiveRecords(seed,overrides),availableYears=actualYears(records),latestYear=availableYears.at(-1)??null,year=options.year??latestYear;
  const rows=records.filter(r=>r.dataset==='actual'&&r.year===year&&r.month>0).map(r=>({month:r.month,product:r.product,line:r.line,distributor:r.distributor,channel:r.channel,units:r.units,value:r.value,reportingIncomplete:r.reportingIncomplete}));

@@ -1,5 +1,11 @@
 export function monthsFor(mode,month=8,selected=[]){return mode==='annual'?Array.from({length:12},(_,i)=>i+1):mode==='month'?Array.from(new Set(selected)).filter(m=>Number.isInteger(m)&&m>=1&&m<=12).sort((a,b)=>a-b):Array.from({length:Math.max(0,Math.min(12,Number(month)))},(_,i)=>i+1)}
-export const comparisonProduct=r=>r.comparison_product||r.product;
+export function comparisonProduct(r){
+ const name=r.comparison_product||r.product;
+ // Preserve reviewed historical mapping, but never merge explicit Tender sales with regular sales.
+ if(!/\btender\b/i.test([r.product,r.channel,name].join(' ')))return name;
+ const base=String(name).replace(/\s*[-–—]?\s*\(?\bTENDER\b\)?\s*$/i,'').trim();
+ return base?base+' - TENDER':name;
+}
 export function sourceRows(records,year,mode,months,products=[]){
  let rows=records.filter(r=>r.dataset==='actual'&&r.year===year&&(!products.length||products.includes(comparisonProduct(r))));
  const monthsPresent=new Set(rows.filter(r=>r.month>0).map(r=>r.month));

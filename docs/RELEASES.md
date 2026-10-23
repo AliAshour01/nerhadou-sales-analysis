@@ -2,6 +2,31 @@
 
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
+
+## V32 · UI01 — Approved interface refresh
+
+- Applies the owner-approved Design Review 01 to the functional application: simplified sign-in branding and form, concise navigation/chart/import labels, disclosure-based help, lighter panels and tabs. Real authentication, approval, CAPTCHA, analytics, import previews and saves retain their handlers and server boundaries; the disconnected demo is not deployed as the application.
+- Analytics/source identity remains V32; UI01 identifies this presentation revision independently of historical Sites version numbers. No Site version number is invented for this external GitHub release.
+- Base commit: c557b666f88822fbf91b8a25de0e7f5556cb80e4. Rollback is code-only; source sales and D1 records are unchanged.
+- Validation: production compilation and private artifact gate passed; all 18 validation suites passed, including 580 data-management assertions, 111 SQLite route assertions, 142 authentication assertions and 23 built-Worker assertions. Sign-in layout was visually checked with a local configuration stub; no real provider login was performed.
+- Integrated with PR #5 / 0dd156a88aa8bd8cd93cc310321e8a9a2d4e6aa0, preserving deployed direct numeric editing, all-year product line corrections and historical Tender separation. These retain administrator checks, source/revision guards, audit and Undo. No production data write or schema migration is part of deployment.
+
+## Cloudflare Worker version 19 — Editable data tables and product line corrections
+
+- Data tables allow direct editing of supported numeric cells, including explicit zero, negative adjustments, CLEAR/empty-as-unknown and RESET. Review and save are separate; pending edits survive table filtering/paging. Stale data or source revisions invalidate a draft. Grid saves always use update mode, independently of the paste editor's replacement mode.
+- Product lines has a dropdown editor for each source product. At the owner's explicit request, a correction applies to **all years**, all channels/distributors and future imports of that same source product (case/whitespace aliases only). Pack/Tender names remain separate; historical product names are not guessed from canonical brand mappings. Original source lines remain available for traceability and incoming-sheet matching. Corrections can be reset to source lines.
+- Line assignments use separate metadata entries in the existing per-record overrides table; no migration or source input changes. Shared revision/source guards, administrator authorization, atomic audit and Undo apply. Line changes do not change numeric figures; Undo restores exactly the prior assignment. Old app code would ignore the new line metadata without deleting it; code rollback must not restore sales data.
+- Validation: line-assignment unit checks, 580 data-management assertions, 111 SQLite route assertions, data-manager UI regression, new-series/replacement/dynamic-update checks and production build passed. A Chromium fixture verified direct cell editing/CLEAR, review before save, discard, concurrent/source refresh rejection, all-year line corrections and Undo. No production sales edits were performed during validation.
+- Published on 2026-10-23: Worker version **19**, ID `b7a1e6be-f69c-4a0a-a598-be694c31da62`, verified active at 100%. Deployment used local branch `optional-admin-authenticator`, base commit `20ed69316e9b975b3fd7220ec3e1ca5bedc96ed7`, plus then-uncommitted Data Management and Tender changes. The deployed application source is now preserved on `data-management-editing-all-years`; no redeployment or sales-data changes are part of that source handoff.
+- Previous published Worker: version 18, `2af662c4-65ea-41af-b935-aae073235696`; analytics UI V32.
+
+## Cloudflare Worker version 18 — Separate Tender in Historical comparison
+
+- Historical product identity preserves explicit Tender source names/channels as a separate ` - TENDER` entry while retaining the existing reviewed product mapping. Regular-product totals, growth, rankings, company/product selection, common-month selection, contribution bridges and exports use that separation. Hospital rows are not inferred to be Tender. Missing Tender baselines remain unavailable.
+- Sales inputs and overrides are unchanged; company totals and full-company share denominators are unchanged. Read-only revision-1 reproduction for Jan–Sep 2026: SPASULANCE 641,809.95 units; SPASULANCE - TENDER 5,091 units. Their former combined amount was 646,900.95.
+- Validation: focused comparison model (including new Tender isolation cases), 481 comparison/source assertions and comparison UI checks passed. Published on 2026-10-23: Worker version 18, ID `2af662c4-65ea-41af-b935-aae073235696`, verified active at 100%; compare-core.js was uploaded. The public asset remains authentication-gated.
+- Previous published Worker: version **17**, ID `abc85935-eb47-4055-8e56-1dc599104ace`; source main merge `c557b666f88822fbf91b8a25de0e7f5556cb80e4`. No new saved Site release number is invented for this local change.
+
 ## Cloudflare Worker version 16 — Owner/admin authenticator exemption
 
 - Owner/admin accounts do not require authenticator verification even when a factor is already enrolled; their authenticator controls are hidden. Enrolled viewer accounts still require verification; removal revokes application sessions. Password changes and role changes remain protected by current-password / recent-session checks. No sales data, roles or production accounts were changed.

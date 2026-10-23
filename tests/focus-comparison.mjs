@@ -2,7 +2,33 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {buildFocusComparison,comparisonCSV} from '../public/focus-comparison-core.js';
 import {effectiveRecords} from '../public/data-core.js';
+import {comparisonProduct} from '../public/compare-core.js';
 const row=(product,year,month,units,value,extra={})=>({dataset:'actual',product,comparison_product:product,series_id:product+year,year,month,units,value,...extra});
+// Explicit Tender source sales retain their own historical identity across years.
+const tenderRows=[
+ row('SPASULANCE',2025,1,100,1000,{coverage:'reporting-month'}),
+ row('SPASULANCE - Tender',2025,1,10,100,{comparison_product:'SPASULANCE',channel:'TENDER',coverage:'reporting-month'}),
+ row('SPASULANCE',2026,1,120,1200,{coverage:'reporting-month'}),
+ row('SPASULANCE - Tender',2026,1,15,150,{comparison_product:'SPASULANCE',channel:'TENDER',coverage:'reporting-month'}),
+];
+const tenderSettings={years:[2025,2026],mode:'month',selected:[1],growthBasis:'calendar'};
+for(const metric of ['units','value']){
+ const regular=buildFocusComparison(tenderRows,{...tenderSettings,metric,scope:'product',product:'SPASULANCE'});
+ const tender=buildFocusComparison(tenderRows,{...tenderSettings,metric,scope:'product',product:'SPASULANCE - TENDER'});
+ assert.deepEqual(regular.cells.map(c=>c.sales.total),metric==='units'?[100,120]:[1000,1200]);
+ assert.deepEqual(tender.cells.map(c=>c.sales.total),metric==='units'?[10,15]:[100,150]);
+ assert.equal(regular.cells[1].ppg,20);assert.equal(tender.cells[1].ppg,50);
+ const company=buildFocusComparison(tenderRows,{...tenderSettings,metric,scope:'company'});
+ assert.deepEqual(company.composition.items.map(r=>r.name),['SPASULANCE','SPASULANCE - TENDER']);
+ assert.equal(company.cells[1].sales.total,regular.cells[1].sales.total+tender.cells[1].sales.total);
+ if(metric==='value')assert(Math.abs(regular.cells[1].share+tender.cells[1].share-100)<1e-9);
+}
+assert.equal(comparisonProduct({product:'Spasulance-Tender',comparison_product:'SPASULANCE'}),'SPASULANCE - TENDER');
+assert.equal(comparisonProduct({product:'SPASULANCE',comparison_product:'SPASULANCE',channel:'TENDER'}),'SPASULANCE - TENDER');
+assert.equal(comparisonProduct({product:'SPASULANCE - TENDER',channel:'TENDER'}),'SPASULANCE - TENDER');
+assert.equal(comparisonProduct({product:'SPASULANCE',channel:'HOSPITALS'}),'SPASULANCE','Hospitals are not inferred to be Tender');
+const noTenderBaseline=buildFocusComparison(tenderRows.slice(2),{...tenderSettings,metric:'units',scope:'product',product:'SPASULANCE - TENDER'});
+assert.equal(noTenderBaseline.cells[0].sales.total,null);assert.equal(noTenderBaseline.cells[1].ppg,null,'Regular sales cannot supply a missing Tender baseline');
 const rr=[row('A',2021,1,10,100),row('B',2021,1,20,300),row('A',2022,1,15,200),row('B',2022,1,25,600),row('A',2024,1,30,300),row('B',2024,1,40,700),row('A',2025,1,40,600),row('B',2025,1,50,900)];
 const settings={scope:'company',product:'A',metric:'units',years:[2021,2022,2024,2025],mode:'month',selected:[1],growthBasis:'calendar'};
 let m=buildFocusComparison(rr,settings);
