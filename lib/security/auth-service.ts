@@ -13,7 +13,7 @@ try {
     if (action === 'config') { const m = mode(env); let ready = m === 'platform'; if (m === 'standalone') { try { standalone(env); ready = true ;} catch { ready = false ;} } return response({ mode: m, ready, siteKey: ready && m === 'standalone' ? env.TURNSTILE_SITE_KEY : null, version: 30, registrationPolicy: registrationPolicy(env), ownerSetup: ownerSetup(env) }) ;}
     if (action !== 'me') throw new SecurityError(404, 'Not found.');
     if (mode(env) === 'platform') { const { principal } = await import('./guard'); const p = await principal(request, env); return response({ user: { id: p.id, email: p.email, name: p.name, role: p.role, status: p.status }, mode: 'platform', csrf: null }) ;}
-    const s = await readSession(request, env); return response({ user: { id: s.user.id, email: s.user.email, name: s.user.name, role: s.user.role, status: s.user.status }, mode: 'standalone', csrf: s.csrf, purpose: s.purpose, mfa: s.who.aal === 'aal2', mfaRequired: ['owner', 'admin'].includes(s.user.role) || s.who.requiresMfa });
+    const s = await readSession(request, env); return response({ user: { id: s.user.id, email: s.user.email, name: s.user.name, role: s.user.role, status: s.user.status }, mode: 'standalone', csrf: s.csrf, purpose: s.purpose, mfa: s.who.aal === 'aal2', mfaRequired: !['owner', 'admin'].includes(s.user.role) && s.who.requiresMfa });
   } catch (e) { return failure(e) ;}
 }
 export async function postAuth(request: Request, env: any, action: string) {  
@@ -51,11 +51,21 @@ let actor: string | null = null; try {
     const client = await sessionClient(env, s);
     if (action === 'password') {
       const pw = password(b.password); if (s.purpose !== 'recovery' && !b.currentPassword) throw new SecurityError(400, 'Enter your current password.');
-      if (s.purpose !== 'recovery') { const checked = await provider(env).auth.signInWithPassword({ email: s.user.email, password: b.currentPassword!, options: { captchaToken: b.captcha } }); if (checked.error) providerFailure(checked.error); if (['owner', 'admin'].includes(s.user.role) && s.who.aal !== 'aal2') throw new SecurityError(403, 'Two-factor verification required.') ;}
+      if (s.purpose !== 'recovery') { const checked = await provider(env).auth.signInWithPassword({ email: s.user.email, password: b.currentPassword!, options: { captchaToken: b.captcha } }); if (checked.error) providerFailure(checked.error); if (!['owner', 'admin'].includes(s.user.role) && s.who.requiresMfa && s.who.aal !== 'aal2') throw new SecurityError(403, 'Two-factor verification required.') ;}
       const { error } = await client.auth.updateUser({ password: pw, ...(s.purpose === 'recovery' ? {} : { current_password: b.currentPassword }) }); if (error) throw new SecurityError(400, 'Unable to change password. Check the password requirements.'); await revokeAll(env, s.user.id); try { await client.auth.signOut({ scope: 'global' }) ;} catch { } await event(env, s.user.id, 'password_changed'); return response({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
     }
     if (action === 'mfa-list') { const { data, error } = await client.auth.mfa.listFactors(); if (error) providerFailure(error); return response({ factors: data.totp.map(f => ({ id: f.id, status: f.status, friendly_name: f.friendly_name })) }) ;}
     if (action === 'mfa-enroll') { const { data, error } = await client.auth.mfa.listFactors(); if (error) providerFailure(error); if (data.totp.some(f => f.status === 'verified')) throw new SecurityError(409, 'Use your existing authenticator.'); const enrolled = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Nerhadou Commercial Hub' }); if (enrolled.error) providerFailure(enrolled.error); return response({ id: enrolled.data.id, secret: enrolled.data.totp.secret, uri: enrolled.data.totp.uri }) ;}
+    if (action === 'mfa-unenroll') {
+      if (s.who.aal !== 'aal2') throw new SecurityError(403, 'Verify your current authenticator before turning it off.', 'mfa_required');
+      if (s.created_at < Date.now() - 900000) throw new SecurityError(403, 'Verify your authenticator again before turning it off.', 'reauth_required');
+      if (!b.factorId) throw new SecurityError(400, 'Choose an authenticator.');
+      const { data, error } = await client.auth.mfa.listFactors(); if (error) providerFailure(error);
+      if (!data.totp.some(f => f.id === b.factorId && f.status === 'verified')) throw new SecurityError(404, 'Authenticator not found.');
+      const removed = await client.auth.mfa.unenroll({ factorId: b.factorId }); if (removed.error) providerFailure(removed.error);
+      await revokeAll(env, s.user.id); await event(env, s.user.id, 'mfa_disabled');
+      return response({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
+    }
     if (action === 'mfa-challenge') { if (!b.factorId) throw new SecurityError(400, 'Choose an authenticator.'); const { data, error } = await client.auth.mfa.challenge({ factorId: b.factorId }); if (error) providerFailure(error); return response({ challengeId: data.id }) ;}
     if (action === 'mfa-verify') {
       if (!b.factorId || !b.challengeId || !b.code) throw new SecurityError(400, 'Enter the authenticator code.'); const { data, error } = await client.auth.mfa.verify({ factorId: b.factorId, challengeId: b.challengeId, code: b.code }); if (error) providerFailure(error); const replacement = await createSession(env, data); await revoke(env, s.id); await event(env, s.user.id, 'mfa_verified'); return response({ ok: true }, 200, { 'Set-Cookie': replacement.cookie });

@@ -17,6 +17,9 @@ const limiter=env.AUTH_RATE_LIMITER.get('concurrent');const limited=await Promis
 const {privateKey,publicKey}=await generateKeyPair('ES256'),jwk={...await exportJWK(publicKey),kid:'test-key',alg:'ES256',use:'sig'};const userId='00000000-0000-4000-8000-000000000001',ownerId='00000000-0000-4000-8000-000000000002';let subjects=new Map(),tokens=new Map(),providerCalls=0;let fakeTime=Math.floor(Date.now()/1000);
 async function mint(id,email,aal='aal1',verified=true){const providerSession=crypto.randomUUID(),access=await new SignJWT({email,aal,session_id:providerSession}).setProtectedHeader({alg:'ES256',kid:'test-key'}).setSubject(id).setIssuer(env.SUPABASE_URL+'/auth/v1').setAudience('authenticated').setIssuedAt().setExpirationTime('1h').sign(privateKey),session={access_token:access,refresh_token:crypto.randomUUID(),expires_at:fakeTime+3600};tokens.set(access,{id,email,email_confirmed_at:verified?new Date().toISOString():null,user_metadata:{full_name:'<img src=x onerror=alert(1)>',role:'owner',status:'active'}});subjects.set(id,session);return session}
 const usedCodes=new Set();const originalFetch=globalThis.fetch;globalThis.fetch=async(input,init={})=>{providerCalls++;const req=input instanceof Request?input:new Request(input,init),url=new URL(req.url);if(url.pathname.endsWith('/jwks.json'))return Response.json({keys:[jwk]});if(url.pathname==='/auth/v1/user'&&req.method==='GET'){const who=tokens.get(req.headers.get('authorization')?.replace('Bearer ',''));return who?Response.json(who):Response.json({message:'Invalid token'},{status:401})}if(url.hostname==='challenges.cloudflare.com'){const b=await req.json();return Response.json({success:b.response==='test-verify'||b.response==='test-verify-recovery',hostname:'dashboard.test',action:b.response==='test-verify-recovery'?'verify-recovery':'verify'})}if(url.pathname==='/auth/v1/token'&&url.searchParams.get('grant_type')==='password'){const b=await req.json(),match=[...tokens.entries()].find(([,u])=>u.email===b.email);if(match&&['Correct login passphrase 2026!','A7!mQ2@z'].includes(b.password)&&b.gotrue_meta_security?.captcha_token==='test-valid'){const current=subjects.get(match[1].id);return Response.json({...current,token_type:'bearer',expires_in:3600,user:match[1]})}return Response.json({message:'Invalid login credentials',error_code:'invalid_credentials'},{status:400})}
+if(url.pathname.startsWith('/auth/v1/factors/')&&req.method==='DELETE'){const who=tokens.get(req.headers.get('authorization')?.replace('Bearer ','')),id=url.pathname.split('/').at(-1);if(!who?.factors?.some(f=>f.id===id))return Response.json({message:'Not found'},{status:404});for(const u of tokens.values())if(u.id===who.id)u.factors=u.factors?.filter(f=>f.id!==id);return Response.json({id})}
+if(url.pathname==='/auth/v1/user'&&req.method==='PUT'){const who=tokens.get(req.headers.get('authorization')?.replace('Bearer ',''));return who?Response.json(who):Response.json({message:'Invalid token'},{status:401})}
+if(url.pathname==='/auth/v1/logout'&&req.method==='POST')return new Response(null,{status:204});
 if(url.pathname==='/auth/v1/verify'){const b=await req.json(),key=b.email+':'+b.type+':'+b.token,match=[...tokens.entries()].find(([,u])=>u.email===b.email);if(match&&b.token==='123456'&&!usedCodes.has(key)){usedCodes.add(key);return Response.json({...subjects.get(match[1].id),token_type:'bearer',expires_in:3600,user:match[1]})}return Response.json({message:'Token expired',code:'otp_expired'},{status:403})}
 if(url.pathname==='/auth/v1/signup') { const b=await req.json(); if(['manual@nerhadou.com','setup-owner@nerhadou.com'].includes(b.email)&&b.gotrue_meta_security?.captcha_token==='test-valid'&&!([...tokens.values()].some(u=>u.email===b.email))) { const session=await mint(crypto.randomUUID(),b.email);return Response.json({...session,token_type:'bearer',expires_in:3600,user:tokens.get(session.access_token)}) } if(b.email==='needs-confirmation@nerhadou.com')return Response.json({user:{id:crypto.randomUUID(),email:b.email},session:null});return Response.json({message:'User already registered',code:'user_already_exists'},{status:422})};return Response.json({message:'Invalid credentials'},{status:400})};
 try{
@@ -36,7 +39,36 @@ try{
  result=await admin.usersPost(request('/api/admin/users',{id:ownerId,version:1,action:'make-viewer'},os),env);eq(result.status,403,'Owner cannot demote self');
  result=await admin.usersPost(request('/api/admin/users',{id:userId,version:2,action:'suspend'},os),env);eq(result.status,200,'Suspension saved');await assert.rejects(()=>guard.approved(request('/api/data',null,vs),env),e=>e.status===401);count++;
  result=await admin.usersPost(request('/api/admin/users',{id:userId,version:2,action:'approve'},os),env);eq(result.status,409,'Stale approval cannot overwrite suspension');
- const lowOwner=await store.createSession(env,await mint(ownerId,'owner@nerhadou.com','aal1'));eq((await admin.usersGet(request('/api/admin/users',null,lowOwner),env)).status,403,'Admin API enforces MFA server-side');
+ const lowOwner=await store.createSession(env,await mint(ownerId,'owner@nerhadou.com','aal1'));eq((await admin.usersGet(request('/api/admin/users',null,lowOwner),env)).status,200,'Owner without an enrolled factor can use admin API without MFA');
+ eq((await (await auth.getAuth(request('/api/auth/me',null,lowOwner),env,'me')).json()).mfaRequired,false,'Owner UI does not require enrollment');
+ eq(await edge.edgeGate(request('/index.html',null,lowOwner),env),null,'Password-only owner can open dashboard');
+ const optionalAdminId=crypto.randomUUID(),optionalAdminRaw=await mint(optionalAdminId,'optional-admin@nerhadou.com'),optionalAdmin=await store.createSession(env,optionalAdminRaw);
+ db.prepare("UPDATE app_users SET status='active',role='admin' WHERE id=?").run(optionalAdminId);
+ eq((await admin.usersGet(request('/api/admin/users',null,optionalAdmin),env)).status,200,'Administrator without an enrolled factor can use admin API');
+ eq((await (await auth.getAuth(request('/api/auth/me',null,optionalAdmin),env,'me')).json()).mfaRequired,false,'Admin UI does not require enrollment');
+ const factorId=crypto.randomUUID();tokens.get(optionalAdminRaw.access_token).factors=[{id:factorId,factor_type:'totp',status:'verified',friendly_name:'Optional authenticator'}];
+ eq((await admin.usersGet(request('/api/admin/users',null,optionalAdmin),env)).status,200,'Enrolled administrator is exempt from authenticator verification');
+ eq((await (await auth.getAuth(request('/api/auth/me',null,optionalAdmin),env,'me')).json()).mfaRequired,false,'Admin UI never requires authenticator verification');
+ eq((await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId},optionalAdmin),env,'mfa-unenroll')).status,403,'Password-only session cannot remove an enrolled factor');
+ const highAdminRaw=await mint(optionalAdminId,'optional-admin@nerhadou.com','aal2');tokens.get(highAdminRaw.access_token).factors=tokens.get(optionalAdminRaw.access_token).factors;
+ const highAdmin=await store.createSession(env,highAdminRaw);
+ eq((await admin.usersGet(request('/api/admin/users',null,highAdmin),env)).status,200,'Voluntarily enrolled admin can enter after verification');
+ eq((await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId},highAdmin,{'X-CSRF-Token':'bad'}),env,'mfa-unenroll')).status,403,'Disabling MFA requires CSRF');
+ db.prepare('UPDATE app_sessions SET created_at=? WHERE id=?').run(Date.now()-900001,highAdmin.id);
+ eq((await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId},highAdmin),env,'mfa-unenroll')).status,403,'Disabling MFA requires recent verification');
+ db.prepare('UPDATE app_sessions SET created_at=? WHERE id=?').run(Date.now(),highAdmin.id);
+ eq((await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId:crypto.randomUUID()},highAdmin),env,'mfa-unenroll')).status,404,'Cannot remove a factor outside the current account');
+ const mfaRecovery=await store.createSession(env,highAdminRaw,'recovery');eq((await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId},mfaRecovery),env,'mfa-unenroll')).status,403,'Recovery session cannot disable MFA');
+ const disable=await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId},highAdmin),env,'mfa-unenroll');eq(disable.status,200,'Verified admin can opt out of authenticator');ok(disable.headers.get('set-cookie').includes('Max-Age=0'),'Opt-out clears browser session');
+ eq(db.prepare('SELECT count(*) n FROM app_sessions WHERE user_id=? AND revoked_at IS NULL').get(optionalAdminId).n,0,'Opt-out revokes all application sessions');
+ eq(db.prepare("SELECT count(*) n FROM security_events WHERE actor=? AND event='mfa_disabled'").get(optionalAdminId).n,1,'Opt-out is audited');
+ const afterDisable=await store.createSession(env,await mint(optionalAdminId,'optional-admin@nerhadou.com'));eq((await admin.usersGet(request('/api/admin/users',null,afterDisable),env)).status,200,'Fresh password-only admin can enter after opt-out');
+ db.prepare('UPDATE app_sessions SET created_at=? WHERE id=?').run(Date.now()-900001,lowOwner.id);
+ const staleRole=await admin.usersPost(request('/api/admin/users',{id:optionalAdminId,version:1,action:'make-viewer'},lowOwner),env);eq(staleRole.status,403,'Old password-only owner must sign in again before changing roles');eq((await staleRole.json()).code,'reauth_required','Fresh-session requirement retained');
+ const freshPasswordOwner=await store.createSession(env,await mint(ownerId,'owner@nerhadou.com'));
+ eq((await admin.usersPost(request('/api/admin/users',{id:optionalAdminId,version:1,action:'make-viewer'},freshPasswordOwner),env)).status,200,'Fresh password-only owner can change roles');
+ const passwordOwner=await store.createSession(env,await mint(ownerId,'owner@nerhadou.com'));
+ eq((await auth.postAuth(request('/api/auth/password',{password:'A7!mQ2@z',currentPassword:'Correct login passphrase 2026!',captcha:'test-valid'},passwordOwner),env,'password')).status,200,'Owner without an enrolled factor can change password after current-password verification');
  const recovery=await store.createSession(env,raw,'recovery');await assert.rejects(()=>guard.approved(request('/api/data',null,recovery),env));count++;
  for(const url of ['/seed.json','/data.json','/private/seed.json','/assets/index.js.map'])eq((await edge.edgeGate(request(url),env)).status,404,'Sensitive static resource blocked: '+url);
  eq((await edge.edgeGate(request('/index.html'),env)).status,303,'Anonymous dashboard redirects to sign-in');eq(await edge.edgeGate(request('/auth/'),env),null,'Auth page available without sales access');
@@ -88,5 +120,18 @@ try{
  eq((await edge.edgeGate(request('/index.html',null,freshOwner),activeSetupEnv)).status,503,'Even active MFA Owner cannot load dashboard during setup');
  const closedEnv={...setupEnv,AUTH_OWNER_SETUP:'false'};eq((await (await auth.getAuth(request('/api/auth/config'),closedEnv,'config')).json()).ready,false,'Disabling enrollment restores full closure');
  eq((await (await auth.getAuth(request('/api/auth/config'),{...setupEnv,SESSION_ENCRYPTION_KEY:''},'config')).json()).ready,false,'Owner enrollment never bypasses missing encryption key');
+ // Bootstrap remains operator-only and identity-bound, without mandatory TOTP.
+ const bootstrapKeys=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','OWNER_USER_ID','OWNER_EMAIL'],savedBootstrapEnv=Object.fromEntries(bootstrapKeys.map(k=>[k,process.env[k]]));
+ const authFetch=globalThis.fetch,savedLog=console.log,bootstrapOutput=[];let bootstrapUser={id:ownerId,email:'owner@nerhadou.com',email_confirmed_at:new Date().toISOString(),factors:[]};
+ try{
+  Object.assign(process.env,{SUPABASE_URL:env.SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY:'test-service-key',OWNER_USER_ID:ownerId,OWNER_EMAIL:'owner@nerhadou.com'});
+  globalThis.fetch=async(input,init)=>{const req=input instanceof Request?input:new Request(input,init);assert.equal(new URL(req.url).pathname,'/auth/v1/admin/users/'+ownerId);return Response.json(bootstrapUser)};
+  console.log=value=>bootstrapOutput.push(value);
+  await import('../../scripts/bootstrap-owner.mjs?case=optional-totp');
+  ok(bootstrapOutput[0].includes("WHERE NOT EXISTS(SELECT 1 FROM app_users WHERE role='owner')"),'Password-only bootstrap preserves operator guard against a second owner');
+  ok(bootstrapOutput[0].includes('app_users.email=excluded.email'),'Password-only bootstrap preserves exact email guard');
+  bootstrapUser={...bootstrapUser,email:'someone-else@nerhadou.com'};
+  await assert.rejects(()=>import('../../scripts/bootstrap-owner.mjs?case=wrong-owner'),/Owner identity/);count++;
+ }finally{globalThis.fetch=authFetch;console.log=savedLog;for(const k of bootstrapKeys){if(savedBootstrapEnv[k]===undefined)delete process.env[k];else process.env[k]=savedBootstrapEnv[k]}}
  console.log(count+' security assertions passed: real SQLite, real ES256 signatures/JWKS, mocked provider HTTP, approval authorization, MFA, CSRF, revocation, data isolation, encryption and parallel throttling.');
 }finally{globalThis.fetch=originalFetch;db.close()}
