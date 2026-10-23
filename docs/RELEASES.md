@@ -3,6 +3,13 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V32 · UI02 — Compact breakdown and owner-only details
+
+- Approved Top 8 product and Top 6 line charts, shared Units/Value, sales/shortfall, and searchable/sortable full-detail dialog with Excel export and line drilldown. Percentages retain the full selected denominator.
+- Release history moves behind a server-authorized owner endpoint; technical revisions are owner-only. Business coverage warnings remain visible.
+- Preserves numeric editing, all-year line corrections, Tender identity and auth/import/Undo behavior. No sales writes, source changes, migrations or key changes.
+- See docs/UI02-HANDOFF.md. Automatic context-aware chart substitutions remain proposals, not part of this release.
+
 ## V32 · UI01 — Approved interface refresh
 
 - Applies the owner-approved Design Review 01 to the functional application: simplified sign-in branding and form, concise navigation/chart/import labels, disclosure-based help, lighter panels and tabs. Real authentication, approval, CAPTCHA, analytics, import previews and saves retain their handlers and server boundaries; the disconnected demo is not deployed as the application.

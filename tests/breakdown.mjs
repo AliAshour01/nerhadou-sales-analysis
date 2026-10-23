@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {breakdownModel,breakdownTop} from '../public/breakdown-core.js';
+import {effectiveRecords,snapshotFrom} from '../public/data-core.js';
+import {comparableSummary} from '../public/management-core.js';
+const row=(id,product,month,units,line='L1',more={})=>({id,product,month,units,value:units*10,line,dataset:'actual',year:2026,coverage:'reporting-month',channel:'PRIVATE',distributor:'D',...more});
+const targets=(product,units)=>({dataset:'target',year:2026,month:0,product,target_units:units*12,target_value:units*120});
+const records=[row('a','A',1,100),row('b','B',1,50),row('c','C',1,-10,'L2'),row('a2','A',2,200),targets('A',120),targets('B',40),targets('C',0)];
+const d={snapshot:{year:2026},months:[1],selection:{},targetBasis:'period'};
+let model=breakdownModel(records,d);assert.equal(model.total,140);assert.equal(model.rows.find(r=>r.name==='A').share,100/140*100);assert.equal(model.rows.find(r=>r.name==='C').actual,-10);assert.equal(model.rows.find(r=>r.name==='C').achievement,null);assert.equal(model.rows.find(r=>r.name==='C').gap,10);assert.equal(model.rows.find(r=>r.name==='B').gap,0);assert.equal(model.positiveGap,30);
+let top=breakdownTop(model,'gap');assert.deepEqual(top.items.map(r=>r.name),['A','C']);assert.equal(top.items[0].gapShare,20/30*100);
+const selected=breakdownModel(records,{...d,selection:{product:['A']}});assert.equal(selected.total,100);assert.equal(selected.rows[0].share,100);
+const annual=breakdownModel(records,{...d,targetBasis:'annual'});assert.equal(annual.rows.find(r=>r.name==='A').actual,100);assert.equal(annual.rows.find(r=>r.name==='A').target,1440);
+const missing=breakdownModel([...records,row('missing','Unknown',1,null)],d);assert.equal(missing.total,null);assert(missing.rows.every(r=>r.share===null));assert.equal(missing.rows.find(r=>r.name==='Unknown').actual,null);
+const split=breakdownModel([...records,row('a3','A',1,5,'L2')],{...d,selection:{line:['L1']}});assert.equal(split.rows.find(r=>r.name==='A').target,null,'Partial product line cannot borrow shared targets');
+const zero=breakdownModel([row('zero','Zero',1,0),targets('Zero',0)],d);assert.equal(zero.rows[0].actual,0);assert.equal(zero.rows[0].achievement,null);assert.equal(breakdownTop(zero).shown,1);
+const many=breakdownModel(Array.from({length:12},(_,i)=>row('x'+i,'P'+i,1,i+1)),d);assert.equal(breakdownTop(many,'sales',8).shown,8);assert.equal(many.rows.length,12,'Detail retains all products');assert.notEqual(breakdownTop(many,'sales',8).coverage,100,'Top shares are never renormalized');
+const tender=breakdownModel([row('t1','A',1,10),row('t2','A - Tender',1,20)],d);assert.equal(tender.rows.length,2);
+const seed=JSON.parse(fs.readFileSync('private/seed.json')),frozen=JSON.stringify(seed),all=effectiveRecords(seed),snapshot=snapshotFrom(seed),context={snapshot,months:snapshot.availableMonths,selection:{},targetBasis:'period'};
+for(const metric of ['units','value'])for(const dimension of ['product','line']){const m=breakdownModel(all,context,{metric,dimension});assert(m.total!=null);assert(Math.abs(m.total-comparableSummary(all,snapshot.year,context.months,metric).value)<.001);assert(Math.abs(m.rows.reduce((n,r)=>n+r.actual,0)-m.total)<.001);assert(Math.abs(m.rows.reduce((n,r)=>n+r.share,0)-100)<1e-6);assert.equal(breakdownTop(m,'sales',dimension==='line'?6:8).shown,Math.min(m.rows.length,dimension==='line'?6:8))}
+assert.equal(JSON.stringify(seed),frozen);
+console.log('Breakdown passed: exact source totals, top limits, full detail, selected denominator, signed/zero/unknown sales, target scope and basis, gap shares, Tender separation and immutable source.');

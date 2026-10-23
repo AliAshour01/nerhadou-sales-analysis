@@ -25,3 +25,6 @@ The user requires a clearly numbered version for every completed update so a pri
 - No default/admin-first-signup account or client metadata authorization. Check approval, provider identity, current role and revocation on the server. The owner explicitly chose AUTH_REGISTRATION_POLICY=admin_review for staging: no signup email confirmation; the administrator must verify the requester out of band. Provider auto-confirmation is not proof of mailbox ownership. Retain email_verified as the fallback policy.
 - Keep employee sign-in and all standalone data closed until external configuration and documented acceptance checks pass. Explicit AUTH_OWNER_SETUP=true permits only the configured Owner email to register/sign in and verify TOTP while AUTH_SETUP_VERIFIED stays false; it never grants workspace or administrative API access. Read docs/security before modifying auth, deployment or rollback.
 - Report incomplete tests and open dependency advisories accurately. Never describe a mock-provider test as a completed live penetration test.
+
+## Required change handoff
+For every implemented change, update docs/RELEASES.md and explain behavior, affected files, validation and limitations in the PR. Cross-module changes require a handoff document so another AI can continue without chat history. Record deployment evidence in the PR. A commit alone is not proof of deployment.
