@@ -38,7 +38,7 @@ function render(){
  document.querySelectorAll('[data-focus-metric]').forEach(b=>{const selected=b.dataset.focusMetric===metric;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});
  $('focus-product-label').hidden=state.scope!=='product';$('focus-through-label').hidden=state.mode!=='ytd';$('focus-month-picker').hidden=state.mode!=='month';$('focus-month-count').textContent=state.selected.size+' selected';
  $('focus-context').textContent=`${focusName()} · ${period()||'No months selected'} · ${years.length} year${years.length===1?'':'s'}`;
- $('comparison-revision').textContent='Revision '+payload.revision;
+ $('comparison-revision').textContent='Revision '+payload.revision;$('comparison-revision').setAttribute('data-owner-only','');$('comparison-revision').hidden=window.nerhadouSecurity?.me?.user?.role!=='owner';
  const message=!years.length?'Select one or more years above.':state.mode==='month'&&!state.selected.size?'Select at least one month.':state.scope==='product'&&!state.product?'Select a product to compare.':'';
  $('focus-empty').hidden=!message;$('focus-empty').textContent=message;$('focus-content').hidden=!!message;$('focus-export').disabled=!!message;
  if(message){model=null;modelKey='';return}
