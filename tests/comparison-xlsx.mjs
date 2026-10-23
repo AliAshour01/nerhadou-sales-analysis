@@ -1,0 +1,12 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+import {comparisonWorkbook} from '../public/comparison-xlsx.js';
+import {buildFocusComparison} from '../public/focus-comparison-core.js';
+import {effectiveRecords} from '../public/data-core.js';
+const seed=JSON.parse(fs.readFileSync('private/seed.json')),records=effectiveRecords(seed);
+const m=buildFocusComparison(records,{scope:'product',product:'ONDALENZ 8MG',metric:'value',years:[2021,2022,2023,2024,2025,2026],mode:'ytd',month:8,growthBasis:'calendar'});
+assert(m.cells[0].reason.includes('2020'));assert(m.cells[2].ppg!=null);assert(m.cells[3].ppg!=null);assert(m.cells[4].ppg!=null);
+const company=buildFocusComparison(records,{scope:'company',metric:'units',years:[2022],mode:'ytd',month:8,growthBasis:'calendar'});assert(company.cells[0].ppg!=null);assert.equal(company.cells[0].sales.ignored,7);
+const bytes=comparisonWorkbook(m,'YTD Jan–Aug');assert(bytes instanceof Uint8Array);assert.equal(new DataView(bytes.buffer).getUint32(0,true),0x04034b50);
+fs.writeFileSync('/workspace/scratch/0031b03e22a5/export-test-v15.xlsx',bytes);
+fs.writeFileSync('/workspace/scratch/0031b03e22a5/export-test-v15.json',JSON.stringify(m.cells.map(c=>({year:c.year,amount:c.sales.total,ppg:c.ppg==null?null:c.ppg/100,share:c.share==null?null:c.share/100,prior:c.priorYear}))));
+console.log('Export snapshot and year-specific PPG reasons verified; generated XLSX for independent reader check');

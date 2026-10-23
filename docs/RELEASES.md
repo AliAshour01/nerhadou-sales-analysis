@@ -1,0 +1,136 @@
+# Nerhadou Commercial Hub releases
+
+Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
+
+## Version 32 — Reconciled Actual identity and targets
+
+- Actual management analysis now uses source product identity, retaining Tender and pack variants separately like the original Actual table. Only case and whitespace differences are matched; the reviewed historical brand mapping remains explicitly confined to Historical comparison.
+- Each source product target resolves independently instead of rejecting multiple canonical target rows. Zero targets remain zero; achievement percentages are unavailable with a clear explanation. No target is allocated to distributor/channel subsets or shared source lines.
+- Sparse Current actual reports sum the numeric source rows while checking monthly company file coverage before dimension filters. No absent rows are created or assigned a zero, and explicit nulls / exclusions / unavailable reporting months still withhold totals.
+- Product aliases appear once in contribution bridges; unmatched contributions have an expandable named explanation. Hidden analysis tabs load when selected.
+- Full source reconciliation checks all 67 current source products, Units, Value, unit targets and value targets, against the original Actual snapshot and company totals. Tests also cover Tender isolation, sparse source rows, missing values, overrides and historical mapping separation.
+- Source sales files, shared overrides, authentication and independent Cloudflare deployment unchanged. See docs/analysis/V32-RECONCILIATION.md.
+
+## Version 31 — Management intelligence (private review)
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_9bfa51b78a308191979898938155d208`.
+- Source commit: `5be0371355d39e573e3986e660f112742b03d05b`.
+
+
+- Management summary with Units and Value PPG, measure-specific achievement and signed target gap. Explicit selected scope, coverage, estimates and latest saved timestamp.
+- Same-period product / line / distributor contribution bridges with exact total reconciliation. Missing or unmatched detail is a labelled residual, never an invented zero baseline. Historical bridge has an explicit pair of selected years.
+- Product/month Achievement or PPG heatmaps, source-line analysis, product detail dialog, monthly comparisons, distributor prior-year view, absolute-change product rankings and signed target variance.
+- Deterministic attention rules, account-scoped browser saved views, authenticated filter links, Excel detail exports and printable meeting reports. Common-month comparison is opt-in.
+- Monthly target schedules are honoured when explicitly supplied; otherwise the existing annual / 12 convention is retained. Targets are withheld for unallocated subsets and shared product lines.
+- Read-only run-rate scenario with prerequisites and explicit non-seasonal method. Stock / price-volume / IMS readiness explains unmet prerequisites; no unsupported market share, automatic stock coverage or causal conclusions.
+- Sources, imports, replacement, undo, roles and authentication are preserved. No live sales writes or independent Cloudflare deployment. Browser visual QA unavailable in this environment; calculation, DOM interaction and Worker checks are documented in docs/analysis/V31-REVIEW.md.
+
+## Version 30 — Owner-selected password policy
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_bdf281672e748191bb24a64c75cd4c83`.
+- Source commit: `85f9c7a22242cec0bdfc89c5fde9105ac2de727c`.
+
+
+- At the owner's explicit request: minimum 8 characters, at least one ASCII uppercase letter, digit and non-letter/non-number/non-whitespace symbol. Lowercase is not required.
+- Server validation applies to signup and password changes. Browser feedback mirrors the requirements; existing-account sign-in is not subjected to the new composition rules.
+- The provider's 72 UTF-8-byte upper bound remains, with plain-language errors. Common predictable prefixes remain rejected. This is a user-selected departure from the earlier 15-character policy, not a claim of NIST compliance.
+- Owner-only enrollment, CAPTCHA, MFA, pending approvals, workspace activation gate and sales data are unchanged. Align Supabase's minimum to 8; no paid feature is needed to enforce the BFF policy.
+
+## Version 29 — Controlled owner setup
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_82e6d21af6988191ba4a5a59f6c5fa8b`.
+- Source commit: `7daf7241cde22f56391a5ff9ff9f185c9d71f18d`.
+
+- Explicit `AUTH_OWNER_SETUP=true` enables account registration/sign-in and authenticator enrollment only for the exact configured Owner email while `AUTH_SETUP_VERIFIED=false`.
+- All workspace/static dashboard access and admin APIs remain closed, even for an active Owner with MFA; no role bootstrap or approval bypass.
+- Other emails are rejected before provider calls and during session identity validation. Direct provider signup can create no app data access.
+- Setup UI explains remaining activation and never displays an Open workspace link during setup. Existing platform mode and sales data remain unchanged.
+
+## Version 28 — Administrator-reviewed registration
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_4d2cdc91ac988191bcdb68efe28918b0`.
+- Source commit: `0dd788ea2fbe73d064106c32507b8b8a7cfc8ba7`.
+
+- Explicit `admin_review` staging policy: company email/password signup creates a pending viewer immediately, with no signup verification message. The administrator verifies employee identity out of band before approval.
+- Signup session is restricted to status/account security. Data remains denied until approved; no client role or auto-owner shortcut. Duplicate signup cannot replace an account.
+- Email signup verification/resend/recovery routes and application email notifications are disabled for this policy. Forgotten passwords require operator assistance for now; ordinary authenticated password changes remain available.
+- Provider confirmation settings mismatch fails closed. Email-confirmed timestamps under auto-confirm are technical provider state, not evidence of mailbox ownership.
+- Exact staging origin, dedicated D1 ID, Supabase URL and Owner email recorded in deployment preparation. Independent rollout remains closed pending configuration and acceptance; no sales data changed.
+
+## Version 27 — Secure access foundation
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_6be8f748857081918ce9908c63835a09`.
+- Source commit: `cce3b12fa0dba1b62efa9bd20a0265bfb7932f03`.
+
+- Server-private sales sources; unchanged source bytes and sales calculations. Worker-first static protection and consistent server authorization.
+- Standalone company signup/verification, pending approvals, role management, encrypted opaque sessions, MFA, CSRF, atomic throttling and recovery isolation.
+- Dedicated Supabase staging project created with a free creation quote; domain policy applied and tested. External SMTP, Turnstile, Cloudflare and owner bootstrap remain unconfigured; independent access is disabled until setup and acceptance tests pass.
+- Authentication design and Users & approvals are available on the current private Site; it retains platform authentication.
+- Source/runtime dependencies patched; remaining high build-time braces advisory documented as an external release blocker. No claim of completed external penetration testing.
+- Live revision-1 sales backup and exact restore reconciliation completed before deployment. See docs/security for evidence, prerequisites and operator instructions.
+
+## Version 26 — Navigation controls
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_1ed2eccee9148191aa7d932ac9fbf6a4`.
+- Source commit: `59a5a5b367c7c8cbf80ad6f45ef33064f4c24f0c`.
+- More filters dismisses on outside click or Escape; selections stay unchanged.
+- Fullscreen left-edge navigation overlays the dashboard, then hides when leaving. Menu button, keyboard access and Escape are supported in native fullscreen and expanded fallback.
+- No sales calculations, data or access changes.
+
+## Version 25 — Selected contribution
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_303c66223a148191ac317b3cce5e6b9e`.
+- Source commit: `d03299b54862ca28334e8d477e871cd1addd7368`.
+- Actual performance Breakdown: Leading products and Sales by line use total selected sales after all filters as the percentage denominator, in both Units and Value.
+- Labels and help text say % of selected. Target-gap shares, Portfolio and Historical comparison retain their existing meanings.
+- Missing totals and nonpositive net totals show no percentage; signed adjustments remain signed. No sales data changed.
+
+## Version 24 — Modern workspace (based on Version 22)
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_5c2b8a86ce908191a7bf3ddb054868b1`.
+- Source commit: `66c90fd35b234c7c7c471d46ae10b949b1c019bf`.
+- The active Version 22 feature set is retained; the rejected Version 23 Line intelligence features are not reintroduced.
+- Exact supplied official blue logo, with a professional light blue/navy theme, improved typography, cards, controls and tables.
+- Fullscreen control hides the sidebar and expands the content. Native fullscreen is requested when supported; expanded view remains available if the browser restricts fullscreen.
+- Exit button and Escape restore navigation; fullscreenchange handles browser-initiated exits.
+- Responsive mobile drawer, backdrop dismissal and page breadcrumbs retain existing navigation handlers.
+- No sales records, calculations, import semantics, targets, stock or permissions changed from Version 22.
+- Version 22 remains a saved rollback target. Version 23 remains separately saved but was rolled back at the user's request.
+
+## Version 23 — Line intelligence
+
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_14b7f3b966d48191966e7136927eaa60`.
+- Source commit: `d7dcc2f38d911f35dff3c932b2cc50e9aa414231`.
+- Rolled back to Version 22 at the user’s request before Version 24.
+
+- Visible Lines multi-select in Actual performance, with dependent Products options and explicit conflicting-filter handling.
+- Actual Lines tab: Units/Value, sales/target/achievement/company-share cards; ranked lines or products; monthly sales and monthly targets; signed distributor bars and suitable sales-type donut; observations and Excel tables.
+- Historical Line scope: any selected years, lines, matching periods and PPG baselines; sales, PPG, company contribution, monthly charts, bottom year tables and Excel.
+- Growth drivers for one line and two selected years; missing baselines stay unknown.
+- Historical Unassigned coverage and administrator-reviewed year/series line assignments; sources and sales amounts remain unchanged; updates are audited and reversible.
+- Target allocations are withheld when ambiguous; shared product targets are counted once. No automatic historical line allocation or alias merging.
+- Source sales and existing application data are not changed by this release.
+
+## Version 22 — Full replacement
+
+- Selected year/month sales replacement; remove omitted old sales from reporting, clear missing replacement metrics to unknown, retain targets and stock, atomic undo.
+- Source commit: `9b88bf4302ce5d1a29a5e4503ccef6b91c9fbdb3`.
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_fd98f7c2f43081918ca81df7c3865434`.
+
+## Version 21 — One import
+
+- Single paste or one CSV/TSV/TXT/JSON file; larger imports and no ZIP batches.
+- Source commit: `7c8e9f739b948b281df133cb98ae13cfbb4bcb1a`.
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_4454a0232ed48191837efddd94b16911`.
+
+## Version 20 — New series in import
+
+- Review and register previously unknown products/distributors/channels in the same transaction as their sales.
+- Source commit: `fd1639850b17650bd4b1a80cd253c4dc347bae0f`.
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_6ed129ae56848191be9afa3def387ff7`.
+
+## Version 19 — Dynamic sales updates
+
+- New month/year imports, old-period corrections, reversible reporting range, shared refresh and scalable audited storage.
+- Source commit: `04727adfbf14250c50d3fb3e00594a183d051e7e`.
+- Saved version: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_829fe8e205608191bb3363acc810ad8f`.

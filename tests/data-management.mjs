@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {effectiveRecords,previewImport,applyChanges,snapshotFrom} from '../public/data-core.js';
+const seed=JSON.parse(fs.readFileSync('private/seed.json')),base=seed.records.find(r=>r.year===2021&&r.month===1&&r.units>0),id=base.id;
+let count=0;const ok=(v,m)=>{assert(v,m);count++},eq=(a,b,m)=>{assert.deepEqual(a,b,m);count++};
+const p=(raw,o={})=>previewImport(raw,seed,o),wide=(u,v)=>`record_id,units,value\n${id},${u},${v}`;
+eq(p(wide('','')).changes.length,0,'Empty fields are no-op');
+eq(p(wide('0','')).changes[0].value,0,'Zero retained');
+eq(p(wide('123','')).changes.map(c=>c.metric),['units'],'Units-only update');
+eq(p(wide('','123')).changes.map(c=>c.metric),['value'],'Value-only update');
+eq(p(wide('CLEAR','')).changes[0].value,null,'Explicit clear');
+eq(p(wide('-5','')).changes[0].value,-5,'Negative signed adjustment');
+eq(p(wide('١٢٣','')).changes[0].value,123,'Arabic digits');
+eq(p(wide('"1,234.5"','')).changes[0].value,1234.5,'Quoted comma number');
+ok(p(wide('1,234','')).errors.length,'Unquoted comma rejected');
+ok(p(wide('abc','')).errors.length,'Bad number');
+ok(p(wide('1e5','')).errors.length,'Unnormalized scientific notation rejected');
+ok(p(wide('12%','')).errors.length,'Percentage rejected');
+ok(p(wide('Infinity','')).errors.length,'Nonfinite rejected');
+ok(p(wide('1','')+'\n'+id+',2,').errors.length,'Duplicate cell rejected');
+ok(p('record_id,units\nUNKNOWN,1').errors.length,'Unknown ID rejected');
+ok(p('record_id,unknown\n'+id+',1').errors.length,'Unknown column rejected');
+ok(p('record_id,units,actual_units\n'+id+',1,2').errors.length,'Duplicate alias headers rejected');
+ok(p('record_id,year,units\n'+id+',2022,1').errors.length,'Conflicting identity rejected');
+ok(p('record_id,stock\n'+id+',10').errors.length,'Wrong dataset metric rejected');
+eq(p('record_id\tunits\tvalue\n'+id+'\t50\t').changes[0].value,50,'Excel TSV');
+eq(p(JSON.stringify([{record_id:id,units:12,value:null}])).changes.length,1,'JSON null is no-op');
+eq(p(JSON.stringify({rows:[{record_id:id,value:5}]})).changes[0].value,5,'JSON envelope');
+ok(p('{bad json').errors.length,'Invalid JSON handled');
+ok(p('"record_id,units\n'+id+',1').errors.length,'Unclosed CSV quote handled');
+eq(p('record_id,metric,value\n'+id+',units,55').changes[0].metric,'units','Long metric format');
+eq(p('record_id,metric,value\n'+id+',actual_value,55').changes[0].metric,'value','Long alias');
+ok(p('record_id,metric,value\n'+id+',unknown,55').errors.length,'Invalid metric');
+eq(p(wide('-','')).changes.length,0,'Dash means omitted');
+const overrides=applyChanges({},p(wide('200','')).changes),effective=effectiveRecords(seed,overrides).find(r=>r.id===id);
+eq(effective.units,200,'Units persisted in override');eq(effective.value,200*seed.prices[base.series_id],'Estimate uses fixed source price');eq(effective.provenance.value,'estimated','Estimate labelled');
+const manual=applyChanges(overrides,p(wide('','999'),overrides).changes),changedUnits=applyChanges(manual,p(wide('300',''),manual).changes);
+eq(effectiveRecords(seed,changedUnits).find(r=>r.id===id).value,999,'Manual value survives units edit');
+const cleared=applyChanges(manual,p(wide('','CLEAR'),manual).changes);eq(effectiveRecords(seed,cleared).find(r=>r.id===id).value,null,'Clear overrides estimate');
+const reset=applyChanges(manual,p(wide('','RESET'),manual).changes);eq(effectiveRecords(seed,reset).find(r=>r.id===id).value,200*seed.prices[base.series_id],'Reset restores estimate');
+eq(p(wide('RESET','')).changes.length,0,'Reset without override no-op');
+const annual=seed.records.find(r=>r.series_id===base.series_id&&r.month===0);eq(effectiveRecords(seed,overrides).find(r=>r.id===annual.id).value,annual.value,'Annual control preserved');
+const newMonth=p(`product_id,year,month,dataset,units\n${base.product_id},2027,Jan,actual,5`);eq(newMonth.errors,[],'New period supported');eq(newMonth.changes[0].record.month,1,'New month recognized');
+const nm=effectiveRecords(seed,applyChanges({},newMonth.changes)).find(r=>r.year===2027);eq(nm.units,5,'New record units');eq(nm.value,5*seed.prices[base.series_id],'New period price estimate');
+const stock=p(`product_id,year,month,dataset,stock\n${base.product_id},2027,Jan,stock,500`);eq(stock.errors,[],'Stock snapshot accepted');ok(p(`product_id,year,month,dataset,stock\n${base.product_id},2027,FY,stock,500`).errors.length,'Annual stock aggregation rejected');
+for(const m of ['','13','-1','Jan 2021'])ok(p(`product_id,year,month,units\n${base.product_id},2021,${m},1`).errors.length,'Ambiguous or invalid month rejected');
+for(const y of ['','abc','1999','2101'])ok(p(`product_id,year,month,units\n${base.product_id},${y},Jan,1`).errors.length,'Invalid year rejected');
+ok(p('record_id,units\n'+Array.from({length:501},()=>id+',1').join('\n')).errors.length,'Batch bound enforced');
+const current=JSON.parse(fs.readFileSync('private/data.json')),snap=snapshotFrom(seed,{});
+for(const metric of ['units','value']){const a=current.rows.reduce((s,r)=>s+r[metric],0),b=snap.rows.reduce((s,r)=>s+r[metric],0);ok(Math.abs(a-b)<.01,'Grouped live totals preserved '+metric)}
+for(const [product,t] of Object.entries(current.targets)){ok(Math.abs(t.monthly-snap.targets[product].monthly)<.001,'Target units preserved');ok(Math.abs(t.price-snap.targets[product].price)<.001,'Target prices preserved')}
+for(const year of [2021,2022])for(const annual of seed.records.filter(r=>r.year===year&&r.month===0&&seed.prices[r.series_id]!=null)){
+ const monthly=seed.records.filter(r=>r.series_id===annual.series_id&&r.month>0),u=monthly.reduce((s,r)=>s+(r.units||0),0),v=monthly.reduce((s,r)=>s+(r.value||0),0);
+ if(Math.abs(u-annual.units)<.01)ok(Math.abs(v-annual.value)<.01,'Annual estimate reconciliation '+annual.id);
+}
+const bad2022=seed.records.find(r=>r.year===2022&&r.month===0&&r.product.toLowerCase().includes('spasulance')&&r.channel==='HOSPITALS');ok(seed.notes.some(n=>n.includes('4,784')&&n.includes('2,484')),'Source reconciliation exception surfaced');
+eq(seed.records.filter(r=>r.year===2023&&r.dataset==='actual'&&r.month>9).length,0,'2023 unresolved Q4 allocations withdrawn');
+const rows24=seed.records.filter(r=>r.year===2024&&r.dataset==='actual');for(const annual of rows24.filter(r=>r.month===0)){const ms=rows24.filter(r=>r.series_id===annual.series_id&&r.month>0);eq(ms.length,12,'2024 all months present');ok(Math.abs(ms.reduce((s,r)=>s+r.units,0)-annual.units)<.01,'2024 units reconcile');}
+eq(seed.records.filter(r=>r.year===2025&&r.dataset==='actual'&&r.units==null).length,0,'2025 latest source has complete actual units');
+const html=fs.readFileSync('public/index.html','utf8'),ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);eq(new Set(ids).size,ids.length,'Unique DOM IDs');
+console.log(count+' data-management assertions passed');

@@ -1,0 +1,38 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';import crypto from 'node:crypto';
+const source=fs.readFileSync('public/chrome.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/theme.css','utf8');
+function setup(mode='native'){
+ const listeners=new Map(),classes=new Set(),nodes=new Map(),body={classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){const next=on??!classes.has(x);next?classes.add(x):classes.delete(x);return next}}};let requests=0,exits=0;
+ function element(id){return {id,hidden:true,disabled:false,textContent:'',title:'',style:{},attrs:{},contains(target){return target===this||target?.parent===this},querySelectorAll(){return this.children||[]},querySelector(){return this.summary},focus(){this.focused=true;doc.activeElement=this},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,fn){(this.events??={})[k]=fn},click(){this.onclick?.();this.events?.click?.()}}}
+ for(const id of ['fullscreen-toggle','fullscreen-label','sidebar-toggle','nav-scrim','display-status','chrome-page-label','tooltip','workspace-sidebar','sidebar-edge','more-filters'])nodes.set(id,element(id));
+ const nav=['sales','comparison','upload'].map(page=>({...element('nav-'+page),dataset:{page},onclick(){this.originalCalled=true}}));
+ const doc={body,documentElement:{},fullscreenElement:null,getElementById:id=>{assert(nodes.has(id));return nodes.get(id)},querySelectorAll:()=>nav,addEventListener:(event,fn)=>{if(!listeners.has(event))listeners.set(event,[]);listeners.get(event).push(fn)}};
+ const emit=(name,event={})=>listeners.get(name)?.forEach(fn=>fn(event));
+ if(mode!=='unsupported')doc.documentElement.requestFullscreen=async()=>{requests++;if(mode==='denied')throw Error('Blocked in iframe');doc.fullscreenElement=doc.documentElement;emit('fullscreenchange')};
+ doc.exitFullscreen=async()=>{exits++;if(mode==='exit-denied')throw Error('Exit denied');doc.fullscreenElement=null;emit('fullscreenchange')};
+ vm.runInNewContext(source,{document:doc});return {doc,nav,nodes,classes,emit,counts:()=>({requests,exits}),get:id=>nodes.get(id)};
+}
+let s=setup();assert.equal(s.get('fullscreen-label').textContent,'Full screen');await s.get('fullscreen-toggle').onclick();assert(s.classes.has('is-expanded'));assert.equal(s.get('fullscreen-toggle').attrs['aria-pressed'],'true');assert.equal(s.get('fullscreen-label').textContent,'Exit full screen');assert.equal(s.counts().requests,1);await s.get('fullscreen-toggle').onclick();assert(!s.classes.has('is-expanded'));assert.equal(s.counts().exits,1);assert.equal(s.get('fullscreen-label').textContent,'Full screen');
+await s.get('fullscreen-toggle').onclick();s.doc.fullscreenElement=null;s.emit('fullscreenchange');assert(!s.classes.has('is-expanded'),'Browser Escape restores sidebar');
+for(const mode of ['denied','unsupported']){s=setup(mode);await s.get('fullscreen-toggle').onclick();assert(s.classes.has('is-expanded'),'Expanded fallback available: '+mode);assert.equal(s.get('fullscreen-label').textContent,'Exit expanded view');s.emit('keydown',{key:'Escape'});assert(!s.classes.has('is-expanded'));assert(s.get('fullscreen-toggle').focused)}
+s=setup('denied');s.get('sidebar-toggle').onclick();assert(s.classes.has('nav-open'));assert.equal(s.get('nav-scrim').hidden,false);s.emit('keydown',{key:'Escape'});assert(!s.classes.has('nav-open'));assert.equal(s.get('sidebar-toggle').attrs['aria-expanded'],'false');s.get('sidebar-toggle').onclick();s.nav[1].click();assert(s.nav[1].originalCalled,'Chrome does not overwrite app navigation handlers');assert(!s.classes.has('nav-open'));assert.equal(s.get('chrome-page-label').textContent,'Historical comparison');s.get('sidebar-toggle').onclick();s.get('nav-scrim').onclick();assert(!s.classes.has('nav-open'));s.get('sidebar-toggle').onclick();await s.get('fullscreen-toggle').onclick();assert(!s.classes.has('nav-open'),'Fullscreen closes mobile drawer');assert(s.classes.has('is-expanded'));
+s=setup('exit-denied');await s.get('fullscreen-toggle').onclick();await s.get('fullscreen-toggle').onclick();assert(s.classes.has('is-expanded'),'Failed native exit retains correct control state');assert(s.get('display-status').textContent.includes('Escape'));assert.equal(s.get('fullscreen-toggle').disabled,false);
+assert(css.includes('body.is-expanded.nav-peek #workspace-sidebar{transform:translateX(0)'));assert(css.includes('body.is-expanded main{margin-left:0;max-width:none'));assert(css.includes('@media(max-width:980px)'));assert(css.includes('prefers-reduced-motion'));assert(!html.includes('data-focus-scope="line"'),'Version 24 starts from Version 22 without rejected Line tab');assert(html.includes('management.js?v=32'));assert(html.includes('Version 32 · Reconciled actual figures'));assert(html.includes('logo.png?v=32'));
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');assert.equal(hash('public/logo.png'),'643cbd96dc6f59bb94491fb28fe89af4d7fdd7668256ec80ac5e5d5234068503','Official logo unchanged from the existing saved release');
+console.log('Workspace controls passed: native fullscreen, expanded fallback, Escape/restore, mobile drawer, navigation isolation, failed exit, responsive rules and exact supplied logo; Version 22 feature base preserved');
+
+for(const mode of ['native','denied']){
+ s=setup(mode);const edge=s.get('sidebar-edge'),side=s.get('workspace-sidebar'),more=s.get('more-filters'),child={open:true,parent:more};more.children=[child];more.summary={focus(){this.focused=true}};
+ assert(edge.hidden);s.emit('click',{target:{}});assert(!s.classes.has('nav-peek'),'Normal view ignores edge/outside dismissal');
+ more.open=true;s.emit('click',{target:child});assert(more.open,'Inside filters click retains panel');s.emit('click',{target:{}});assert(!more.open);assert(!child.open,'Nested menus close with More filters');
+ more.open=true;s.emit('keydown',{key:'Escape'});assert(!more.open);assert(more.summary.focused);
+ await s.get('fullscreen-toggle').onclick();assert(!edge.hidden);assert(side.inert,'Hidden navigation is excluded from keyboard focus');
+ edge.events.pointerenter();assert(s.classes.has('nav-peek'));assert(!side.inert);assert.equal(edge.attrs['aria-expanded'],'true');
+ side.events.pointerleave();assert(!s.classes.has('nav-peek'),'Leaving hover navigation dismisses it');
+ edge.events.pointerenter();s.emit('pointermove',{target:side});assert(s.classes.has('nav-peek'),'Pointer remains inside navigation');s.emit('pointermove',{target:{}});assert(!s.classes.has('nav-peek'),'Pointer in content dismisses navigation');
+ s.get('sidebar-toggle').onclick();assert(s.classes.has('nav-peek'),'Menu button supports touch');s.emit('keydown',{key:'Escape'});assert(!s.classes.has('nav-peek'));assert(s.classes.has('is-expanded'),'First Escape dismisses navigation without exiting expanded mode');
+ edge.events.focus();assert(s.classes.has('nav-peek'),'Edge keyboard focus reveals navigation');side.events.focusout({relatedTarget:{}});assert(!s.classes.has('nav-peek'));
+ s.get('sidebar-toggle').onclick();s.emit('click',{target:{}});assert(!s.classes.has('nav-peek'),'Outside click dismisses fullscreen navigation');
+ s.get('sidebar-toggle').onclick();s.nav[1].click();assert(!s.classes.has('nav-peek'));assert(s.nav[1].originalCalled);assert(s.classes.has('is-expanded'),'Navigation does not exit fullscreen');
+ await s.get('fullscreen-toggle').onclick();assert(!side.inert);assert(edge.hidden);assert(!s.classes.has('nav-peek'));
+}
+console.log('Version 26 controls passed: outside/inside filters, nested dismissal, Escape, hover edge, pointer departure, touch button, keyboard focus and fullscreen restoration.');

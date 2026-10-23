@@ -1,0 +1,1 @@
+CREATE INDEX `audit_changes_audit_id_idx` ON `audit_changes` (`audit_id`);

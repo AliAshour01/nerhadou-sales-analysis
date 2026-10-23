@@ -1,0 +1,18 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+import {effectiveRecords,previewImport,applyChanges,snapshotFrom,periodTemplate,previewReportingCutoff} from '../public/data-core.js';
+import {buildFocusComparison} from '../public/focus-comparison-core.js';
+const seed=JSON.parse(fs.readFileSync('private/seed.json')),initial=JSON.stringify(seed),current=seed.records.find(r=>r.dataset==='actual'&&r.year===2026&&r.month===1);
+let overrides={};
+function importRaw(raw){const p=previewImport(raw,seed,overrides);assert.deepEqual(p.errors,[]);overrides=applyChanges(overrides,p.changes);return p}
+const template=periodTemplate(seed,overrides,{sourceYear:2026,year:2026,month:9});assert(template.rows.length<=250);assert(template.total>=200);assert.equal(template.batches,1,'Current series fit in one 500-cell batch');
+const filled={...template.rows[0],units:17,value:1700};importRaw(JSON.stringify([filled]));assert(snapshotFrom(seed,overrides).availableMonths.includes(9));
+importRaw(`product_id,year,month,dataset,units,value\n${current.product_id},2026,12,actual,25,2500`);assert(snapshotFrom(seed,overrides).availableMonths.includes(12));
+let cutoff=previewReportingCutoff(seed,overrides,2026,6);assert(cutoff.hidden>0);for(const c of cutoff.changes){if(c.afterOverride)overrides[c.id]=c.afterOverride;else delete overrides[c.id]}
+let snap=snapshotFrom(seed,overrides,{year:2026});assert.deepEqual(snap.availableMonths,[1,2,3,4,5,6]);const hidden=effectiveRecords(seed,overrides,{includeExcluded:true}).filter(r=>r.excluded);assert(hidden.length>0);assert(hidden.some(r=>r.month===12&&r.units===25),'Cutoff retains values');
+cutoff=previewReportingCutoff(seed,overrides,2026,12);for(const c of cutoff.changes){if(c.afterOverride)overrides[c.id]=c.afterOverride;else delete overrides[c.id]}snap=snapshotFrom(seed,overrides,{year:2026});assert(snap.availableMonths.includes(12));assert.equal(snap.rows.find(r=>r.product===current.product&&r.month===12).units,25);
+const old=seed.records.find(r=>r.dataset==='actual'&&r.year===2025&&r.month===6&&r.units>0),before=buildFocusComparison(effectiveRecords(seed,overrides),{scope:'company',metric:'units',years:[2025],mode:'annual'}).cells[0].sales.total;
+importRaw(`record_id,units\n${old.id},${old.units+100}`);const after=buildFocusComparison(effectiveRecords(seed,overrides),{scope:'company',metric:'units',years:[2025],mode:'annual'}).cells[0].sales.total;assert(Math.abs(after-before-100)<.001,'Old-month correction updates full-year comparison');assert.equal(seed.records.find(r=>r.id===old.id).units,old.units,'Source control is unchanged');
+importRaw(`product_id,year,month,dataset,units,value\n${current.product_id},2027,1,actual,42,420`);snap=snapshotFrom(seed,overrides);assert.equal(snap.year,2027);assert(snap.availableYears.includes(2026));assert.equal(snap.targets[current.product],undefined);assert.equal(snap.rows[0].units,42);
+let m=buildFocusComparison(effectiveRecords(seed,overrides),{scope:'company',metric:'units',years:[2027],mode:'ytd',month:1});assert.equal(m.cells[0].sales.partial,false,'Future-year coverage follows reporting-month semantics');m=buildFocusComparison(effectiveRecords(seed,overrides),{scope:'company',metric:'units',years:[2027],mode:'annual'});assert.equal(m.cells[0].sales.partial,true,'One reported month is not a complete future year');
+assert.equal(JSON.stringify(seed),initial,'Audit never mutates original source');
+console.log('Dynamic update scenarios passed: month/year growth, batching, cutoff retention/restore, prior-month annual refresh, new-year targets and future-year coverage');
