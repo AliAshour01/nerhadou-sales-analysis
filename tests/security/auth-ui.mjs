@@ -21,7 +21,7 @@ async function setup(role, enrolled, verified, confirmRemoval = true) {
       let value;
       if (path.endsWith('/config')) value = { ready: true, mode: 'standalone', registrationPolicy: 'email_verified' };
       else if (path.endsWith('/me')) value = { user: { role, status: 'active', email: 'admin@nerhadou.com' },
-        mode: 'standalone', purpose: 'login', csrf: 'session-csrf', mfa: verified, mfaRequired: enrolled };
+        mode: 'standalone', purpose: 'login', csrf: 'session-csrf', mfa: verified, mfaRequired: enrolled && !['owner','admin'].includes(role) };
       else if (path.endsWith('/mfa-list')) value = { factors: [{ id: factorId, status: 'verified' }] };
       else if (path.endsWith('/mfa-unenroll')) value = { ok: true };
       else throw Error('Unexpected request: ' + path);
@@ -35,12 +35,13 @@ async function setup(role, enrolled, verified, confirmRemoval = true) {
   return { nodes, calls, redirects };
 }
 
-for (const role of ['owner', 'admin']) {
+for (const role of ['owner', 'admin', 'viewer']) {
   const plain = await setup(role, false, false);
   assert.equal(plain.nodes.get('open-dashboard').hidden, false, role + ' needs no enrollment');
   assert.equal(plain.nodes.get('mfa-disable').hidden, true);
   const enrolled = await setup(role, true, false);
-  assert.equal(enrolled.nodes.get('open-dashboard').hidden, true, 'Enrolled factor stays enforced');
+  assert.equal(enrolled.nodes.get('open-dashboard').hidden, role==='viewer', 'Only enrolled viewers require MFA');
+  assert.equal(enrolled.nodes.get('mfa-panel').hidden, role!=='viewer', 'Owner/admin authenticator controls are hidden');
   await enrolled.nodes.get('mfa-disable').onclick();
   assert(enrolled.nodes.get('form-message').textContent.includes('Verify your current authenticator'));
   assert.equal(enrolled.calls.filter(c => c.path.endsWith('/mfa-unenroll')).length, 0);
@@ -56,4 +57,4 @@ const cancelled = await setup('admin', true, true, false);
 await cancelled.nodes.get('mfa-disable').onclick();
 assert.equal(cancelled.calls.filter(c => c.path.endsWith('/mfa-unenroll')).length, 0);
 assert(html.includes('Optional for all accounts, including administrators.'));
-console.log('Auth UI passed: optional owner/admin enrollment, enrolled-factor gate, verified removal, CSRF and cancellation.');
+console.log('Auth UI passed: owner/admin MFA exemption, enrolled-viewer gate, verified removal, CSRF and cancellation.');

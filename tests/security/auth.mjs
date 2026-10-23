@@ -47,8 +47,8 @@ try{
  eq((await admin.usersGet(request('/api/admin/users',null,optionalAdmin),env)).status,200,'Administrator without an enrolled factor can use admin API');
  eq((await (await auth.getAuth(request('/api/auth/me',null,optionalAdmin),env,'me')).json()).mfaRequired,false,'Admin UI does not require enrollment');
  const factorId=crypto.randomUUID();tokens.get(optionalAdminRaw.access_token).factors=[{id:factorId,factor_type:'totp',status:'verified',friendly_name:'Optional authenticator'}];
- eq((await admin.usersGet(request('/api/admin/users',null,optionalAdmin),env)).status,403,'Enrolled administrator must still verify the factor');
- eq((await (await auth.getAuth(request('/api/auth/me',null,optionalAdmin),env,'me')).json()).mfaRequired,true,'UI reflects voluntary enrollment');
+ eq((await admin.usersGet(request('/api/admin/users',null,optionalAdmin),env)).status,200,'Enrolled administrator is exempt from authenticator verification');
+ eq((await (await auth.getAuth(request('/api/auth/me',null,optionalAdmin),env,'me')).json()).mfaRequired,false,'Admin UI never requires authenticator verification');
  eq((await auth.postAuth(request('/api/auth/mfa-unenroll',{factorId},optionalAdmin),env,'mfa-unenroll')).status,403,'Password-only session cannot remove an enrolled factor');
  const highAdminRaw=await mint(optionalAdminId,'optional-admin@nerhadou.com','aal2');tokens.get(highAdminRaw.access_token).factors=tokens.get(optionalAdminRaw.access_token).factors;
  const highAdmin=await store.createSession(env,highAdminRaw);
