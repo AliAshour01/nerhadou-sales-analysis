@@ -2,11 +2,12 @@
 
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
-## Pending deployment — Owner/admin authenticator exemption
+## Cloudflare Worker version 16 — Owner/admin authenticator exemption
 
 - Owner/admin accounts do not require authenticator verification even when a factor is already enrolled; their authenticator controls are hidden. Enrolled viewer accounts still require verification; removal revokes application sessions. Password changes and role changes remain protected by current-password / recent-session checks. No sales data, roles or production accounts were changed.
 - Base source: `f1828e345ac4b2a97177f6558b35c1b90bc1325a`, V32 analytics. Existing Cloudflare production version before this change: number **15**, ID `a58dee01-fab3-46fc-b44f-a5e361a65be5`, read from Cloudflare on 2026-10-23. GitHub main has a successful Workers Builds: sales check. Keep sales data independent of code rollback.
-- Deployment is authorized by the owner. Publish through a feature PR and the existing Cloudflare Builds pipeline; record the actual returned Worker version after success. No new Site version number is invented. The legacy Site-version instruction cannot be executed with the available tools; this repository currently deploys the independent Cloudflare Worker.
+- Published on 2026-10-23 with owner authorization: Cloudflare Worker version **16**, ID `91422aee-a370-4052-be0c-a9d6c865451f`, active at 100%. Deployed source commit: `57ce5f206e219129262c51b10b22761e6ee167e3`. The number comes from Cloudflare, not an invented Site sequence; the analytics UI retains V32 identity. PR #3 preserves the source change.
+- The Workers Builds check failed; its detailed logs were inaccessible with the available token. The validated local build was deployed directly using the documented Wrangler command. Post-deploy checks: auth page 200, anonymous data API 401, private source 404; the served auth JS contains the owner/admin exemption. Live authenticated account flows were not tested. Existing database, runtime variables/secrets, bindings and cron were preserved; no migrations/imports were run.
 - The preceding optional-enrollment patch passed all 17 suites. For this final role exemption, the 142 targeted authentication assertions, authentication UI check and production build passed; the broader suite was not rerun. Live provider unenrollment is not certified by the mocked provider tests.
 
 ## Version 32 — Reconciled Actual identity and targets
