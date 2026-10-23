@@ -1,6 +1,22 @@
-> **GitHub migration baseline: Version 32.** Read [GITHUB-MIGRATION.md](GITHUB-MIGRATION.md) first. Private source data is intentionally excluded and must be supplied before building or running data-dependent tests. This repository does not yet deploy automatically. The sections below include historical behavior; consult `docs/RELEASES.md` for subsequent changes within V32.
-
 # Nerhadou Sales Analysis
+
+Private company sales dashboard. Production: https://sales.nerhadou.workers.dev
+
+## Build and deploy
+
+- Install dependencies: `npm ci --include=dev --include=optional`
+- Configuration and baseline checks: `npm run check:deployment`
+- Production build: `npm run build`
+- Cloudflare deployment: `npx wrangler deploy --config dist/server/wrangler.json`
+
+Cloudflare Builds may use the existing `npm run build` and `npx wrangler deploy` commands. Vite writes the generated configuration redirect. Exact account, existing database, runtime preservation and private baseline handling are documented in [deployment/CLOUDFLARE-BUILDS.md](deployment/CLOUDFLARE-BUILDS.md).
+
+The repository must remain private: compressed server-side baseline sales are included as verified build inputs. Runtime secrets are held only in Cloudflare. Live sales edits stay in D1 and are separate from code deployment.
+
+## Historical implementation notes
+
+The following sections document earlier app releases and may describe superseded behavior. See `docs/RELEASES.md` and current code for V32 semantics. Source JSON files previously located in `public/` are now server-private.
+
 
 Private dashboard and shared data editor. Public HTML/JS preserves dashboard v7; Vinext routes protect edits and persist overrides in D1.
 

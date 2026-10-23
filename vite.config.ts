@@ -1,6 +1,13 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
-import hostingConfig from "./.openai/hosting.json";
+import { readFileSync } from "node:fs";
+import { deploymentConfig } from "./scripts/cloudflare-config.mjs";
+
+const standalone = process.env.NERHADOU_STANDALONE_BUILD === "1";
+const hostingConfig = standalone
+  ? { d1: null, r2: null }
+  : JSON.parse(readFileSync(new URL("./.openai/hosting.json", import.meta.url), "utf8"));
+const standaloneConfig = standalone ? deploymentConfig(process.env.NERHADOU_DEPLOYMENT_CONFIG) : null;
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
 import { connectorPreview } from "./build/connector-preview-plugin.mjs";
@@ -63,13 +70,13 @@ export default defineConfig(async ({ command }) => {
     },
     plugins: [
       vinext(),
-      sites({ mockAuth: !managedLinux }),
+      ...(standalone ? [] : [sites({ mockAuth: !managedLinux })]),
       connectorPreview(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
         config: {
-          ...localBindingConfig,
+          ...(standaloneConfig || localBindingConfig),
           ...(command === "serve"
             ? {
                 services: [
