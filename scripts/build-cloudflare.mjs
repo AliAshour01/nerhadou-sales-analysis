@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { deploymentConfig } from './cloudflare-config.mjs';
+import { materializeSources } from './source-baseline.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 process.chdir(root);
@@ -9,7 +10,11 @@ process.chdir(root);
 if (!process.env.NERHADOU_DEPLOYMENT_CONFIG && existsSync('deployment/runtime.json')) {
   process.env.NERHADOU_DEPLOYMENT_CONFIG = readFileSync('deployment/runtime.json', 'utf8');
 }
+if (!process.env.NERHADOU_DEPLOYMENT_CONFIG) {
+  process.env.NERHADOU_DEPLOYMENT_CONFIG = readFileSync('deployment/worker.production.json', 'utf8');
+}
 deploymentConfig(process.env.NERHADOU_DEPLOYMENT_CONFIG);
+materializeSources(root);
 for (const file of ['private/seed.json', 'private/data.json']) {
   if (!existsSync(file)) throw Error(`${file} is missing. Supply the protected original build input; do not generate substitute sales.`);
   JSON.parse(readFileSync(file, 'utf8'));

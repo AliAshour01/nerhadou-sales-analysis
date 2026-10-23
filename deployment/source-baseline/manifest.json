@@ -1,0 +1,14 @@
+{
+  "format": "nerhadou-source-baseline-v1",
+  "source_version": 32,
+  "files": {
+    "seed.json": {
+      "sha256": "77df866c0ef8253b9a32b9a241e643ebc7338d782bbcb6cf41097dc7c97f426f",
+      "bytes": 4511960
+    },
+    "data.json": {
+      "sha256": "08c68c0ba898f8b3e03cd68a4fd49eb88245deb35b5d422f5cef9433d1402084",
+      "bytes": 352333
+    }
+  }
+}

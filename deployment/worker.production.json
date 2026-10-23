@@ -1,0 +1,25 @@
+{
+  "name": "sales",
+  "account_id": "779017f931176fc4feefa3c69ef80304",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "keep_vars": true,
+  "upload_source_maps": false,
+  "vars": {
+    "AUTH_MODE": "standalone",
+    "AUTH_REGISTRATION_POLICY": "admin_review",
+    "AUTH_SETUP_VERIFIED": "true",
+    "AUTH_OWNER_SETUP": "false",
+    "APP_ORIGIN": "https://sales.nerhadou.workers.dev",
+    "OWNER_EMAIL": "ali.ashour@nerhadou.com"
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "nerhadou-hub-staging-db",
+    "database_id": "6453d359-6157-49d5-b6ff-f98d6efaed8a"
+  }],
+  "durable_objects": {"bindings": [{"name": "AUTH_RATE_LIMITER", "class_name": "AuthRateLimiter"}]},
+  "migrations": [{"tag": "security-v1", "new_sqlite_classes": ["AuthRateLimiter"]}],
+  "triggers": {"crons": ["*/10 * * * *"]}
+}
