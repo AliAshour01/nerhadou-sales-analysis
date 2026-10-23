@@ -2,6 +2,15 @@
 
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
+## V32 · UI01 — Approved interface refresh
+
+- Applies the owner-approved Design Review 01 to the functional application: simplified sign-in branding and form, concise navigation/chart/import labels, disclosure-based help, lighter panels and tabs. Real authentication, approval, CAPTCHA, analytics, import previews and saves retain their handlers and server boundaries; the disconnected demo is not deployed as the application.
+- Analytics/source identity remains V32; UI01 identifies this presentation revision independently of historical Sites version numbers. No Site version number is invented for this external GitHub release.
+- Base commit: c557b666f88822fbf91b8a25de0e7f5556cb80e4. Rollback is code-only; source sales and D1 records are unchanged.
+- Validation: production compilation and private artifact gate passed; all 17 validation suites passed, including 142 authentication assertions and 23 built-Worker assertions. Sign-in layout was visually checked with a local configuration stub; no real provider login was performed.
+- Deployment is pending verification of source parity with the owner's reported live data-management/line-editor update. Do not merge if doing so would overwrite that update.
+
+
 ## Cloudflare Worker version 16 — Owner/admin authenticator exemption
 
 - Owner/admin accounts do not require authenticator verification even when a factor is already enrolled; their authenticator controls are hidden. Enrolled viewer accounts still require verification; removal revokes application sessions. Password changes and role changes remain protected by current-password / recent-session checks. No sales data, roles or production accounts were changed.

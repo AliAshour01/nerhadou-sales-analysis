@@ -31,7 +31,7 @@ async function setup(role, enrolled, verified, confirmRemoval = true) {
   vm.runInContext(script, context);
   // Finish the config and session promises before inspecting rendered state.
   await new Promise(setImmediate);
-  assert.equal(nodes.get('form-title').textContent, 'Your workspace access');
+  assert.equal(nodes.get('form-title').textContent, 'Your account');
   return { nodes, calls, redirects };
 }
 
