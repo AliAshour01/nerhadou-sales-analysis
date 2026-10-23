@@ -1,7 +1,7 @@
 export const dynamic='force-dynamic';
 import {env} from 'cloudflare:workers';
 import seed from '../../../private/seed.json';
-import {previewImport,applyImport,previewReportingCutoff} from '../../../public/data-core.js';
+import {previewImport,applyImport,previewReportingCutoff,previewLineAssignments} from '../../../public/data-core.js';
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 import {approved,administrator} from '../../../lib/security/guard';
 import {body as boundedBody,failure,SecurityError} from '../../../lib/security/config';
@@ -17,7 +17,12 @@ export async function POST(request:Request){
  try{
   const body=await boundedBody(request,3000000),loaded=await readWorkspace(env.DB),s=loaded.state;if(body.sourceVersion!==seed.version)return json({error:'Source data changed. Reload the page and preview again.'},409);if(!Number.isInteger(body.revision)||body.revision!==s.revision)return json({error:'Data changed in another session. Reload and preview again.'},409);
   const before=loaded.overrides;let next,changes,note;
-  if(body.register){
+  if(body.lineAssignments){
+   let p;try{p=previewLineAssignments(seed,before,body.lineAssignments)}catch(e){return json({error:(e as Error).message},400)}
+   if(!p.changes.length)return json({error:'No line changes to save.'},400);
+   next=structuredClone(before);for(const c of p.changes){if(c.afterOverride===null)delete next[c.id];else next[c.id]=c.afterOverride}
+   changes=p.changes.map(c=>({id:c.id,beforeOverride:c.beforeOverride,afterOverride:c.afterOverride}));note=`Corrected lines for ${changes.length} source products across all years. Sales amounts unchanged.`;
+  }else if(body.register){
    const input=body.register;
    if(!input||typeof input!=='object')return json({error:'Invalid product details.'},400);
    const product=String(input.product??'').trim(),channel=String(input.channel||'NOT PROVIDED').trim(),distributor=String(input.distributor||'NOT PROVIDED').trim(),line=String(input.line||'Not provided').trim();
