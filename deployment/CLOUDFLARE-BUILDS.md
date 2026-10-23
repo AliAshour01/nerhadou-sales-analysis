@@ -27,7 +27,7 @@ The checked-in production configuration targets the company account, not the per
 
 ## Baseline data confidentiality
 
-`deployment/source-baseline/*.json.gz` is prepared locally and contains confidential, compressed server-side baseline sales. Upload to this PRIVATE repository is pending explicit owner authorization after the automatic review rejected the transfer. The GitHub build cannot complete until these inputs are available. Compression is not encryption. Keep this repository private and limit collaborator access. The build validates SHA-256 and restores exact original bytes into ignored `private/` files. The public asset directory never receives these input files. Live sales updates and approvals stay in the existing D1; they are not replaced by these baseline files.
+`deployment/source-baseline/*.json.gz` contains confidential, compressed server-side baseline sales in this PRIVATE repository. Compression is not encryption. Keep this repository private and limit collaborator access. The build validates SHA-256 and restores exact original bytes into ignored `private/` files. The public asset directory never receives these input files. Live sales updates and approvals stay in the existing D1; they are not replaced by these baseline files.
 
 Raw baseline hashes remain:
 - seed.json: 77df866c0ef8253b9a32b9a241e643ebc7338d782bbcb6cf41097dc7c97f426f

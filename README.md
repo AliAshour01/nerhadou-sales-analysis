@@ -11,7 +11,7 @@ Private company sales dashboard. Production: https://sales.nerhadou.workers.dev
 
 Cloudflare Builds may use the existing `npm run build` and `npx wrangler deploy` commands. Vite writes the generated configuration redirect. Exact account, existing database, runtime preservation and private baseline handling are documented in [deployment/CLOUDFLARE-BUILDS.md](deployment/CLOUDFLARE-BUILDS.md).
 
-The repository must remain private: compressed server-side baseline sales are prepared locally; their GitHub upload requires explicit owner authorization and is not yet complete. Runtime secrets are held only in Cloudflare. Live sales edits stay in D1 and are separate from code deployment.
+The repository must remain private: compressed server-side baseline sales are included as verified build inputs. Runtime secrets are held only in Cloudflare. Live sales edits stay in D1 and are separate from code deployment.
 
 ## Historical implementation notes
 

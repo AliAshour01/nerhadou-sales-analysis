@@ -21,7 +21,13 @@ for (const file of ['private/seed.json', 'private/data.json']) {
 }
 const env = { ...process.env, NERHADOU_STANDALONE_BUILD: '1' };
 const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url));
-for (const args of [[vite, 'build'], ['scripts/release-gate.mjs']]) {
+for (const args of [
+  ['--test', 'tests/cloudflare-config.mjs', 'tests/source-baseline.mjs'],
+  ['tests/management.mjs'],
+  [vite, 'build'],
+  ['scripts/release-gate.mjs'],
+  ['tests/security/worker.mjs'],
+]) {
   const result = spawnSync(process.execPath, args, { cwd: root, env, stdio: 'inherit' });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);

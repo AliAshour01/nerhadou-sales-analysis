@@ -6,6 +6,6 @@ The owner manually deployed and confirmed the renamed application on the existin
 
 The current changes complete source building for continuous deployment. See `deployment/CLOUDFLARE-BUILDS.md` for exact settings, provenance, verification and remaining live-build confirmation.
 
-Confidential server-side source baseline inputs have been prepared locally as compressed build inputs. Their GitHub upload is pending explicit owner authorization; the automatic approval review blocked it. They are not yet available in this repository. They are not encrypted, public assets, database backups or live overrides. Original bytes and hashes are unchanged. Runtime secrets and historical deployment archives remain excluded.
+Confidential server-side source baseline inputs are now included as compressed build inputs inside this PRIVATE repository to make builds reproducible. They are not encrypted, public assets, database backups or live overrides. Original bytes and hashes are unchanged. Runtime secrets and historical deployment archives remain excluded.
 
 Publishing this code does not reset/import/restore database records, account approvals or sessions. All remain attached to the same existing production D1 and runtime configuration.
