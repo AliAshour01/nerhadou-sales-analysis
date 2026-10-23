@@ -103,3 +103,22 @@ await saveFresh({undo:true});fresh=await (await api.GET(req('GET'))).json();eq(f
 eq((await api.POST(req('POST',{revision:fresh.revision,raw:replaceRaw,importOptions:{...replaceOptions,year:2026},confirmReplacement:true}))).status,400,'Server rejects out-of-scope replacement');
 eq((await api.POST(req('POST',{revision:fresh.revision,raw:`record_id,units,value\n${replaceRow.id},,`,importOptions:replaceOptions,confirmReplacement:true}))).status,400,'Empty replacement cannot wipe data');
 console.log(checks+' server assertions including confirmed full-year replacement and exact undo');
+
+// Line corrections share the same authorization, revision, atomic audit and Undo path.
+import {effectiveRecords as lineRecords} from '../public/data-core.js';
+fresh=await (await api.GET(req('GET'))).json();
+const lineBefore=structuredClone(fresh.overrides),lineProduct='SPASULANCE',newLine=seed.records.find(r=>r.dataset==='actual'&&r.product!==lineProduct&&r.line!=='G.I.T Line').line;
+const lineBody={lineAssignments:{assignments:[{product:lineProduct,line:newLine}]}};
+eq((await api.POST(req('POST',{revision:fresh.revision,...lineBody},{...headers,'oai-authenticated-user-email':'viewer@example.com'}))).status,403,'Viewer cannot reassign product lines');
+eq((await api.POST(req('POST',{revision:fresh.revision-1,...lineBody}))).status,409,'Stale line correction rejected');
+eq((await api.POST(req('POST',{revision:fresh.revision,lineAssignments:{assignments:[{product:lineProduct,line:'Unknown line'}]}}))).status,400,'Server validates dropdown line membership');
+await saveFresh(lineBody);
+let lineState=await (await api.GET(req('GET'))).json();
+const lineEffective=lineRecords(seed,lineState.overrides),lineOriginal=lineRecords(seed,lineBefore);
+eq(lineEffective.filter(r=>r.product===lineProduct).every(r=>r.line===newLine),true,'Saved correction applies to this source product in every year');
+eq(lineEffective.filter(r=>r.product==='SPASULANCE - Tender').map(r=>r.line),lineOriginal.filter(r=>r.product==='SPASULANCE - Tender').map(r=>r.line),'Tender retains its own line');
+eq(lineEffective.map(r=>[r.id,r.units,r.value,r.target_units,r.target_value,r.stock]),lineOriginal.map(r=>[r.id,r.units,r.value,r.target_units,r.target_value,r.stock]),'Line correction changes no sales, target or stock figure');
+const correctedSnapshot=await (await snapshotYear(2026)).json();eq(correctedSnapshot.rows.filter(r=>r.product===lineProduct).every(r=>r.line===newLine),true,'Dashboard snapshot receives corrected line');
+eq(lineState.audit[0].note.includes('across all years'),true,'Line correction recorded in shared audit');
+await saveFresh({undo:true});lineState=await (await api.GET(req('GET'))).json();eq(lineState.overrides,lineBefore,'One Undo exactly restores all original lines and numeric overrides');
+console.log(checks+' server assertions including persisted all-year line correction, authorization, audit and exact Undo');
