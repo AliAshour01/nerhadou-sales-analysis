@@ -1,6 +1,6 @@
 # V32 source preparation for GitHub
 
-Status: local V32 Git baseline prepared. GitHub account AliAshour01 is connected; the project repository has not yet been created. No deployment has been changed.
+Status: uploaded to the private repository https://github.com/AliAshour01/nerhadou-sales-analysis. All 184 source files were uploaded and the imported tree hash matched the prepared local source. No deployment has been changed.
 
 ## Provenance
 
@@ -20,9 +20,9 @@ This identifies the saved V32 source; it does not certify byte-for-byte equality
 
 ## Next steps
 
-1. Confirm GitHub access and create/select the private repository.
-2. Review staged paths and complete the credential/content scan before any push.
-3. Push this clean V32 baseline and keep the provenance in this document.
+1. Completed: GitHub access confirmed and private repository created.
+2. Completed: excluded private source files/archives and scanned common credential formats; this is not a full security audit.
+3. Completed: uploaded V32 source plus requested branding; provenance retained in this document.
 4. Separately verify the live standalone configuration and private build inputs before setting up CI/deployment.
 
 ## Unpublished branding update
