@@ -3,6 +3,12 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V32 · UI03 — Approved MagicPath visual polish
+
+- Applies the selected interactive design direction through public/polish.css: refined cobalt identity, featured sales card, readable typography, lighter panels, segmented controls, navigation and modest disclosure/tab motion. Reduced-motion preferences disable animation.
+- Existing data calculations, target policies, filters, chart renderers, exports and authorization retain their implementation. No demo numbers or MagicPath prototype code enter production.
+- Rollback: remove the added stylesheet reference and restore UI02 label; no database rollback. Includes shared comparison, data management, approvals, detail dialogs and authentication-page styling. Publication evidence is recorded in the pull request.
+
 ## V32 · UI02 — Compact breakdown and owner-only details
 
 - Approved Top 8 product and Top 6 line charts, shared Units/Value, sales/shortfall, and searchable/sortable full-detail dialog with Excel export and line drilldown. Percentages retain the full selected denominator.
