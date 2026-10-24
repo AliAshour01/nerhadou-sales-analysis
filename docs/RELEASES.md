@@ -3,6 +3,16 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V32 · UI05 — Professional interface refinement
+
+- Presentation-only layer appended to public/polish.css (cache label polish.css?v=ui05), plus icons for My account and Users & access in public/index.html and the footer label. No JavaScript, data, calculation, export, authorization or deployment configuration changed.
+- Header: Meeting report is the single primary action; Full screen and saved-view controls are secondary. Controls share one 40px field height, border, radius and chevron. Context line, period controls and data-status strip are unframed so the filter card is the only boxed control group.
+- Summary cards: values scale with the card (container query) and stay on one line, so "EGP 2,033,569,691" no longer wraps or breaks mid-number on narrow screens. Hover lift removed from non-interactive cards. Redundant all-caps eyebrow labels are hidden.
+- Tables: sticky header row and first column when scrolled, sentence-case headers, calmer row separators. Comparison year column no longer tinted. Small supporting text raised to AA contrast.
+- Mobile: saved-view and report actions use a two-column grid; section tabs scroll horizontally instead of clipping.
+- Validation: local preview with the repository's own source baseline, desktop 1440px and mobile 390px screenshots of Overview, Breakdown, Portfolio and Comparison, no console errors; automated suites listed in the pull request. Not run in this environment: management-ui, data-server, security suites (packages unavailable). No live-site or authenticated check was performed.
+- Rollback is application code only to UI04; no sales restore or migration. See UI05-HANDOFF.md.
+
 ## V32 · UI04 — Complete application visual refinement
 
 - Completes the approved direction with denser header/filter/reporting controls, readable supporting type, aligned summary cards, shared table and panel design across all existing sections and responsive layouts.
