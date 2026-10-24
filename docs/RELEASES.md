@@ -3,6 +3,13 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V32 · UI04 — Complete application visual refinement
+
+- Completes the approved direction with denser header/filter/reporting controls, readable supporting type, aligned summary cards, shared table and panel design across all existing sections and responsive layouts.
+- polish-motion.js animates only recreated summary cards, honoring reduced motion and never changing numeric text or underlying calculations. No mock figures, targets or demo actions are copied.
+- Existing analytics/export/auth handlers remain in use. Added Figma/Lovable connections are optional; this implementation requires no purchase or new subscription. All work and rollback remain in GitHub.
+- Rollback is application code only to UI03; no sales restore or migration. See UI04-HANDOFF.md for continuation.
+
 ## V32 · UI03 — Approved MagicPath visual polish
 
 - Applies the selected interactive design direction through public/polish.css: refined cobalt identity, featured sales card, readable typography, lighter panels, segmented controls, navigation and modest disclosure/tab motion. Reduced-motion preferences disable animation.
