@@ -49,50 +49,47 @@ h1, h2, h3 {
   color: transparent;
 }
 
-/* ---------- Sidebar: deep navy premium ---------- */
+/* ---------- Sidebar: warm pearl, original blue logo ---------- */
 #workspace-sidebar {
-  background:
-    radial-gradient(420px 240px at 20% 0%, rgba(47, 107, 255, 0.28), transparent 65%),
-    linear-gradient(178deg, #0b1a33 0%, #10254a 58%, #0d1f3e 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 12px 0 40px -18px rgba(8, 20, 45, 0.55);
+  background: linear-gradient(178deg, #faf9f6 0%, #f2f3f4 100%);
+  border-right: 1px solid #e1e5eb;
+  box-shadow: 10px 0 32px -24px rgba(16, 35, 63, 0.14);
 }
-
 #workspace-sidebar .brand {
   background: #ffffff;
+  border: 1px solid #e5e8ed;
   border-radius: 14px;
   padding: 12px 14px;
   margin: 4px 2px 20px;
-  box-shadow: 0 8px 22px -8px rgba(5, 14, 32, 0.55);
+  box-shadow: 0 3px 12px rgba(16, 35, 63, 0.04);
 }
-
 #workspace-sidebar .brand img {
+  display: block;
   width: 100%;
   max-width: 172px;
+  height: auto;
+  object-fit: contain;
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: normal;
 }
-
 #workspace-sidebar .nav {
-  color: #9db1d6;
+  color: #46566b;
   font-weight: 500;
   position: relative;
   border: 0;
 }
-
 #workspace-sidebar .nav:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e7eefc;
+  background: #e7edf5;
+  color: #193e7c;
   transform: translateX(3px);
 }
-
 #workspace-sidebar .nav.active {
   background: linear-gradient(120deg, #2f6bff 0%, #1d4ed8 60%, #1a44b8 100%);
   color: #ffffff;
   font-weight: 700;
-  box-shadow:
-    0 8px 20px -6px rgba(37, 99, 235, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: 0 6px 16px -8px rgba(37, 99, 235, 0.42);
 }
-
 #workspace-sidebar .nav.active::before {
   content: "";
   position: absolute;
@@ -102,28 +99,19 @@ h1, h2, h3 {
   width: 3.5px;
   border-radius: 0 4px 4px 0;
   background: linear-gradient(180deg, #d9ac4e, #b98a2e);
-  box-shadow: 0 0 10px rgba(217, 172, 78, 0.7);
 }
-
 #workspace-sidebar .side-bottom {
-  color: #e7eefc;
+  color: #263b55;
+  border-top-color: #dfe4eb;
 }
-
-#workspace-sidebar .side-bottom small {
-  color: #8ea3c8;
-}
-
+#workspace-sidebar .side-bottom small { color: #62738a; }
 #workspace-sidebar .avatar {
-  background: linear-gradient(135deg, #2f6bff, #16357f);
-  color: #fff;
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.14),
-    0 6px 14px -4px rgba(37, 99, 235, 0.6);
+  background: #e4ecfb;
+  color: #1d4ed8;
+  border: 1px solid #cddbf3;
+  box-shadow: none;
 }
-
-.account-link {
-  color: #9db1d6;
-}
+#workspace-sidebar .account-link { color: #46566b; }
 
 /* ---------- Header: glass bar ---------- */
 .app-header {

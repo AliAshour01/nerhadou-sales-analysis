@@ -3,6 +3,12 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V32 · UI05.1 — Light sidebar refinement
+
+- Preserves the latest premium redesign from a05d16dfebff7c80eab37bea687bec2d91197aae; changes only its sidebar palette to warm pearl/light grey, dark readable navigation labels and the existing blue active item.
+- Keeps the original logo on a white surface with explicit natural aspect ratio, full opacity and no filter/blending. Updates only premium.css cache token; no dashboard, data, auth or chart behavior changes.
+- Code-only rollback restores the prior sidebar section. Deployment evidence and validation are recorded in the PR.
+
 ## V32 · UI04 — Complete application visual refinement
 
 - Completes the approved direction with denser header/filter/reporting controls, readable supporting type, aligned summary cards, shared table and panel design across all existing sections and responsive layouts.
