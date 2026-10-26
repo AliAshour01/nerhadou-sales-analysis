@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';
 import {createBreakdown} from '../public/breakdown.js';import {effectiveRecords,snapshotFrom} from '../public/data-core.js';
-const nodes=new Map(),make=()=>({value:'',textContent:'',innerHTML:'',hidden:false,open:false,listeners:{},dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener(k,fn){this.listeners[k]=fn},querySelectorAll(){return []},showModal(){this.open=true},close(){this.open=false;this.listeners.close?.()},focus(){},click(){}});
+const nodes=new Map(),make=()=>({value:'',textContent:'',innerHTML:'',hidden:false,open:false,listeners:{},dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener(k,fn){this.listeners[k]=fn},closest(){return {parentElement:{hidden:false}}},querySelectorAll(){return []},showModal(){this.open=true},close(){this.open=false;this.listeners.close?.()},focus(){},click(){}});
 for(const m of fs.readFileSync('public/index.html','utf8').matchAll(/id="([^"]+)"/g))nodes.set(m[1],make());
+nodes.set('bd-full-chart',make());
 globalThis.document={getElementById:id=>{assert(nodes.has(id),id);return nodes.get(id)},activeElement:make(),createElement:()=>make()};
 const seed=JSON.parse(fs.readFileSync('private/seed.json')),records=effectiveRecords(seed),snapshot=snapshotFrom(seed),dashboard={snapshot,months:snapshot.availableMonths,selection:{},targetBasis:'period'};let opened;
 const ui=createBreakdown({read:()=>({records,dashboard,openProduct:name=>opened=name})});ui.render();const $=id=>nodes.get(id);
 assert($('breakdown-products-count').textContent.startsWith('Top 8 of '));assert($('breakdown-lines-count').textContent.startsWith('Top 6 of '));assert.equal(($('breakdown-products-chart').innerHTML.match(/data-bd-product=/g)||[]).length,8);
-$('bd-products-all').onclick();assert($('breakdown-detail').open);assert(($('bd-rows').innerHTML.match(/<tr>/g)||[]).length>8,'All products remain in detail');
+$('bd-products-all').onclick();assert($('breakdown-detail').open);assert(($('bd-full-chart').innerHTML.match(/data-bd-product=/g)||[]).length>8,'Expanded chart includes all products');assert(($('bd-rows').innerHTML.match(/<tr>/g)||[]).length>8,'All products remain in detail');
 $('bd-search').value='ONDALENZ';$('bd-search').oninput();assert($('bd-rows').innerHTML.includes('ONDALENZ'));assert(!$('bd-rows').innerHTML.includes('CALCITRON'));assert($('bd-detail-count').textContent.includes('selected sales'));
 $('breakdown-measure').onclick({target:{closest:()=>({dataset:{bdMetric:'value'}})}});assert($('bd-detail-context').textContent.includes('EGP'));assert.equal(ui.capture().metric,'value');
 $('breakdown-ranking').value='gap';$('breakdown-ranking').onchange();assert.equal($('breakdown-product-title').textContent,'Target shortfall');

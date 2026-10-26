@@ -139,5 +139,5 @@ window.actualDashboard={read:()=>D?({snapshot:D,months:periodMonths(),selection:
  for(const k of Object.keys(selection))selection[k]=new Set((Array.isArray(config.selection?.[k])?config.selection[k]:[]).filter(v=>filterOptions(k).includes(v)));
  periodMode=config.periodMode==='selected'?'selected':'ytd';targetBasis=config.targetBasis==='annual'?'annual':'period';
  const ms=(Array.isArray(config.months)?config.months:[]).filter(m=>Number.isInteger(m)&&m>=1&&m<=12);if(periodMode==='selected')selectedMonths=new Set(ms);else if(ms.length)$('period').value=String(Math.max(...ms));followLatestPeriod=false;render();
- const section=['overview','trends','breakdown','portfolio','movement','heatmap','lines'].includes(config.section)?config.section:'overview';showSection(section);}
+ const section=['overview','trends','breakdown','portfolio','movement','heatmap','forecast'].includes(config.section)?config.section:'overview';showSection(section);}
 };
