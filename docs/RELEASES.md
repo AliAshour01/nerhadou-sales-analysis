@@ -1,3 +1,13 @@
+# UI08 — approved V40 production release (2026-10-26)
+
+UI08 / approved V40: unified scoped KPIs and period/annual targets; guarded admin forecast; product overview and composition donuts; expanded Breakdown charts; monthly table year labels and local export. Production data/auth/config unchanged.
+
+Includes UI06–UI08 approved private previews. Source preview commit 69d12fb6b5a25c6af306de90dd7d011443b37075. Rollback application baseline: 1dfcc5ec839ec33071bc5be1c551f18a2fa06b0b. Revert application only, never database records. No migrations, seed edits, secret rotations, auth changes or forecast audience widening.
+
+Implementation: public/management.js, public/breakdown.js, public/ui06-preview.css; app.js section whitelist and index asset cache updates. Main KPI period targets are independent of global target basis; Breakdown/Portfolio retain local comparison control. Forecast is owner/admin, has cutoff selection; underlying run-rate/target math is unchanged. Full-year achievement is selected actual / annual target, not forecast. Product table hides Data status but coverage remains in notes/export context. See docs/UI06-PREVIEW.md for initial implementation history; newer UI08 supersedes old layout.
+
+Validation: preview DOM and calculation suites passed; production build and security/regression suites must pass before merging. Compare against latest main before future edits. No local mock review server included.
+
 # Nerhadou Commercial Hub releases
 
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.

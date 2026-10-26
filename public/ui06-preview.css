@@ -1,0 +1,20 @@
+#product-scope-chip{display:flex;align-items:center;gap:9px;width:fit-content;padding:7px 12px;margin:12px 0;background:#eaf1ff;border:1px solid #ceddf7;border-radius:20px;color:#234f95;font-size:12px}#product-scope-chip[hidden]{display:none}#product-scope-chip button{padding:0 4px;border:0;background:transparent;color:#234f95;font-size:18px}.forecast-method{margin:12px 0}.forecast-method summary{color:#245fc2;cursor:pointer;font-size:12px}.forecast-method p{font-size:12px;line-height:1.8;padding:12px;background:#f5f8fd;border-radius:8px}#view-forecast .projection-number{font-size:32px;font-weight:700;color:#193d73}#single-product-overview .drawer-heading{margin-bottom:16px}#single-product-overview .mini-kpis{margin:16px 0}
+
+/* V37: compact product timeline and readable composition donuts. */
+#single-chart>svg,#drawer-chart>svg{height:300px;max-height:300px;min-width:600px!important;width:100%;}
+#single-product-overview>.chart-grid,#product-drawer>.chart-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch;}
+.product-mix-donut{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);align-items:center;gap:18px;min-height:245px;}
+.product-mix-donut>svg{width:100%;height:auto;min-width:0;max-width:220px;}
+.product-mix-legend{list-style:none;margin:0;padding:0;display:grid;gap:15px;}
+.product-mix-legend li{display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:9px;font-size:12px;color:#34445d;}
+.product-mix-legend i{height:9px;width:9px;border-radius:50%;}.product-mix-legend strong{text-align:right;font-size:13px;font-variant-numeric:tabular-nums;}.product-mix-legend small{display:block;color:#718098;font-size:11px;font-weight:500;margin-top:3px;}
+@media(max-width:1150px){.product-mix-donut{grid-template-columns:1fr;gap:8px;}.product-mix-donut>svg{margin:auto;max-width:180px;}}
+@media(max-width:700px){#single-product-overview>.chart-grid,#product-drawer>.chart-grid{grid-template-columns:1fr;}#single-chart>svg,#drawer-chart>svg{height:245px;}}
+
+/* V39 unified performance and responsive analytics */
+#kpis{grid-template-columns:repeat(4,minmax(0,1fr));}.mini-kpis[hidden]{display:none!important;}#single-chart>svg,#drawer-chart>svg{min-width:600px!important;}.rate-chart{width:100%;height:auto;display:block;}#analysis-target-control{display:flex;align-items:center;gap:12px;margin:14px 0;}#analysis-target-control[hidden]{display:none!important;}.mini-kpis small{display:block;margin-top:8px;color:#63748b;font-size:11px;}.product-rate-grid{margin:18px 0;}.product-mix-legend span{overflow-wrap:anywhere;}#forecast-cutoff{padding:8px;border:1px solid #d5dfed;border-radius:8px;}@media(max-width:1000px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));}}@media(max-width:500px){#kpis{grid-template-columns:1fr;}#single-chart,#drawer-chart{overflow-x:auto;}}
+
+#company-rate-panels{grid-column:1 / -1;grid-template-columns:repeat(2,minmax(0,1fr));}#view-overview>.chart-grid>article:first-child{grid-column:1 / -1;}@media(max-width:700px){#company-rate-panels{grid-template-columns:1fr;}}
+
+/* V40 table actions and full chart detail */
+.monthly-table-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}.monthly-table-heading button{border:1px solid #cddded;border-radius:8px;padding:9px 14px;background:#f4f7ff;color:#245fa7;}#distributors{display:grid;grid-template-columns:minmax(170px,230px) minmax(0,1fr);align-items:center;gap:14px;}#distributors>svg{grid-row:1 / span 12;width:100%;}#distributors>button{min-width:0;}#view-overview .chart-grid:has(#distributors)>article:has(#distributors){grid-column:1 / -1;}#breakdown-detail{width:min(1400px,96vw);max-width:96vw;}#bd-full-chart{overflow:auto;max-height:65vh;}#bd-full-chart svg{display:block;min-width:740px;width:100%;}#bd-full-chart svg[aria-label*="lines"]{min-width:1000px;}@media(max-width:650px){#distributors{grid-template-columns:1fr;}#distributors>svg{grid-row:auto;max-width:220px;margin:auto;}}
