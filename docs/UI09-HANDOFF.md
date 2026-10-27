@@ -42,3 +42,6 @@ Replaced Target Achievement Forecast with Historical Seasonality Forecast: curre
 
 ## V52 — Breakdown measure placement and remove Heatmap
 Moved Breakdown Units/Value into the product card options immediately beside Sales / Target shortfall, wrapping together on narrow screens. Removed Heatmap navigation, section markup, rendering functions, delegated controls and saved UI state handling. Old Heatmap sections safely fall back to Overview (including saved views). No data/calculation changes.
+
+## V53 — independent Breakdown measures
+Product performance/Target shortfall retains its own metric; Sales by line now has a separate Units/Value control and model. Tooltips, View all, line drilldown and Excel export use the originating chart metric. Saved views persist lineMetric; legacy views fall back to their former shared metric. Header period no longer implies one shared measure.

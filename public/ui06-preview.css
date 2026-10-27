@@ -62,3 +62,6 @@
 /* V52: keep Breakdown measure beside its sales / target-shortfall selector. */
 #view-breakdown .bd-card:first-child>.bd-card-options{justify-content:flex-start;flex-wrap:wrap;gap:12px;}
 #breakdown-measure{flex:0 0 auto;}
+
+/* V53: each Breakdown chart has its own measure control. */
+#view-breakdown .bd-card>.bd-card-options{justify-content:flex-start;gap:12px;flex-wrap:wrap;}

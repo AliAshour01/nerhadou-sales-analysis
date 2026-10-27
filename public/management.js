@@ -1,4 +1,4 @@
-import {createBreakdown} from './breakdown.js?v=ui09-v49';
+import {createBreakdown} from './breakdown.js?v=ui09-v53';
 import {comparisonProduct} from './compare-core.js?v=32';
 import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=ui09-v51';
 import {tableWorkbook} from './comparison-xlsx.js?v=32';
