@@ -133,5 +133,6 @@ try{
   bootstrapUser={...bootstrapUser,email:'someone-else@nerhadou.com'};
   await assert.rejects(()=>import('../../scripts/bootstrap-owner.mjs?case=wrong-owner'),/Owner identity/);count++;
  }finally{globalThis.fetch=authFetch;console.log=savedLog;for(const k of bootstrapKeys){if(savedBootstrapEnv[k]===undefined)delete process.env[k];else process.env[k]=savedBootstrapEnv[k]}}
+ const listing=await (await admin.usersGet(request('/api/admin/users',null,freshOwner),env)).json();ok(listing.users.every(u=>'last_seen' in u&&'online_seen' in u),'Presence fields are server-derived');eq(listing.privilegedActions,false,'Privileged actions disabled without secret');const targetUser=listing.users.find(u=>u.role!=='owner'&&u.status==='active');for(const action of ['reset-link','delete-account'])eq((await admin.usersPost(request('/api/admin/users',{id:targetUser.id,version:targetUser.version,action},freshOwner),env)).status,503,'Missing privileged key fails closed: '+action);
  console.log(count+' security assertions passed: real SQLite, real ES256 signatures/JWKS, mocked provider HTTP, approval authorization, MFA, CSRF, revocation, data isolation, encryption and parallel throttling.');
 }finally{globalThis.fetch=originalFetch;db.close()}

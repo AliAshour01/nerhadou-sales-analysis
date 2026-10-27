@@ -5,7 +5,7 @@ import { csrf, sessionCookie } from './crypto';
 import { provider, providerFailure } from './provider';
 import { authLimits, limit } from './rate-limit';
 import { createSession, readSession, sessionClient, revoke, revokeAll, event } from './store';
-const input = z.object({ email: z.string().max(254).optional(), password: z.string().max(256).optional(), name: z.string().trim().min(2).max(120).optional(), captcha: z.string().min(1).max(2048).optional(), code: z.string().regex(/^\d{6,10}$/).optional(), factorId: z.string().uuid().optional(), challengeId: z.string().uuid().optional(), currentPassword: z.string().max(256).optional() }).strict();
+const input = z.object({ tokenHash:z.string().regex(/^[a-fA-F0-9]{40,128}$/).optional(), email: z.string().max(254).optional(), password: z.string().max(256).optional(), name: z.string().trim().min(2).max(120).optional(), captcha: z.string().min(1).max(2048).optional(), code: z.string().regex(/^\d{6,10}$/).optional(), factorId: z.string().uuid().optional(), challengeId: z.string().uuid().optional(), currentPassword: z.string().max(256).optional() }).strict();
 const generic = { message: 'If the details are eligible, check your company email for the next step.' };
 async function captcha(request: Request, env: any, token: string | undefined, action: string) { if (!token) throw new SecurityError(400, 'Complete the security check.', 'captcha_required'); const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: token, remoteip: request.headers.get('cf-connecting-ip') || undefined }), signal: AbortSignal.timeout(10000) }); if (!res.ok) throw new SecurityError(503, 'Security check unavailable.'); const data = await res.json() as any; if (!data.success || data.hostname !== new URL(origin(env)).hostname || data.action !== action) throw new SecurityError(400, 'Security check failed. Please retry.', 'captcha_failed') ;}
 export async function getAuth(request: Request, env: any, action: string) {  
@@ -20,6 +20,13 @@ export async function postAuth(request: Request, env: any, action: string) {
 let actor: string | null = null; try {
     standalone(env); assertOrigin(request, env);
     if (registrationPolicy(env) === 'admin_review' && ['recover', 'resend', 'verify', 'verify-recovery'].includes(action)) throw new SecurityError(409, 'Email recovery is not enabled. Contact the workspace administrator.', 'email_flow_disabled'); const parsed = input.safeParse(await body(request)); if (!parsed.success) throw new SecurityError(400, 'Invalid form details.'); const b = parsed.data;
+    if(action==='owner-recovery'){
+      await authLimits(request,env,action,b.tokenHash?.slice(0,24)||'invalid');if(!b.tokenHash)throw new SecurityError(400,'Invalid recovery link.');
+      const {data,error}=await provider(env).auth.verifyOtp({token_hash:b.tokenHash,type:'recovery'});
+      if(error||!data.session)throw new SecurityError(400,'This link expired or was already used. Contact the owner.');
+      const s=await createSession(env,data.session,'recovery');if(s.user.status!=='active') {await revokeAll(env,s.user.id);throw new SecurityError(403,'Account is inactive.');}
+      return response({ok:true},200,{'Set-Cookie':s.cookie});
+    }
     if (['signup', 'signin', 'recover', 'resend', 'verify', 'verify-recovery'].includes(action)) {
       const email = companyEmail(b.email); assertSetupEmail(env, email); await authLimits(request, env, action, email);
       if (['signup', 'signin', 'recover', 'resend'].includes(action)) {

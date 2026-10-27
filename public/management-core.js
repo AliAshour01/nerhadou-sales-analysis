@@ -52,11 +52,11 @@ export function commonAvailableMonths(records,years,requested,metric='units',fil
 export function runRateProjection(records,year,metric='units',filters={}){
  const months=Array.from({length:12},(_,i)=>i+1),sums=months.map(m=>comparableSummary(records,year,[m],metric,filters));
  const end=sums.findLastIndex(s=>s.value!=null)+1;
- if(end<3||end===12||sums.slice(0,end).some(s=>s.value==null))return {value:null,reason:'Needs at least three complete consecutive months from January and a remaining year period.'};
- const observed=sums.slice(0,end).reduce((n,s)=>n+s.value,0),last=sums.slice(end-3,end);
- if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Recent months contain negative net sales or estimated amounts; projection withheld.'};
- const monthly=last.reduce((n,s)=>n+s.value,0)/3;
- return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of the last 3 complete months × remaining months. No seasonality adjustment; scenario, not a commitment.'};
+ if(end<1||end===12||sums.slice(0,end).some(s=>s.value==null))return {value:null,reason:'Needs complete consecutive months from January and a remaining year period.'};
+ const observed=sums.slice(0,end).reduce((n,s)=>n+s.value,0),last=sums.slice(0,end);
+ if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; projection withheld.'};
+ const monthly=observed/end;
+ return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of all complete months from January through the selected cutoff × remaining months. No seasonality adjustment; scenario, not a commitment.'};
 }
 export function portfolioTarget(records,snapshot,product,chosen,metric,filters={},annual=false){
  const members=records.filter(r=>r.dataset==='actual'&&r.year===snapshot.year&&productKey(r.product)===productKey(product));

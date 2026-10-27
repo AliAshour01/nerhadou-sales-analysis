@@ -14,7 +14,7 @@ const newSeries=movement([...rows,row('C',2026,1,20,40)],{a:2025,b:2026,months:[
 const stock=[{dataset:'stock',year:2026,month:1,product:'A',distributor:'D1',channel:'PRIVATE',stock:30}];assert.equal(stockReadiness(stock,2026).ready,true);assert.equal(stockReadiness([...stock,...stock],2026).ready,false);
 const t={dataset:'target',year:2026,month:0,product:'A',target_units:1200,target_value:12000};const records=[...rows,t];assert.equal(portfolioTarget(records,{year:2026},'A',[1,2],'units'),200);assert.equal(portfolioTarget([...records,row('A',2026,1,20,20,{line:'L2'})],{year:2026},'A',[1],'units',{line:['L1']}),null,'No target allocated to partial line');
 const schedule=[{...t,month:1,target_units:40},{...t,month:2,target_units:70}];assert.equal(portfolioTarget([...rows,...schedule],{year:2026},'A',[1,2],'units'),110);assert.equal(portfolioTarget([...rows,...schedule],{year:2026},'A',[3],'units'),null);assert.equal(targetSum(records,{year:2026},['A','B'],[1],'units'),null,'Unknown product targets withhold total');
-const proj=runRateProjection([1,2,3].map(m=>row('A',2026,m,100,1000)),2026);assert.equal(proj.value,1200);assert.equal(runRateProjection([row('A',2026,1,100,1000)],2026).value,null);
+const proj=runRateProjection([1,2,3].map(m=>row('A',2026,m,100,1000)),2026);assert.equal(proj.value,1200);assert.equal(runRateProjection([row('A',2026,1,100,1000)],2026).value,1200);
 assert.equal(scopeRecords([row('Raw',2026,1,1,1,{comparison_product:'Canonical'})],{product:['Raw']}).length,1);assert.equal(scopeRecords([row('Raw',2026,1,1,1,{comparison_product:'Canonical'})],{product:['Canonical']}).length,0);
 const seed=JSON.parse(fs.readFileSync('private/seed.json')),real=effectiveRecords(seed);for(const metric of ['units','value']){const result=movement(real,{a:2025,b:2026,months:[1,2,3,4,5,6,7,8],metric});assert(result.delta!=null);assert(Math.abs(result.delta-result.items.reduce((s,r)=>s+r.delta,0))<.001)}
 const minimal={records:rows,prices:{},source:'test',version:1};const p=previewImport('record_id,units\nA-2026-1,170',minimal);assert.equal(p.errors.length,0);const override=applyImport({},p);assert.equal(comparableSummary(effectiveRecords(minimal,override),2026,[1],'units').value,350,'Manual changes flow through summaries');
@@ -50,3 +50,5 @@ if(process.argv[2]){
  }
  console.log(`Saved revision ${backup.tables.workspace_state.rows[0].revision}: ${products.length} products / ${snap.availableMonths.length} reporting months reconciled with overrides, including both targets.`);
 }
+
+assert.equal(runRateProjection([100,200,300,400,500].map((v,i)=>row('A',2026,i+1,v,v)),2026).value,3600,'YTD average includes every observed month');

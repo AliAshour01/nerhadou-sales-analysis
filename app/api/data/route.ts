@@ -3,15 +3,15 @@ import {env} from 'cloudflare:workers';
 import seed from '../../../private/seed.json';
 import {previewImport,applyImport,previewReportingCutoff,previewLineAssignments} from '../../../public/data-core.js';
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
-import {approved,administrator} from '../../../lib/security/guard';
+import {approved,owner} from '../../../lib/security/guard';
 import {body as boundedBody,failure,SecurityError} from '../../../lib/security/config';
 import {readWorkspace,auditRecordChanges,commitWorkspace} from '../../../lib/data-storage';
 export async function GET(request:Request){
  let actor;try{actor=await approved(request,env)}catch(e){return failure(e)}
- try{const loaded=await readWorkspace(env.DB),s=loaded.state;const audits=['owner','admin'].includes(actor.role)?await env.DB.prepare('SELECT id,revision,actor,created_at,note FROM audit_log WHERE revision<=? ORDER BY revision DESC LIMIT 30').bind(s.revision).all():{results:[]};const latest=s.last_change?await env.DB.prepare('SELECT created_at FROM audit_log WHERE id=?').bind(s.last_change).first() as any:null;return json({seed,overrides:loaded.overrides,revision:s.revision,updatedAt:latest?.created_at??null,isAdmin:['owner','admin'].includes(actor.role),audit:audits.results});}catch{return json({error:'Shared data is unavailable. Please retry.'},503)}
+ try{const loaded=await readWorkspace(env.DB),s=loaded.state;const audits=['owner','admin'].includes(actor.role)?await env.DB.prepare('SELECT id,revision,actor,created_at,note FROM audit_log WHERE revision<=? ORDER BY revision DESC LIMIT 30').bind(s.revision).all():{results:[]};const latest=s.last_change?await env.DB.prepare('SELECT created_at FROM audit_log WHERE id=?').bind(s.last_change).first() as any:null;return json({seed,overrides:loaded.overrides,revision:s.revision,updatedAt:latest?.created_at??null,isAdmin:actor.role==='owner',audit:audits.results});}catch{return json({error:'Shared data is unavailable. Please retry.'},503)}
 }
 export async function POST(request:Request){
- let actor;try{actor=await administrator(request,env,true)}catch(e){const result=failure(e);return result.status===401?json({error:'Only the administrator can edit data.'},403):result}
+ let actor;try{actor=await owner(request,env)}catch(e){const result=failure(e);return result.status===401?json({error:'Only the administrator can edit data.'},403):result}
  if(request.headers.get('origin')!==new URL(request.url).origin||!request.headers.get('content-type')?.includes('application/json'))return json({error:'Invalid request origin or content type.'},403);
  if(Number(request.headers.get('content-length')||0)>3000000)return json({error:'Import is too large.'},413);
  try{
