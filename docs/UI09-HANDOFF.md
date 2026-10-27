@@ -12,3 +12,6 @@ Core target math unchanged. Forecast math intentionally changed to average of AL
 
 ## V42 refinement
 KPI order: selected period Actual/Target/Achievement/Remaining-or-Above; second row Previous-year sales/PPG/Annual target/Annual achievement. Two visual headings, compact spacing and 21–30px figures. V% is an Actual Sales note for scoped filters, never replaces Previous-year Sales. PPG subtitle uses exact prior-year period (YTD cutoff or explicit selected months). No calculation/auth changes in this refinement.
+
+## V43 — identical company/product composition panels
+Company Distributor mix and Sales-type mix now use the same mixPanelsTemplate and productMixDonut renderer as the single-product overview/drawer. Both panels occupy equal columns with identical headings, spacing, SVG dimensions, legend styling and responsive stacking. Company-only visible measure/comparison controls removed from these panels; measure follows the dashboard metric. Legacy hidden controls retained for base renderer compatibility. No sales calculations or stored data changed.
