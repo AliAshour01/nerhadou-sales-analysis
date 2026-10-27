@@ -24,3 +24,6 @@ Extracted the existing company Monthly performance SVG generation unchanged into
 
 ## V46 — match monthly control layout
 Single-product/drawer monthly controls now place Units / EGP value and Actual + target / Add previous year together below the Monthly performance title and period caption, matching company order and compact sizing. No full-width prior-year strip.
+
+## V47 — section tabs, total row and Trends cleanup
+Monthly Total rows now carry an explicit total-row class; all cells including the sticky first label share the same background. Removed Planning tools & data readiness markup and its obsolete stock-readiness rendering/import. Sales section tabs now have larger 44px targets, clear borders and a blue selected state, visible keyboard focus and horizontal overflow on narrow screens. Data and calculations unchanged.
