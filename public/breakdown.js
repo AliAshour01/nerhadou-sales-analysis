@@ -15,7 +15,7 @@ export function createBreakdown({read,changed}){
   $('breakdown-ranking').value=mode;$('breakdown-context').textContent=period();
   $('breakdown-product-title').textContent=mode==='gap'?'Target shortfall':'Product performance';
   $('breakdown-target-note').textContent=mode==='gap'?'Target: '+(s.dashboard.targetBasis==='annual'?'full year':'selected period'):'';
-  drawProducts();drawLines();if(detail)renderDetail();
+  drawProducts();drawLines();if(detail){detail.metric=detail.line||detail.dimension==='line'?lineMetric:metric;detail.mode=detail.line||detail.dimension==='line'?'sales':mode;renderDetail()}
  }
  function drawProducts(modelOverride=null,destination='breakdown-products-chart',limit=8,chartMetric=metric,chartMode=mode){
   const model=modelOverride||models.product,top=breakdownTop(model,chartMode,limit),gap=chartMode==='gap';

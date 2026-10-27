@@ -68,3 +68,11 @@
 
 /* V55: persistent, understated attribution across dashboard pages. */
 main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a;font-size:11px;}main>footer .site-credit strong{font-weight:600;color:#45617f;}
+
+/* UI09 release: masked owner password editor. */
+.owner-password-dialog{width:min(440px,94vw);border:1px solid #d5dfed;border-radius:14px;padding:24px;color:#233653;}
+.owner-password-dialog::backdrop{background:#172d5080;}
+.owner-password-dialog label{display:block;margin:14px 0;font-size:12px;}
+.owner-password-dialog input{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #ccd8e8;border-radius:8px;}
+.owner-password-dialog p{font-size:12px;overflow-wrap:anywhere;}
+.owner-password-dialog form>div{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}

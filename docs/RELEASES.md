@@ -1,23 +1,11 @@
-# UI08 — approved V40 production release (2026-10-26)
-
-UI08 / approved V40: unified scoped KPIs and period/annual targets; guarded admin forecast; product overview and composition donuts; expanded Breakdown charts; monthly table year labels and local export. Production data/auth/config unchanged.
-
-Includes UI06–UI08 approved private previews. Source preview commit 69d12fb6b5a25c6af306de90dd7d011443b37075. Rollback application baseline: 1dfcc5ec839ec33071bc5be1c551f18a2fa06b0b. Revert application only, never database records. No migrations, seed edits, secret rotations, auth changes or forecast audience widening.
-
-Implementation: public/management.js, public/breakdown.js, public/ui06-preview.css; app.js section whitelist and index asset cache updates. Main KPI period targets are independent of global target basis; Breakdown/Portfolio retain local comparison control. Forecast is owner/admin, has cutoff selection; underlying run-rate/target math is unchanged. Full-year achievement is selected actual / annual target, not forecast. Product table hides Data status but coverage remains in notes/export context. See docs/UI06-PREVIEW.md for initial implementation history; newer UI08 supersedes old layout.
-
-Validation: preview DOM and calculation suites passed; production build and security/regression suites must pass before merging. Compare against latest main before future edits. No local mock review server included.
-
 # Nerhadou Commercial Hub releases
 
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
-## V32 · UI05.1 — Light sidebar refinement
+## UI09 production release — 28 October 2026
 
-- Preserves the latest premium redesign from a05d16dfebff7c80eab37bea687bec2d91197aae; changes only its sidebar palette to warm pearl/light grey, dark readable navigation labels and the existing blue active item.
-- Keeps the original logo on a white surface with explicit natural aspect ratio, full opacity and no filter/blending. Updates only premium.css cache token; no dashboard, data, auth or chart behavior changes.
-- Code-only rollback restores the prior sidebar section. Deployment evidence and validation are recorded in the PR.
+Publishes approved preview work through saved Site V55 (`appgprj_6acfda6514988191b70ce8587b602beb~appgver_d09d4e5f818c81919d444e582586aa85`, source `71c87140d8ccea95671ab0b4419f2236f1cb212c`). Includes compact/context-aware KPIs, shared monthly/mix renderers, independent chart metrics, combined Sales Analysis, new-activity Movement rules, seasonality forecast, fixed company email suffix and Powered by Ali Ashour attribution. See UI09-HANDOFF.md for per-update details. Adds owner-only masked password editor, server freshness/CSRF/role/version checks, session revocation and audit without credentials. Owner explicitly requested minimum six characters and no composition or predictable-password restrictions; 72 UTF-8 bytes remains a provider constraint. Provider Auth minimum/composition configuration must match; owner password editing additionally needs server-only SUPABASE_SERVICE_ROLE_KEY. These external settings are not implied by a successful build. No production user passwords are changed by deployment. No sales data or schema migration. Validation: standalone production build/private-artifact gate, 21 regression/security suites, 154 authentication assertions, 28 built-Worker assertions, and the new masked owner-password dialog tests passed. Provider HTTP is mocked in account tests; no live password was changed. Production deployment evidence will be appended after Cloudflare confirms it.
 
 ## V32 · UI04 — Complete application visual refinement
 
