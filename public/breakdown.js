@@ -1,7 +1,7 @@
 import {breakdownModel,breakdownTop} from './breakdown-core.js?v=ui02';
 import {tableWorkbook} from './comparison-xlsx.js?v=32';
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const n=v=>v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:2}),p=v=>v==null?'—':v.toFixed(1)+'%',short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+'K':n(v);
+const n=v=>v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:0}),p=v=>v==null?'—':v.toFixed(1)+'%',short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(0)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+'K':n(v);
 export function createBreakdown({read,changed}){
  const $=id=>document.getElementById(id);let metric='units',lineMetric='units',mode='sales',detail=null,returnFocus=null,sort='actual',descending=true,models={},context=null;
  const period=()=>{const d=read().dashboard,names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],end=Math.max(0,...d.months);if(!end)return 'No months selected';if(d.periodMode==='ytd'&&d.months.length===end&&d.months.every((m,i)=>m===i+1))return 'YTD '+names[end-1]+' '+d.snapshot.year;return d.months.map(m=>names[m-1]).join(', ')+' '+d.snapshot.year};

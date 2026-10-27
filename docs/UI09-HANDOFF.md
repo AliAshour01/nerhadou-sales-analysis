@@ -45,3 +45,6 @@ Moved Breakdown Units/Value into the product card options immediately beside Sal
 
 ## V53 — independent Breakdown measures
 Product performance/Target shortfall retains its own metric; Sales by line now has a separate Units/Value control and model. Tooltips, View all, line drilldown and Excel export use the originating chart metric. Saved views persist lineMetric; legacy views fall back to their former shared metric. Header period no longer implies one shared measure.
+
+## V54 — integer Breakdown display and single-product Sales Analysis
+Breakdown amount labels/tooltips now format whole numbers; compact millions have no decimal. Percentage precision and underlying calculations/Excel numeric cells remain intact. For exactly one selected product, Sales Analysis displays Trends, Movement and Portfolio as continuous sections with no nested tabs; company retains Trends, Movement and Breakdown, with separate Portfolio. Visibility responds to changing product scope while the combined page is open. Old single-product section links restore into Sales Analysis.
