@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {effectiveRecords,snapshotFrom,previewImport,applyImport} from '../public/data-core.js';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,targetSum,portfolioTarget,runRateProjection,stockReadiness,scopeRecords} from '../public/management-core.js';
+import {comparableSummary,changeBetween,movement,commonAvailableMonths,targetSum,portfolioTarget,runRateProjection,seasonalProjection,stockReadiness,scopeRecords} from '../public/management-core.js';
 const row=(product,year,month,units,value,extra={})=>({id:`${product}-${year}-${month}`,series_id:product,product,product_id:product,year,month,dataset:'actual',units,value,line:'L1',distributor:'D1',channel:'PRIVATE',coverage:'reporting-month',...extra});
 const rows=[row('A',2025,1,100,1000),row('A',2026,1,150,1800),row('B',2025,1,200,2000),row('B',2026,1,180,1800)];
 const model=movement(rows,{a:2025,b:2026,months:[1],metric:'units'});assert.equal(model.delta,30);assert.equal(model.items.reduce((s,r)=>s+r.delta,0),30);assert.equal(model.items.find(r=>r.name==='A').delta,50);assert.equal(model.items.find(r=>r.name==='B').delta,-20);
@@ -57,3 +57,14 @@ const tender=movement([...rows,row('A',2026,1,30,300,{channel:'TENDER'})],{a:202
 const launch=movement([...rows,row('A',2025,2,10,100),row('A',2026,2,10,100),row('C',2026,2,20,200)],{a:2025,b:2026,months:[1,2],metric:'units'});assert.equal(launch.items.find(r=>r.name==='C').current,20);assert.equal(launch.items.find(r=>r.name==='C').previous,0);
 const unknown=movement([...rows,row('C',2025,1,null,100),row('C',2026,1,20,200)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(unknown.delta,null,'Explicit null is not zero');
 assert.equal(movement(rows,{a:2025,b:2026,months:[1,2]}).delta,null,'Missing company month is not zero');
+
+// Seasonal method uses actual prior-year distribution, not targets.
+const seasonalRows=[...Array.from({length:12},(_,i)=>row('S',2025,i+1,i<9?100:75,1000)),...Array.from({length:9},(_,i)=>row('S',2026,i+1,120,1200))];
+const season=seasonalProjection(seasonalRows,2026,9);assert.equal(season.value,1350);assert.equal(season.share,.8);assert.equal(seasonalProjection(seasonalRows.filter(r=>!(r.year===2025&&r.month===12)),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows.map(r=>r.year===2025&&r.month===12?{...r,units:null}:r),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows.map(r=>r.year===2025&&r.month===12?{...r,provenance:{units:'estimated'}}:r),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows.filter(r=>r.year===2026),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows,2026,9,'units',{product:['MISSING']}).value,null);
+assert.equal(seasonalProjection(seasonalRows,2026,12).value,null);
+const realValueBridge=movement(real,{a:2025,b:2026,months:[1,2,3,4,5,6,7,8],metric:'value'});assert.equal(realValueBridge.unmatched.length,0);assert(!realValueBridge.items.some(r=>r.residual),'No rounding-only unavailable detail');
+console.log('Seasonality guardrails and floating-point reconciliation passed.');

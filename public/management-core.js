@@ -52,7 +52,8 @@ export function movement(records,{a,b,months,metric='units',dimension='product',
  items.sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta)||x.name.localeCompare(y.name));
  const residual=total.delta-items.reduce((n,r)=>n+r.delta,0);
  // Retain a residual only for genuinely unavailable detail or aggregate reconciliation.
- if(unmatched.length||Math.abs(residual)>1e-7)items.push({name:'Unmatched / unavailable detail',delta:residual,residual:true,unmatched});
+ const roundingTolerance=Math.max(1e-7,Number.EPSILON*Math.max(1,Math.abs(current.value),Math.abs(previous.value),items.reduce((n,r)=>n+Math.abs(r.delta),0))*32);
+ if(unmatched.length||Math.abs(residual)>roundingTolerance)items.push({name:'Unmatched / unavailable detail',delta:residual,residual:true,unmatched});
  return {a,b,current,previous,...total,items,unmatched,reason:null};
 }
 export function commonAvailableMonths(records,years,requested,metric='units',filters={}){
@@ -66,6 +67,16 @@ export function runRateProjection(records,year,metric='units',filters={}){
  if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; projection withheld.'};
  const monthly=observed/end;
  return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of all complete months from January through the selected cutoff × remaining months. No seasonality adjustment; scenario, not a commitment.'};
+}
+export function seasonalProjection(records,year,cutoff,metric='units',filters={}){
+ const fail=reason=>({value:null,reason});if(!Number.isInteger(cutoff)||cutoff<1||cutoff>=12)return fail('Choose an incomplete year with a YTD cutoff from January to November.');
+ const months=Array.from({length:12},(_,i)=>i+1),prior=months.map(m=>comparableSummary(records,year-1,[m],metric,filters)),current=months.slice(0,cutoff).map(m=>comparableSummary(records,year,[m],metric,filters));
+ const verified=s=>finite(s.value)&&s.value>=0&&!s.estimated&&!s.approximate&&!s.review;
+ if(current.some(s=>!verified(s)))return fail('Needs complete nonnegative actual sales from January through the cutoff; estimated or unverified amounts are excluded.');
+ if(prior.some(s=>!verified(s)))return fail('Needs a complete prior year for the same selection: 12 monthly actuals, without missing, estimated or unverified amounts. New products without a prior year cannot use this method.');
+ const priorFull=prior.reduce((n,s)=>n+s.value,0),priorYTD=prior.slice(0,cutoff).reduce((n,s)=>n+s.value,0),observed=current.reduce((n,s)=>n+s.value,0);
+ if(priorFull<=0||priorYTD<=0)return fail('Prior-year full sales and same-period YTD must both be positive.');
+ const share=priorYTD/priorFull;return {value:observed/share,observed,priorFull,priorYTD,share,priorYear:year-1,through:cutoff,reason:null,method:'Current YTD actual divided by the share of prior-year annual sales earned in the same months. Assumes the prior-year seasonal pattern repeats; exceptional tenders, launches or other one-off sales can distort the result. Scenario, not a commitment.'};
 }
 export function portfolioTarget(records,snapshot,product,chosen,metric,filters={},annual=false){
  const members=records.filter(r=>r.dataset==='actual'&&r.year===snapshot.year&&productKey(r.product)===productKey(product));

@@ -36,3 +36,6 @@ Hide global Compare against control on combined Sales Analysis (still available 
 
 ## V50 — owner-confirmed new sales rule in Movement
 Owner confirmed absent product/channel rows mean sales had not begun. Movement now counts absent rows as zero only when the company report covers all selected months and has no incomplete flag or unknown metric. Explicit null values, absent company months and unverifiable historical coverage stay unknown. New prior-zero/absent groups receive newSales/activity labels; table PPG shows New, never infinity. All deltas reconcile. Other comparison/forecast calculations remain unchanged.
+
+## V51 — seasonal forecast and rounding-only residual
+Replaced Target Achievement Forecast with Historical Seasonality Forecast: current YTD / (prior-year same-month actual / prior-year full-year actual). Same scope and cutoff, strict 12-month prior coverage, positive prior denominators, no missing/estimated/unverified/negative amounts; new products without history show a reason. Forecast tooltips disclose exceptional tender/launch sensitivity. Movement ignores only machine-precision residuals scaled to aggregate magnitude (EPSILON × scale × 32); genuine unmatched amounts remain. Verified bundled value residual was 0.0000011920928955078125 EGP with zero unmatched products.
