@@ -18,3 +18,6 @@ Company Distributor mix and Sales-type mix now use the same mixPanelsTemplate an
 
 ## V44 — independent mix measures
 Distributor mix and Sales-type mix each have their own Units/Value toggle in company, single-product and product drawer views. Shared renderMixChart uses independently validated distributorMetric/channelMetric state, retained in saved views. Both numerator and denominator use the chart-specific metric and current filters/months. KPI/global metric is unaffected.
+
+## V45 — shared company/product monthly renderer
+Extracted the existing company Monthly performance SVG generation unchanged into actualDashboard.monthlyChartHTML(data,metric). Company, single-product and drawer default views all call it: same columns, target markers, overachievement fill, axis, tooltips and legend. Product view supplies product-filtered actuals/monthly targets; optional previous-year mode retains the same pairedChart renderer used by company. Removed product-specific fixed 300px/600px SVG sizing. No stored data or target math changes.

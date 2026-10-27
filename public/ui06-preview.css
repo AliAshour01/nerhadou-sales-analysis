@@ -33,3 +33,7 @@
 
 /* V44: independent measure controls on each shared composition panel. */
 .mix-measure{margin:10px 0 12px}.mix-measure .control-group{display:inline-flex}
+
+/* V45: use company monthly column renderer and responsive sizing in product views. */
+#single-chart,#drawer-chart{overflow:visible;}
+#single-chart>svg,#drawer-chart>svg{width:100%;height:auto;max-height:none;min-width:0!important;display:block;}
