@@ -10,7 +10,7 @@ assert.equal(comparableSummary([...rows,row('A',2026,2,null,20)],2026,[1,2]).val
 assert.equal(comparableSummary(rows,2026,[1,2]).value,null,'Missing entire month is unknown');
 assert.equal(comparableSummary(rows,2026,[]).value,null);
 assert.deepEqual(commonAvailableMonths([...rows,row('A',2026,2,3,30)], [2025,2026],[1,2]),[1]);
-const newSeries=movement([...rows,row('C',2026,1,20,40)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(newSeries.delta,50);assert.equal(newSeries.items.find(r=>r.residual).delta,20);assert(newSeries.items.find(r=>r.residual).unmatched.includes('C'),'Absent prior product is never a zero baseline');
+const newSeries=movement([...rows,row('C',2026,1,20,40)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(newSeries.delta,50);assert.equal(newSeries.items.find(r=>r.name==='C').delta,20);assert.equal(newSeries.items.find(r=>r.name==='C').newSales,true);assert.equal(newSeries.items.find(r=>r.name==='C').ppg,null);assert.equal(newSeries.unmatched.length,0);
 const stock=[{dataset:'stock',year:2026,month:1,product:'A',distributor:'D1',channel:'PRIVATE',stock:30}];assert.equal(stockReadiness(stock,2026).ready,true);assert.equal(stockReadiness([...stock,...stock],2026).ready,false);
 const t={dataset:'target',year:2026,month:0,product:'A',target_units:1200,target_value:12000};const records=[...rows,t];assert.equal(portfolioTarget(records,{year:2026},'A',[1,2],'units'),200);assert.equal(portfolioTarget([...records,row('A',2026,1,20,20,{line:'L2'})],{year:2026},'A',[1],'units',{line:['L1']}),null,'No target allocated to partial line');
 const schedule=[{...t,month:1,target_units:40},{...t,month:2,target_units:70}];assert.equal(portfolioTarget([...rows,...schedule],{year:2026},'A',[1,2],'units'),110);assert.equal(portfolioTarget([...rows,...schedule],{year:2026},'A',[3],'units'),null);assert.equal(targetSum(records,{year:2026},['A','B'],[1],'units'),null,'Unknown product targets withhold total');
@@ -52,3 +52,8 @@ if(process.argv[2]){
 }
 
 assert.equal(runRateProjection([100,200,300,400,500].map((v,i)=>row('A',2026,i+1,v,v)),2026).value,3600,'YTD average includes every observed month');
+
+const tender=movement([...rows,row('A',2026,1,30,300,{channel:'TENDER'})],{a:2025,b:2026,months:[1],metric:'units',filters:{channel:['TENDER']}});assert.equal(tender.delta,30);assert.equal(tender.items[0].activity,'New channel');
+const launch=movement([...rows,row('A',2025,2,10,100),row('A',2026,2,10,100),row('C',2026,2,20,200)],{a:2025,b:2026,months:[1,2],metric:'units'});assert.equal(launch.items.find(r=>r.name==='C').current,20);assert.equal(launch.items.find(r=>r.name==='C').previous,0);
+const unknown=movement([...rows,row('C',2025,1,null,100),row('C',2026,1,20,200)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(unknown.delta,null,'Explicit null is not zero');
+assert.equal(movement(rows,{a:2025,b:2026,months:[1,2]}).delta,null,'Missing company month is not zero');

@@ -33,3 +33,6 @@ Company/multi-product navigation consolidates Trends, Movement and Breakdown int
 
 ## V49 — Sales Analysis refinements
 Hide global Compare against control on combined Sales Analysis (still available in Portfolio); remove redundant injected Breakdown heading. Breakdown captions use YTD cutoff for contiguous YTD, retaining explicit months for noncontiguous selections. Movement bridge now allocates 144px per category with 14-character label wrapping, including long tokens; full names remain in keyboard/hover tooltips. Preserve residual reconciliation and missing-versus-zero behavior.
+
+## V50 — owner-confirmed new sales rule in Movement
+Owner confirmed absent product/channel rows mean sales had not begun. Movement now counts absent rows as zero only when the company report covers all selected months and has no incomplete flag or unknown metric. Explicit null values, absent company months and unverifiable historical coverage stay unknown. New prior-zero/absent groups receive newSales/activity labels; table PPG shows New, never infinity. All deltas reconcile. Other comparison/forecast calculations remain unchanged.

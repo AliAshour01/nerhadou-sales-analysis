@@ -31,18 +31,27 @@ export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
 }
+// Owner-confirmed sparse sales rule, scoped to Movement: absent rows mean no activity
+// only when the complete company report covers every selected month. Explicit nulls stay unknown.
+function movementSummary(records,year,months,metric,filters){
+ const s=comparableSummary(records,year,months,metric,filters);if(s.value!=null||!months.length)return s;
+ const company=comparableSummary(records,year,months,metric,{}),report=records.filter(r=>r.dataset==='actual'&&r.year===year&&months.includes(r.month));
+ if(company.value==null||months.some(m=>!report.some(r=>r.month===m))||report.some(r=>r.reportingIncomplete))return s;
+ const rows=scopeRecords(report,filters);if(rows.some(r=>!finite(r[metric])))return s;
+ return {...s,rows,value:rows.reduce((n,r)=>n+r[metric],0),partial:false,reason:null,absentIsZero:true};
+}
 export function movement(records,{a,b,months,metric='units',dimension='product',filters={}}){
- const scoped=scopeRecords(records,filters),current=comparableSummary(records,b,months,metric,filters),previous=comparableSummary(records,a,months,metric,filters);
+ const scoped=scopeRecords(records,filters),current=movementSummary(records,b,months,metric,filters),previous=movementSummary(records,a,months,metric,filters);
  const total=changeBetween(current,previous);
  if(total.delta==null)return {a,b,current,previous,...total,items:[],reason:`${a}: ${previous.reason||'available'}; ${b}: ${current.reason||'available'}`};
  const candidates=scoped.filter(r=>r.dataset==='actual'&&[a,b].includes(r.year)&&months.includes(r.month)).sort((x,y)=>(x.year===b)-(y.year===b)),names=[...new Map(candidates.map(r=>{const name=dimension==='product'?productName(r):r[dimension]||'NOT PROVIDED';return [dimension==='product'?productKey(name):name,name]})).values()];
  const items=[],unmatched=[];
- for(const name of names){const groupFilters={...filters,[dimension]:[name]},old=comparableSummary(records,a,months,metric,groupFilters),now=comparableSummary(records,b,months,metric,groupFilters),change=changeBetween(now,old);
-  if(change.delta==null)unmatched.push(name);else items.push({name,current:now.value,previous:old.value,...change});
+ for(const name of names){const groupFilters={...filters,[dimension]:[name]},old=movementSummary(records,a,months,metric,groupFilters),now=movementSummary(records,b,months,metric,groupFilters),change=changeBetween(now,old);
+  if(change.delta==null)unmatched.push(name);else {const newSales=old.value===0&&now.value>0&&!old.rows?.length;items.push({name,current:now.value,previous:old.value,...change,newSales,activity:newSales?(dimension==='channel'||filters.channel?.length?'New channel':dimension==='product'?'New product':'New sales'):null});}
  }
  items.sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta)||x.name.localeCompare(y.name));
  const residual=total.delta-items.reduce((n,r)=>n+r.delta,0);
- // Reconcile totals without treating a new, absent or incomplete series as a zero baseline.
+ // Retain a residual only for genuinely unavailable detail or aggregate reconciliation.
  if(unmatched.length||Math.abs(residual)>1e-7)items.push({name:'Unmatched / unavailable detail',delta:residual,residual:true,unmatched});
  return {a,b,current,previous,...total,items,unmatched,reason:null};
 }
