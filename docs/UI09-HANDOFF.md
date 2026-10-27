@@ -30,3 +30,6 @@ Monthly Total rows now carry an explicit total-row class; all cells including th
 
 ## V48 — company Sales Analysis
 Company/multi-product navigation consolidates Trends, Movement and Breakdown into Sales Analysis, presenting existing sections in a continuous page with headings and no nested tabs. Controls, charts and exports are reused; analysis renders movement and breakdown together. Single-product navigation retains Trends and Movement; Breakdown remains hidden. Legacy saved company sections normalize to analysis. Switching from company analysis to one product returns to Overview. No data/calculation changes.
+
+## V49 — Sales Analysis refinements
+Hide global Compare against control on combined Sales Analysis (still available in Portfolio); remove redundant injected Breakdown heading. Breakdown captions use YTD cutoff for contiguous YTD, retaining explicit months for noncontiguous selections. Movement bridge now allocates 144px per category with 14-character label wrapping, including long tokens; full names remain in keyboard/hover tooltips. Preserve residual reconciliation and missing-versus-zero behavior.

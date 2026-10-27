@@ -4,7 +4,7 @@ const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 const n=v=>v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:2}),p=v=>v==null?'—':v.toFixed(1)+'%',short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+'K':n(v);
 export function createBreakdown({read,changed}){
  const $=id=>document.getElementById(id);let metric='units',mode='sales',detail=null,returnFocus=null,sort='actual',descending=true,models={},context=null;
- const period=()=>{const d=read().dashboard;return d.months.map(m=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]).join(', ')+' '+d.snapshot.year};
+ const period=()=>{const d=read().dashboard,names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],end=Math.max(0,...d.months);if(!end)return 'No months selected';if(d.periodMode==='ytd'&&d.months.length===end&&d.months.every((m,i)=>m===i+1))return 'YTD '+names[end-1]+' '+d.snapshot.year;return d.months.map(m=>names[m-1]).join(', ')+' '+d.snapshot.year};
  const measure=()=>metric==='value'?'EGP':'Units';
  const tip=(r,isGap=false)=>`${r.name} · ${isGap?'Shortfall: ':''}${n(isGap?r.gap:r.actual)} ${measure()} · ${p(isGap?r.gapShare:r.share)} of selected ${isGap?'positive shortfall':'sales'}${r.estimated?' · Includes estimated value':''}`;
  function render(){
