@@ -6,7 +6,7 @@ const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+'K':n(v);
 let payload=window.commercialAnalysisData||null,cache=new Map(),contextKey='',drawer=null,returnFocus=null,restorePending=null,restored=false,storageKey=null;
-const ui={metric:'units',distributorMetric:'units',channelMetric:'units',monthlyPY:false,distributorMode:'mix',leaderSort:'sales',signedGap:false,bridgeDimension:'product',bridgeYear:null,heatMode:'achievement',heatMetric:'units',forecastCutoff:null};
+const ui={metric:'units',distributorMetric:'units',channelMetric:'units',monthlyPY:false,distributorMode:'mix',leaderSort:'sales',signedGap:false,bridgeDimension:'product',bridgeYear:null,forecastCutoff:null};
 let historical=null,breakdown=null;
 function dashboard(){return window.actualDashboard?.read()}
 function records(){return payload?.records||[]}
@@ -27,11 +27,11 @@ function mount(){
  $('sales').querySelector('.summary-toolbar').insertAdjacentHTML('beforeend',`<div id="summary-measure">${buttons('Summary measure',[['units','Units'],['value','Value']],ui.metric,'data-manager-metric')}</div>`);
  const periodControl=document.querySelector('[aria-label="Data view"]').parentElement;$('period-field').insertAdjacentElement('beforebegin',periodControl);
  const targetControl=document.querySelector('[aria-label="Target period"]').parentElement;targetControl.querySelector('label').textContent='Compare against';targetControl.id='analysis-target-control';$('sales').querySelector('.section-tabs').insertAdjacentElement('afterend',targetControl);
- const tabs=$('sales').querySelector('.section-tabs');tabs.querySelector('[data-section="trends"]').insertAdjacentHTML('beforebegin','<button data-section="analysis" aria-pressed="false">Sales Analysis</button>');tabs.insertAdjacentHTML('beforeend','<button data-section="movement" aria-pressed="false">Movement</button><button data-section="heatmap" aria-pressed="false">Heatmap</button><button data-section="forecast" aria-pressed="false">Forecast</button>');
+ const tabs=$('sales').querySelector('.section-tabs');tabs.querySelector('[data-section="trends"]').insertAdjacentHTML('beforebegin','<button data-section="analysis" aria-pressed="false">Sales Analysis</button>');tabs.insertAdjacentHTML('beforeend','<button data-section="movement" aria-pressed="false">Movement</button><button data-section="forecast" aria-pressed="false">Forecast</button>');
  tabs.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>window.actualDashboard.showSection(b.dataset.section));
  $('view-overview').insertAdjacentHTML('beforeend',panel('Needs attention','<p class="chart-note">Rules describe the selected data. They do not establish the cause.</p><div id="attention-list" class="attention-list"></div>'));
  const movementHTML=`<div class="analysis-toolbar"><label>Break down change by<select id="movement-dimension"><option value="product">Products</option><option value="line">Lines</option><option value="distributor">Distributors</option></select></label><label>Compare from<select id="movement-year"></select></label><span id="movement-measure"></span></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`;
- $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-movement" hidden>${panel('What drove the change?',movementHTML)}</section><section id="view-heatmap" hidden>${panel('Product × month',`<div class="analysis-toolbar"><span id="heatmap-measure"></span><label>Cell measure<select id="heatmap-mode"><option value="achievement">Monthly achievement %</option><option value="ppg">PPG% vs same month last year</option></select></label></div><p id="heatmap-context" class="analysis-context"></p><div id="heatmap-table" class="heatmap-scroll table-wrap"></div><p class="chart-note">Each cell shows its number. — = unknown / unallocated. 0 = reported zero. Click a cell for product details. Achievement colours: &lt;80%, 80–99%, ≥100%. PPG colours: negative, zero, positive.</p>`)}</section>`);
+ $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-movement" hidden>${panel('What drove the change?',movementHTML)}</section>`);
  $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-forecast" hidden><article class="panel"><div class="panel-title"><div><h2>Year-end forecast scenarios</h2><p>Scenario estimates · not reported actuals · entire YTD in selected year</p></div><label>Forecast as of<select id="forecast-cutoff"></select></label><div id="forecast-measure"></div></div><div class="chart-grid"><article><h3>YTD Average Forecast</h3><div id="run-rate"></div></article><article><h3>Historical Seasonality Forecast</h3><div id="target-forecast"></div></article></div></article></section>`);
  $('view-breakdown').insertAdjacentElement('beforebegin',$('view-movement'));
  for(const [id,label]of [['view-trends','Trends'],['view-movement','Movement']])$(id).insertAdjacentHTML('afterbegin',`<h2 class="analysis-section-heading">${label}</h2>`);
@@ -64,7 +64,7 @@ function render(){
 }
 function renderSection(){
  const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;
- if(d.section==='analysis'){renderMovement();breakdown?.render()}else if(d.section==='movement')renderMovement();else if(d.section==='heatmap')renderHeatmaps();else if(d.section==='forecast'||d.section==='trends')renderPlanning();
+ if(d.section==='analysis'){renderMovement();breakdown?.render()}else if(d.section==='movement')renderMovement();else if(d.section==='forecast'||d.section==='trends')renderPlanning();
  $('analysis-target-control').hidden=!['breakdown','portfolio'].includes(d.section);if(d.section==='breakdown')breakdown?.render();if(d.section==='overview'){if(d.selection.product.length===1)renderProductView({product:d.selection.product[0],month:null,metric:ui.metric},'single');else renderRatePanels();}window.actualDashboard.wire();wireDrilldowns();
 }
 function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;const box=$('single-product-overview');box.hidden=!single;for(const node of $('view-overview').children)if(node!==box)node.hidden=!!single;const btn=document.querySelector('[data-section="breakdown"]');btn.hidden=true;for(const key of ['trends','movement'])document.querySelector('[data-section="'+key+'"]').hidden=!single;document.querySelector('[data-section="analysis"]').hidden=!!single;for(const id of ['view-trends','view-movement','view-breakdown'])$(id).classList.toggle('in-sales-analysis',!single);if(single&&d.section==='analysis')window.actualDashboard.showSection('overview');if(single&&d.section==='breakdown'){window.actualDashboard.showSection('overview');status('Showing product overview for '+single)}$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single){$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)};if(d.section==='overview')renderProductView({product:single,month:null,metric:ui.metric},'single');}}
@@ -98,13 +98,6 @@ function renderMovement(){
  $('movement-note').textContent='Blue: period totals. Green/red: signed change. New: absent activity in a complete prior report counts as zero sales; PPG is New. Grey: genuinely unavailable detail. Contributions reconcile to the total difference. Large lists group the remaining matched changes into Other.';
  $('movement-table').innerHTML=table(['Product / group',String(ui.bridgeYear),String(d.snapshot.year),'Change','PPG%'],result.items.map(r=>[e(r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
 }
-function heatmapHTML(filters,metric,mode){
- const d=dashboard(),products=selectedProducts(d,filters),chosen=d.months;
- if(!chosen.length||!products.length)return '<p class="empty-chart">No matching products / months.</p>';
- return table(['Product',...chosen.map(m=>ms[m-1])],products.map(p=>[buttonProduct(p),...chosen.map(m=>{const f={...filters,product:[p]},s=summary(d.snapshot.year,[m],metric,f),prior=mode==='ppg'?summary(d.snapshot.year-1,[m],metric,f):null,t=mode==='achievement'?portfolioTarget(records(),d.snapshot,p,[m],metric,f,false):null,value=mode==='ppg'?changeBetween(s,prior).ppg:s.value!=null&&t>0?s.value/t*100:null,color=value==null?'unknown':mode==='ppg'?(value<0?'low':value>0?'good':'neutral'):value<80?'low':value<100?'mid':'good',tip=`${p} · ${ms[m-1]} ${d.snapshot.year} · ${mode==='ppg'?'PPG vs '+(d.snapshot.year-1):'Monthly achievement'} · ${value==null?'Unavailable':value.toFixed(1)+'%'} · Actual ${amt(s.value,metric)}${mode==='achievement'?' · Target '+amt(t,metric):''} · ${badge(s)}`;
- return `<button class="heat-cell ${color}" data-product-detail="${e(p)}" data-detail-month="${m}" data-tip="${e(tip)}" aria-label="${e(tip)}">${value==null?'—':value.toFixed(0)+'%'}${s.estimated?' †':''}${s.approximate?' ≈':''}</button>`;})]));
-}
-function renderHeatmaps(){const d=dashboard();$('heatmap-measure').innerHTML=buttons('Heatmap measure',[['units','Units'],['value','Value']],ui.heatMetric,'data-heat-metric');$('heatmap-context').textContent=`${periodLabel()} · ${scopeText()} · ${ui.heatMetric} · ${ui.heatMode==='ppg'?'PPG% vs same month last year':'Monthly target; independent of global target basis'}`;$('heatmap-table').innerHTML=heatmapHTML(d.selection,ui.heatMetric,ui.heatMode)}
 
 function miniCards(cards){return cards.map(([label,value])=>`<div><span>${e(label)}</span><strong>${e(value)}</strong></div>`).join('')}
 function monthPairs(metric,filters=dashboard().selection){const d=dashboard();return d.months.map(m=>({name:ms[m-1],current:summary(d.snapshot.year,[m],metric,filters).value,previous:summary(d.snapshot.year-1,[m],metric,filters).value,target:target(selectedProducts(d,filters),metric,[m],false,filters)}))}
@@ -214,7 +207,7 @@ function onClick(ev){
  if(b.dataset.managerMetric)ui.metric=b.dataset.managerMetric;
  else if(b.dataset.distributorMetric){ui.distributorMetric=b.dataset.distributorMetric;if(drawer)renderDrawer()}
  else if(b.dataset.channelMetric){ui.channelMetric=b.dataset.channelMetric;if(drawer)renderDrawer()}
- else if(b.dataset.heatMetric)ui.heatMetric=b.dataset.heatMetric;
+
  else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';
  else if(b.dataset.distributorView)ui.distributorMode=b.dataset.distributorView;
  else if(b.dataset.leaderSort)ui.leaderSort=b.dataset.leaderSort;
@@ -229,7 +222,7 @@ function onChange(ev){
  if(id==='forecast-cutoff')ui.forecastCutoff=Number(ev.target.value);
  else if(id==='movement-year')ui.bridgeYear=Number(ev.target.value);
  else if(id==='movement-dimension')ui.bridgeDimension=ev.target.value;
- else if(id==='heatmap-mode')ui.heatMode=ev.target.value;
+
  else if(['historical-from','historical-to'].includes(id)){renderHistoricalBridge();return}
  else if(id==='focus-common-months'){window.comparisonDashboard?.render();return}
  else return;
@@ -245,8 +238,8 @@ function validConfig(config){
 }
 async function restore(config){
  try{validConfig(config);if(!payload||!dashboard()){restorePending=config;return}
- if(config.section==='lines')config={...config,section:'overview'};if((config.selection?.product?.length||0)!==1&&['trends','movement','breakdown'].includes(config.section))config={...config,section:'analysis'};const available=dashboard().snapshot.availableYears;if(!available.includes(config.year)){status(`Year ${config.year} is no longer available. View was not applied.`);return}
- if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],distributorMetric:['units','value'],channelMetric:['units','value'],heatMetric:['units','value'],leaderSort:['sales','increase','decline'],bridgeDimension:['product','line','distributor'],heatMode:['achievement','ppg'],distributorMode:['mix','compare']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyPY','signedGap'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
+ if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if((config.selection?.product?.length||0)!==1&&['trends','movement','breakdown'].includes(config.section))config={...config,section:'analysis'};const available=dashboard().snapshot.availableYears;if(!available.includes(config.year)){status(`Year ${config.year} is no longer available. View was not applied.`);return}
+ if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],distributorMetric:['units','value'],channelMetric:['units','value'],leaderSort:['sales','increase','decline'],bridgeDimension:['product','line','distributor'],distributorMode:['mix','compare']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyPY','signedGap'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
  await window.actualDashboard.apply(config);if(config.breakdown)breakdown?.restore(config.breakdown);if(config.comparison)window.comparisonDashboard?.restore(config.comparison);
  document.querySelector(`[data-page="${config.page==='comparison'?'comparison':'sales'}"]`)?.click();status('View restored. Only available filters were applied; sales data was not changed.');
  }catch(err){status(err.message)}

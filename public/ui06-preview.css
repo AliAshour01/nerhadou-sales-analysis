@@ -58,3 +58,7 @@
 .in-sales-analysis>.analysis-section-heading{display:block;font-size:18px;color:#233653;margin:26px 0 14px;}
 #sales>.section-tabs button[hidden]{display:none!important;}
 #view-movement.in-sales-analysis,#view-breakdown.in-sales-analysis{margin-top:28px;}
+
+/* V52: keep Breakdown measure beside its sales / target-shortfall selector. */
+#view-breakdown .bd-card:first-child>.bd-card-options{justify-content:flex-start;flex-wrap:wrap;gap:12px;}
+#breakdown-measure{flex:0 0 auto;}

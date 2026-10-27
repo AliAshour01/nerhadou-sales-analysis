@@ -39,3 +39,6 @@ Owner confirmed absent product/channel rows mean sales had not begun. Movement n
 
 ## V51 — seasonal forecast and rounding-only residual
 Replaced Target Achievement Forecast with Historical Seasonality Forecast: current YTD / (prior-year same-month actual / prior-year full-year actual). Same scope and cutoff, strict 12-month prior coverage, positive prior denominators, no missing/estimated/unverified/negative amounts; new products without history show a reason. Forecast tooltips disclose exceptional tender/launch sensitivity. Movement ignores only machine-precision residuals scaled to aggregate magnitude (EPSILON × scale × 32); genuine unmatched amounts remain. Verified bundled value residual was 0.0000011920928955078125 EGP with zero unmatched products.
+
+## V52 — Breakdown measure placement and remove Heatmap
+Moved Breakdown Units/Value into the product card options immediately beside Sales / Target shortfall, wrapping together on narrow screens. Removed Heatmap navigation, section markup, rendering functions, delegated controls and saved UI state handling. Old Heatmap sections safely fall back to Overview (including saved views). No data/calculation changes.
