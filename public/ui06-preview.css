@@ -52,3 +52,9 @@
 #sales>.section-tabs button:focus-visible{outline:3px solid #83afe6;outline-offset:2px;}
 @media(max-width:680px){#sales>.section-tabs{gap:6px;padding:6px;}#sales>.section-tabs button{padding:10px 14px;font-size:12px;}}
 @media(prefers-reduced-motion:reduce){#sales>.section-tabs button{transition:none;}}
+
+/* V48: company Sales Analysis is one continuous page, no nested tabs. */
+.analysis-section-heading{display:none;}
+.in-sales-analysis>.analysis-section-heading{display:block;font-size:18px;color:#233653;margin:26px 0 14px;}
+#sales>.section-tabs button[hidden]{display:none!important;}
+#view-movement.in-sales-analysis,#view-breakdown.in-sales-analysis{margin-top:28px;}

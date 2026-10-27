@@ -27,3 +27,6 @@ Single-product/drawer monthly controls now place Units / EGP value and Actual + 
 
 ## V47 — section tabs, total row and Trends cleanup
 Monthly Total rows now carry an explicit total-row class; all cells including the sticky first label share the same background. Removed Planning tools & data readiness markup and its obsolete stock-readiness rendering/import. Sales section tabs now have larger 44px targets, clear borders and a blue selected state, visible keyboard focus and horizontal overflow on narrow screens. Data and calculations unchanged.
+
+## V48 — company Sales Analysis
+Company/multi-product navigation consolidates Trends, Movement and Breakdown into Sales Analysis, presenting existing sections in a continuous page with headings and no nested tabs. Controls, charts and exports are reused; analysis renders movement and breakdown together. Single-product navigation retains Trends and Movement; Breakdown remains hidden. Legacy saved company sections normalize to analysis. Switching from company analysis to one product returns to Overview. No data/calculation changes.
