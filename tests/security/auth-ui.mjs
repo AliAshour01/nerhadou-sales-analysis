@@ -14,8 +14,8 @@ async function setup(role, enrolled, verified, confirmRemoval = true) {
   const context = vm.createContext({
     document: { getElementById: id => { assert(nodes.has(id), id); return nodes.get(id); },
       querySelectorAll: () => [], createElement: node, head: node() },
-    window: {}, TextEncoder, confirm: () => confirmRemoval,
-    location: { replace: path => redirects.push(path) },
+    window: {}, TextEncoder, URLSearchParams, confirm: () => confirmRemoval,
+    location: { hash:'', replace: path => redirects.push(path) },
     fetch: async (path, options) => {
       calls.push({ path, options });
       let value;
