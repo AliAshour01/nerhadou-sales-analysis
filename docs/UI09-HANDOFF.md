@@ -9,3 +9,6 @@ Deletion rejects self/owner targets and non-owner actors, requires recent standa
 Presence uses server session timestamps, visible-page heartbeat 30s; Online is last authenticated connection within 90s. Last seen may include normal API requests. No new DB migration. Account list refresh 30s only while visible.
 
 Core target math unchanged. Forecast math intentionally changed to average of ALL complete Jan-cutoff months, with missing/negative/estimated guards; one complete month allowed. No fabricated source data.
+
+## V42 refinement
+KPI order: selected period Actual/Target/Achievement/Remaining-or-Above; second row Previous-year sales/PPG/Annual target/Annual achievement. Two visual headings, compact spacing and 21–30px figures. V% is an Actual Sales note for scoped filters, never replaces Previous-year Sales. PPG subtitle uses exact prior-year period (YTD cutoff or explicit selected months). No calculation/auth changes in this refinement.
