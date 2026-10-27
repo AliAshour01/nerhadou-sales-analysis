@@ -5,3 +5,13 @@
 @media(max-width:820px){.auth-shell{grid-template-columns:1fr}.brand-panel{padding:20px 27px}.brand-panel img{width:135px;height:45px}.brand-copy{display:block;margin:15px 0 0;padding:0}.brand-copy h1{font-size:29px;letter-spacing:-1.3px;margin:8px 0}.brand-copy h1 br{display:none}.brand-copy>p{font-size:12px;margin:8px 0 0}.brand-visual,.brand-panel>small{display:none}.form-panel{padding:32px 27px 45px}.form-wrap{max-width:430px}h2{font-size:28px}}
 /* UI03: approved shared cobalt/white visual language. Authentication handlers unchanged. */
 :root{--brand:#2563eb;--ink:#182b4b;--muted:#65758c;--border:#e2e9f3}body{background:#f6f8fc}.brand-panel{background:radial-gradient(ellipse at 0 100%,#dfeaff 0,transparent 65%),#f0f5ff;border-right-color:#e1e9f6}.brand-copy h1{color:#182b4b;letter-spacing:-1.5px}.brand-panel img{filter:none}.form-wrap{border-radius:14px}.form-panel input{border-color:#dce5f0;border-radius:8px;transition:border-color .18s,box-shadow .18s}.form-panel input:focus{border-color:#8daff1;box-shadow:0 0 0 3px #2563eb0a}.form-panel button{border-radius:8px;transition:background .18s,box-shadow .18s,transform .18s}.form-panel button:active:not(:disabled){transform:translateY(1px)}.form-panel button[type=submit],.form-panel .primary{background:#2563eb;border-color:#2563eb;box-shadow:0 4px 12px #2563eb20}.form-panel button[type=submit]:hover:not(:disabled),.form-panel .primary:hover:not(:disabled){background:#1b53cf;box-shadow:0 6px 16px #2563eb2b}.form-panel{animation:auth-ui03-enter .3s ease-out}@keyframes auth-ui03-enter{from{opacity:.3;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.form-panel,.form-panel *{animation:none!important;transition:none!important}}
+
+/* V55: fixed company domain, usable on narrow screens and with autofill. */
+.company-email-wrap{display:flex;align-items:center;border:1px solid var(--border);border-radius:8px;background:#fff;overflow:hidden;direction:ltr;}
+.company-email-wrap:focus-within{outline:3px solid #75a8e0;outline-offset:2px;}
+.company-email-wrap input#email{flex:1;min-width:0;width:0;margin:0;border:0;border-radius:0;outline:none;box-shadow:none;}
+.company-email-wrap>span{flex:0 0 auto;padding:12px 13px;border-left:1px solid var(--border);background:#f1f5fb;color:#365a83;font-size:13px;font-weight:600;white-space:nowrap;user-select:text;}
+.auth-shell{min-height:calc(100vh - 44px);}
+.auth-credit{min-height:44px;display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 16px;color:#71839a;background:#f4f7fc;font-size:11px;border-top:1px solid #e0e7f0;}
+.auth-credit strong{font-weight:600;color:#45617f;}
+@media(max-width:400px){.company-email-wrap>span{font-size:12px;padding-inline:9px;}}

@@ -48,3 +48,6 @@ Product performance/Target shortfall retains its own metric; Sales by line now h
 
 ## V54 — integer Breakdown display and single-product Sales Analysis
 Breakdown amount labels/tooltips now format whole numbers; compact millions have no decimal. Percentage precision and underlying calculations/Excel numeric cells remain intact. For exactly one selected product, Sales Analysis displays Trends, Movement and Portfolio as continuous sections with no nested tabs; company retains Trends, Movement and Breakdown, with separate Portfolio. Visibility responds to changing product scope while the combined page is open. Old single-product section links restore into Sales Analysis.
+
+## V55 — fixed company email suffix and attribution
+Sign-in/sign-up and other email forms show a fixed @nerhadou.com suffix. Username input accepts local part or a pasted full company email; blur normalizes display and submit builds one full address. Foreign domains, extra @, empty local parts and malformed dot placement are rejected client-side; authoritative server domain/auth policy unchanged. Powered by Ali Ashour appears in common dashboard footer and auth/account footer. No user data or auth provider configuration changes. Private preview still uses protected platform authentication; company login backend is exercised only on standalone deployment.

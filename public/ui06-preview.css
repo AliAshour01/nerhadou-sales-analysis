@@ -65,3 +65,6 @@
 
 /* V53: each Breakdown chart has its own measure control. */
 #view-breakdown .bd-card>.bd-card-options{justify-content:flex-start;gap:12px;flex-wrap:wrap;}
+
+/* V55: persistent, understated attribution across dashboard pages. */
+main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a;font-size:11px;}main>footer .site-credit strong{font-weight:600;color:#45617f;}

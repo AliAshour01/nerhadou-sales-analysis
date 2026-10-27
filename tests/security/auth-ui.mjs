@@ -58,3 +58,5 @@ await cancelled.nodes.get('mfa-disable').onclick();
 assert.equal(cancelled.calls.filter(c => c.path.endsWith('/mfa-unenroll')).length, 0);
 assert(html.includes('Optional for all accounts, including administrators.'));
 console.log('Auth UI passed: owner/admin MFA exemption, enrolled-viewer gate, verified removal, CSRF and cancellation.');
+
+const emailFunction=script.match(/^function companyEmail\(value\)\{.*\}$/m)?.[0];assert(emailFunction);const emailContext=vm.createContext({});vm.runInContext(emailFunction,emailContext);for(const input of ['ali.ashour',' ali.ashour@NERHADOU.COM '])assert.equal(vm.runInContext('companyEmail('+JSON.stringify(input)+')',emailContext),'ali.ashour@nerhadou.com');for(const input of ['', 'ali@gmail.com','ali@nerhadou.com.evil.test','ali@nerhadou.com@nerhadou.com','.ali','ali..ashour'])assert.throws(()=>vm.runInContext('companyEmail('+JSON.stringify(input)+')',emailContext));assert(html.includes('id="email-domain">@nerhadou.com'));assert(html.includes('Powered by <strong>Ali Ashour</strong>'));console.log('Fixed company email suffix checks passed.');
