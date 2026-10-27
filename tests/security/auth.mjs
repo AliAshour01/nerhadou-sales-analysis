@@ -9,9 +9,9 @@ const counters=new Map();const env={DB,AUTH_MODE:'standalone',AUTH_SETUP_VERIFIE
 const request=(path='/api/data',data,session,extra={})=>new Request(env.APP_ORIGIN+path,{method:data?'POST':'GET',headers:{...(data?{'Content-Type':'application/json',Origin:env.APP_ORIGIN}:{}),...(session?{Cookie:cryptoLib.COOKIE+'='+session.token,'X-CSRF-Token':session.csrf}:{}),...extra},...(data?{body:JSON.stringify(data)}:{})});
 for(const email of ['a@nerhadou.com.fake.com','a@fake-nerhadou.com','a@gmail.com','a@nerhadou.com\n.fake','a@@nerhadou.com','a@nerhadou.com.','a@nerhаdou.com']){assert.throws(()=>config.companyEmail(email));count++}eq(config.companyEmail(' Ali.Ashour@NERHADOU.COM '),'ali.ashour@nerhadou.com','Exact company domain normalized');
 assert.throws(()=>config.password('short'));count++;assert.throws(()=>config.password('ع'.repeat(40)));count++;eq(config.password('A unique workspace phrase 2026!'),'A unique workspace phrase 2026!','Passphrases accepted');
-// Owner-selected policy: each required component and exact eight-character boundary.
-for(const weak of ['A7!mQ2@','lowercase1!','Uppercase!','Uppercase1','Abcdef7 ','1234567!']){assert.throws(()=>config.password(weak));count++}
-eq(config.password('A7!mQ2@z'),'A7!mQ2@z','Exact eight characters accepted');eq(config.password('AZ9!QX8@'),'AZ9!QX8@','Lowercase is not required');assert.throws(()=>config.password('Password1!'));count++;
+// Owner explicitly chose six characters without composition/predictability requirements.
+for(const accepted of ['123456','aaaaaa','abcdef','Password1!','1234567!'])eq(config.password(accepted),accepted,'Owner-selected password accepted');
+for(const rejected of ['','12345']){assert.throws(()=>config.password(rejected));count++}
 const sealed=await cryptoLib.seal(env,{token:'secret'},'row1');ok(!sealed.includes('secret'),'Provider tokens encrypted');eq(await cryptoLib.unseal(env,sealed,'row1'),{token:'secret'},'Ciphertext decrypts');await assert.rejects(()=>cryptoLib.unseal(env,sealed,'row2'));count++;
 const limiter=env.AUTH_RATE_LIMITER.get('concurrent');const limited=await Promise.all(Array.from({length:30},()=>limiter.fetch('https://limiter',{method:'POST',body:JSON.stringify({max:5,seconds:60})})));eq(limited.filter(r=>r.status===204).length,5,'Parallel brute-force requests cannot race the limit');eq(limited.filter(r=>r.status===429).length,25,'Excess requests rate limited');
 const {privateKey,publicKey}=await generateKeyPair('ES256'),jwk={...await exportJWK(publicKey),kid:'test-key',alg:'ES256',use:'sig'};const userId='00000000-0000-4000-8000-000000000001',ownerId='00000000-0000-4000-8000-000000000002';let subjects=new Map(),tokens=new Map(),providerCalls=0;let fakeTime=Math.floor(Date.now()/1000);
@@ -133,5 +133,17 @@ try{
   bootstrapUser={...bootstrapUser,email:'someone-else@nerhadou.com'};
   await assert.rejects(()=>import('../../scripts/bootstrap-owner.mjs?case=wrong-owner'),/Owner identity/);count++;
  }finally{globalThis.fetch=authFetch;console.log=savedLog;for(const k of bootstrapKeys){if(savedBootstrapEnv[k]===undefined)delete process.env[k];else process.env[k]=savedBootstrapEnv[k]}}
+ const listing=await (await admin.usersGet(request('/api/admin/users',null,freshOwner),env)).json();ok(listing.users.every(u=>'last_seen' in u&&'online_seen' in u),'Presence fields are server-derived');eq(listing.privilegedActions,false,'Privileged actions disabled without secret');const targetUser=listing.users.find(u=>u.role!=='owner'&&u.status==='active');for(const action of ['reset-link','delete-account','set-password'])eq((await admin.usersPost(request('/api/admin/users',{id:targetUser.id,version:targetUser.version,action},freshOwner),env)).status,503,'Missing privileged key fails closed: '+action);
+ // Owner direct password update uses server API, revokes sessions and never audits credentials.
+ const privilegedEnv={...env,SUPABASE_SERVICE_ROLE_KEY:'mock-server-only-key'},passwordHttp=globalThis.fetch;let adminPasswordCalls=0;
+ const targetVersion=targetUser.version;
+ try{globalThis.fetch=async(input,init={})=>{const req=input instanceof Request?input:new Request(input,init);if(new URL(req.url).pathname==='/auth/v1/admin/users/'+targetUser.id&&req.method==='PUT'){const body=await req.json();eq(body.password,'123456','Owner can choose six numeric characters');adminPasswordCalls++;return Response.json({id:targetUser.id,email:targetUser.email})}return passwordHttp(input,init)};
+ eq((await admin.usersPost(request('/api/admin/users',{id:targetUser.id,version:targetVersion,action:'set-password',newPassword:'12345'},freshOwner),privilegedEnv)).status,400,'Short owner password rejected');
+ const changed=await admin.usersPost(request('/api/admin/users',{id:targetUser.id,version:targetVersion,action:'set-password',newPassword:'123456'},freshOwner),privilegedEnv);eq(changed.status,200,'Fresh owner sets another account password');eq((await changed.json()).passwordChanged,true,'Password result contains no credential');eq(adminPasswordCalls,1,'Exactly one privileged provider update');
+ eq(db.prepare('SELECT COUNT(*) AS n FROM app_sessions WHERE user_id=? AND revoked_at IS NULL').get(targetUser.id).n,0,'All target app sessions revoked');
+ const audit=db.prepare("SELECT note FROM approval_events WHERE target=? AND action='set-password' ORDER BY created_at DESC LIMIT 1").get(targetUser.id);ok(audit&&!audit.note.includes('123456'),'Audit records action without password');
+ eq((await admin.usersPost(request('/api/admin/users',{id:targetUser.id,version:targetVersion,action:'set-password',newPassword:'123456'},freshOwner),privilegedEnv)).status,409,'Stale target version rejected');
+ eq((await admin.usersPost(request('/api/admin/users',{id:ownerId,version:1,action:'set-password',newPassword:'123456'},freshOwner),privilegedEnv)).status,403,'Cannot use owner action on own account');
+ }finally{globalThis.fetch=passwordHttp}
  console.log(count+' security assertions passed: real SQLite, real ES256 signatures/JWKS, mocked provider HTTP, approval authorization, MFA, CSRF, revocation, data isolation, encryption and parallel throttling.');
 }finally{globalThis.fetch=originalFetch;db.close()}

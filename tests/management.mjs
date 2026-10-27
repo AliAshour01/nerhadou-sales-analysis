@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {effectiveRecords,snapshotFrom,previewImport,applyImport} from '../public/data-core.js';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,targetSum,portfolioTarget,runRateProjection,stockReadiness,scopeRecords} from '../public/management-core.js';
+import {comparableSummary,changeBetween,movement,commonAvailableMonths,targetSum,portfolioTarget,runRateProjection,seasonalProjection,stockReadiness,scopeRecords} from '../public/management-core.js';
 const row=(product,year,month,units,value,extra={})=>({id:`${product}-${year}-${month}`,series_id:product,product,product_id:product,year,month,dataset:'actual',units,value,line:'L1',distributor:'D1',channel:'PRIVATE',coverage:'reporting-month',...extra});
 const rows=[row('A',2025,1,100,1000),row('A',2026,1,150,1800),row('B',2025,1,200,2000),row('B',2026,1,180,1800)];
 const model=movement(rows,{a:2025,b:2026,months:[1],metric:'units'});assert.equal(model.delta,30);assert.equal(model.items.reduce((s,r)=>s+r.delta,0),30);assert.equal(model.items.find(r=>r.name==='A').delta,50);assert.equal(model.items.find(r=>r.name==='B').delta,-20);
@@ -10,11 +10,11 @@ assert.equal(comparableSummary([...rows,row('A',2026,2,null,20)],2026,[1,2]).val
 assert.equal(comparableSummary(rows,2026,[1,2]).value,null,'Missing entire month is unknown');
 assert.equal(comparableSummary(rows,2026,[]).value,null);
 assert.deepEqual(commonAvailableMonths([...rows,row('A',2026,2,3,30)], [2025,2026],[1,2]),[1]);
-const newSeries=movement([...rows,row('C',2026,1,20,40)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(newSeries.delta,50);assert.equal(newSeries.items.find(r=>r.residual).delta,20);assert(newSeries.items.find(r=>r.residual).unmatched.includes('C'),'Absent prior product is never a zero baseline');
+const newSeries=movement([...rows,row('C',2026,1,20,40)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(newSeries.delta,50);assert.equal(newSeries.items.find(r=>r.name==='C').delta,20);assert.equal(newSeries.items.find(r=>r.name==='C').newSales,true);assert.equal(newSeries.items.find(r=>r.name==='C').ppg,null);assert.equal(newSeries.unmatched.length,0);
 const stock=[{dataset:'stock',year:2026,month:1,product:'A',distributor:'D1',channel:'PRIVATE',stock:30}];assert.equal(stockReadiness(stock,2026).ready,true);assert.equal(stockReadiness([...stock,...stock],2026).ready,false);
 const t={dataset:'target',year:2026,month:0,product:'A',target_units:1200,target_value:12000};const records=[...rows,t];assert.equal(portfolioTarget(records,{year:2026},'A',[1,2],'units'),200);assert.equal(portfolioTarget([...records,row('A',2026,1,20,20,{line:'L2'})],{year:2026},'A',[1],'units',{line:['L1']}),null,'No target allocated to partial line');
 const schedule=[{...t,month:1,target_units:40},{...t,month:2,target_units:70}];assert.equal(portfolioTarget([...rows,...schedule],{year:2026},'A',[1,2],'units'),110);assert.equal(portfolioTarget([...rows,...schedule],{year:2026},'A',[3],'units'),null);assert.equal(targetSum(records,{year:2026},['A','B'],[1],'units'),null,'Unknown product targets withhold total');
-const proj=runRateProjection([1,2,3].map(m=>row('A',2026,m,100,1000)),2026);assert.equal(proj.value,1200);assert.equal(runRateProjection([row('A',2026,1,100,1000)],2026).value,null);
+const proj=runRateProjection([1,2,3].map(m=>row('A',2026,m,100,1000)),2026);assert.equal(proj.value,1200);assert.equal(runRateProjection([row('A',2026,1,100,1000)],2026).value,1200);
 assert.equal(scopeRecords([row('Raw',2026,1,1,1,{comparison_product:'Canonical'})],{product:['Raw']}).length,1);assert.equal(scopeRecords([row('Raw',2026,1,1,1,{comparison_product:'Canonical'})],{product:['Canonical']}).length,0);
 const seed=JSON.parse(fs.readFileSync('private/seed.json')),real=effectiveRecords(seed);for(const metric of ['units','value']){const result=movement(real,{a:2025,b:2026,months:[1,2,3,4,5,6,7,8],metric});assert(result.delta!=null);assert(Math.abs(result.delta-result.items.reduce((s,r)=>s+r.delta,0))<.001)}
 const minimal={records:rows,prices:{},source:'test',version:1};const p=previewImport('record_id,units\nA-2026-1,170',minimal);assert.equal(p.errors.length,0);const override=applyImport({},p);assert.equal(comparableSummary(effectiveRecords(minimal,override),2026,[1],'units').value,350,'Manual changes flow through summaries');
@@ -50,3 +50,21 @@ if(process.argv[2]){
  }
  console.log(`Saved revision ${backup.tables.workspace_state.rows[0].revision}: ${products.length} products / ${snap.availableMonths.length} reporting months reconciled with overrides, including both targets.`);
 }
+
+assert.equal(runRateProjection([100,200,300,400,500].map((v,i)=>row('A',2026,i+1,v,v)),2026).value,3600,'YTD average includes every observed month');
+
+const tender=movement([...rows,row('A',2026,1,30,300,{channel:'TENDER'})],{a:2025,b:2026,months:[1],metric:'units',filters:{channel:['TENDER']}});assert.equal(tender.delta,30);assert.equal(tender.items[0].activity,'New channel');
+const launch=movement([...rows,row('A',2025,2,10,100),row('A',2026,2,10,100),row('C',2026,2,20,200)],{a:2025,b:2026,months:[1,2],metric:'units'});assert.equal(launch.items.find(r=>r.name==='C').current,20);assert.equal(launch.items.find(r=>r.name==='C').previous,0);
+const unknown=movement([...rows,row('C',2025,1,null,100),row('C',2026,1,20,200)],{a:2025,b:2026,months:[1],metric:'units'});assert.equal(unknown.delta,null,'Explicit null is not zero');
+assert.equal(movement(rows,{a:2025,b:2026,months:[1,2]}).delta,null,'Missing company month is not zero');
+
+// Seasonal method uses actual prior-year distribution, not targets.
+const seasonalRows=[...Array.from({length:12},(_,i)=>row('S',2025,i+1,i<9?100:75,1000)),...Array.from({length:9},(_,i)=>row('S',2026,i+1,120,1200))];
+const season=seasonalProjection(seasonalRows,2026,9);assert.equal(season.value,1350);assert.equal(season.share,.8);assert.equal(seasonalProjection(seasonalRows.filter(r=>!(r.year===2025&&r.month===12)),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows.map(r=>r.year===2025&&r.month===12?{...r,units:null}:r),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows.map(r=>r.year===2025&&r.month===12?{...r,provenance:{units:'estimated'}}:r),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows.filter(r=>r.year===2026),2026,9).value,null);
+assert.equal(seasonalProjection(seasonalRows,2026,9,'units',{product:['MISSING']}).value,null);
+assert.equal(seasonalProjection(seasonalRows,2026,12).value,null);
+const realValueBridge=movement(real,{a:2025,b:2026,months:[1,2,3,4,5,6,7,8],metric:'value'});assert.equal(realValueBridge.unmatched.length,0);assert(!realValueBridge.items.some(r=>r.residual),'No rounding-only unavailable detail');
+console.log('Seasonality guardrails and floating-point reconciliation passed.');

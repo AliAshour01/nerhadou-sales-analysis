@@ -7,7 +7,11 @@ At the owner's request, authenticator enrollment is optional for all accounts, i
 This change is based on commit f1828e345ac4b2a97177f6558b35c1b90bc1325a (V32 analytics). The owner authorized publishing it to the existing sales Cloudflare Worker. Previous production Worker version: 15 / a58dee01-fab3-46fc-b44f-a5e361a65be5. No real account factor is removed by deploying code; removal is an explicit action by the signed-in account owner. See docs/RELEASES.md for deployment evidence. Do not invent a legacy Site version number.
 
 
-## Password policy (Version 30)
+## Owner-approved password policy — 27 October 2026
+
+Minimum six characters, no uppercase/digit/symbol or common-password restriction, explicitly requested by owner. 72 UTF-8-byte maximum remains for provider compatibility. Applies to signup, self-service password change and owner-set passwords. CAPTCHA, throttling, approval and server authorization remain. Supabase Email Auth minimum length/composition must match. Owner setting another account password requires server service key and fresh owner session; passwords are never included in audit notes or returned by the API. Previous policy below is historical and superseded.
+
+## Historical password policy (Version 30)
 
 The owner explicitly requested minimum 8 characters with an uppercase English letter, digit and symbol on 18 October 2026. Enforced in the BFF for signup and all password changes, with matching client-side guidance. Lowercase is not required; whitespace is not a symbol. The 72 UTF-8-byte maximum remains for provider compatibility, and known predictable prefixes remain disallowed. Existing login does not reapply the composition rule. This supersedes the prior 15-character minimum and is not represented as NIST-compliant single-factor policy. Supabase Email provider minimum should be set to 8 (not 15); application checks remain authoritative for app requests. Provider direct-signup accounts still cannot obtain app data approval automatically. No user account or password is created by this source update.
 

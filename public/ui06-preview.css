@@ -18,3 +18,61 @@
 
 /* V40 table actions and full chart detail */
 .monthly-table-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}.monthly-table-heading button{border:1px solid #cddded;border-radius:8px;padding:9px 14px;background:#f4f7ff;color:#245fa7;}#distributors{display:grid;grid-template-columns:minmax(170px,230px) minmax(0,1fr);align-items:center;gap:14px;}#distributors>svg{grid-row:1 / span 12;width:100%;}#distributors>button{min-width:0;}#view-overview .chart-grid:has(#distributors)>article:has(#distributors){grid-column:1 / -1;}#breakdown-detail{width:min(1400px,96vw);max-width:96vw;}#bd-full-chart{overflow:auto;max-height:65vh;}#bd-full-chart svg{display:block;min-width:740px;width:100%;}#bd-full-chart svg[aria-label*="lines"]{min-width:1000px;}@media(max-width:650px){#distributors{grid-template-columns:1fr;}#distributors>svg{grid-row:auto;max-width:220px;margin:auto;}}
+
+/* UI09: compact aligned composition cards, year-aware navigation */
+.app-header{padding-inline:24px!important}.header-left{min-width:0;padding-left:8px}.period-field>div{margin-top:10px}.product-mix-legend{max-width:440px;width:100%}.product-mix-legend li{grid-template-columns:9px minmax(100px,1fr) auto;gap:12px}.product-mix-donut{grid-template-columns:minmax(130px,210px) minmax(0,440px);justify-content:start}#distributors{display:block!important}#view-overview .chart-grid>article:has(#distributors){grid-column:auto!important}#company-channel-panel{grid-column:auto!important}.product-monthly-controls{margin:12px 0}.table-wrap tr:last-child:has(td:first-child){font-weight:inherit}.table-wrap tbody tr.total-row{background:#f0f5ff;font-weight:700}@media(max-width:800px){.product-mix-donut{grid-template-columns:1fr}.app-header{padding-inline:14px!important}}
+
+/* V42: two coherent compact KPI rows, one measure throughout */
+#kpis{gap:10px 12px;margin-bottom:20px;align-items:stretch;}#kpis .kpi-group-label{grid-column:1 / -1;font-size:11px;font-weight:650;color:#586d8b;letter-spacing:.02em;padding:3px 0 0;}#kpis .kpi{padding:14px 17px!important;min-height:0!important;border-radius:12px;display:flex;flex-direction:column;gap:7px;}#kpis .kpi .label{font-size:10px;line-height:1.4;letter-spacing:.055em;margin:0!important;}#kpis .kpi strong{font-size:clamp(21px,2.1vw,30px)!important;line-height:1.15;margin:0!important;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}#kpis .kpi small{font-size:10px;line-height:1.45;margin:0!important;}#kpis .kpi-actual{background:linear-gradient(132deg,#2f6bff,#1d4ed8 52%,#14336e);border-color:transparent;}#kpis .kpi-actual strong{background:none;color:white;-webkit-background-clip:unset;background-clip:unset;}#kpis .kpi-actual .label,#kpis .kpi-actual small{color:#dce7ff;}#kpis .kpi:hover{transform:translateY(-2px);}@media(max-width:500px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}#kpis .kpi{padding:12px!important;}#kpis .kpi strong{font-size:21px!important;}}
+
+/* V43: company and product mixes share the exact same panel template and layout. */
+#company-mix-panels{grid-column:1 / -1;}
+#view-overview .shared-mix-grid,#product-drawer .shared-mix-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch;}
+#view-overview .shared-mix-grid>article.panel,#product-drawer .shared-mix-grid>article.panel{grid-column:auto!important;min-width:0;}
+@media(max-width:700px){#view-overview .shared-mix-grid,#product-drawer .shared-mix-grid{grid-template-columns:1fr;}}
+
+/* V44: independent measure controls on each shared composition panel. */
+.mix-measure{margin:10px 0 12px}.mix-measure .control-group{display:inline-flex}
+
+/* V45: use company monthly column renderer and responsive sizing in product views. */
+#single-chart,#drawer-chart{overflow:visible;}
+#single-chart>svg,#drawer-chart>svg{width:100%;height:auto;max-height:none;min-width:0!important;display:block;}
+
+/* V46: identical compact monthly control groups in company and product views. */
+.product-monthly-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 12px;}
+.product-monthly-controls>.control-group,.product-monthly-controls>span{flex:0 0 auto;width:auto;}
+.product-monthly-controls>span{display:inline-flex;}
+
+/* V47: clear section navigation and consistent total row including sticky label. */
+.table-wrap table tbody tr.total-row>td{background:#f0f5ff!important;color:#233653;font-weight:700;border-top:2px solid #d5e2f7;}
+#sales>.section-tabs{display:flex;align-items:center;gap:8px;padding:8px;background:#eaf0f8;border:1px solid #d5dfed;border-radius:13px;margin:22px 0;overflow-x:auto;}
+#sales>.section-tabs button{flex:0 0 auto;min-height:44px;padding:11px 18px;border:1px solid transparent;border-radius:9px;background:#fff;color:#465e7e;font-size:13px;font-weight:650;line-height:1.4;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;}
+#sales>.section-tabs button:hover{background:#f4f8ff;border-color:#b9ccea;color:#245fa7;}
+#sales>.section-tabs button.active,#sales>.section-tabs button[aria-pressed="true"]{background:#245fa7;border-color:#245fa7;color:#fff;box-shadow:0 2px 5px #245fa725;}
+#sales>.section-tabs button:focus-visible{outline:3px solid #83afe6;outline-offset:2px;}
+@media(max-width:680px){#sales>.section-tabs{gap:6px;padding:6px;}#sales>.section-tabs button{padding:10px 14px;font-size:12px;}}
+@media(prefers-reduced-motion:reduce){#sales>.section-tabs button{transition:none;}}
+
+/* V48: company Sales Analysis is one continuous page, no nested tabs. */
+.analysis-section-heading{display:none;}
+.in-sales-analysis>.analysis-section-heading{display:block;font-size:18px;color:#233653;margin:26px 0 14px;}
+#sales>.section-tabs button[hidden]{display:none!important;}
+#view-movement.in-sales-analysis,#view-breakdown.in-sales-analysis{margin-top:28px;}
+
+/* V52: keep Breakdown measure beside its sales / target-shortfall selector. */
+#view-breakdown .bd-card:first-child>.bd-card-options{justify-content:flex-start;flex-wrap:wrap;gap:12px;}
+#breakdown-measure{flex:0 0 auto;}
+
+/* V53: each Breakdown chart has its own measure control. */
+#view-breakdown .bd-card>.bd-card-options{justify-content:flex-start;gap:12px;flex-wrap:wrap;}
+
+/* V55: persistent, understated attribution across dashboard pages. */
+main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a;font-size:11px;}main>footer .site-credit strong{font-weight:600;color:#45617f;}
+
+/* UI09 release: masked owner password editor. */
+.owner-password-dialog{width:min(440px,94vw);border:1px solid #d5dfed;border-radius:14px;padding:24px;color:#233653;}
+.owner-password-dialog::backdrop{background:#172d5080;}
+.owner-password-dialog label{display:block;margin:14px 0;font-size:12px;}
+.owner-password-dialog input{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #ccd8e8;border-radius:8px;}
+.owner-password-dialog p{font-size:12px;overflow-wrap:anywhere;}
+.owner-password-dialog form>div{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}

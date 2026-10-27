@@ -31,19 +31,29 @@ export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
 }
+// Owner-confirmed sparse sales rule, scoped to Movement: absent rows mean no activity
+// only when the complete company report covers every selected month. Explicit nulls stay unknown.
+function movementSummary(records,year,months,metric,filters){
+ const s=comparableSummary(records,year,months,metric,filters);if(s.value!=null||!months.length)return s;
+ const company=comparableSummary(records,year,months,metric,{}),report=records.filter(r=>r.dataset==='actual'&&r.year===year&&months.includes(r.month));
+ if(company.value==null||months.some(m=>!report.some(r=>r.month===m))||report.some(r=>r.reportingIncomplete))return s;
+ const rows=scopeRecords(report,filters);if(rows.some(r=>!finite(r[metric])))return s;
+ return {...s,rows,value:rows.reduce((n,r)=>n+r[metric],0),partial:false,reason:null,absentIsZero:true};
+}
 export function movement(records,{a,b,months,metric='units',dimension='product',filters={}}){
- const scoped=scopeRecords(records,filters),current=comparableSummary(records,b,months,metric,filters),previous=comparableSummary(records,a,months,metric,filters);
+ const scoped=scopeRecords(records,filters),current=movementSummary(records,b,months,metric,filters),previous=movementSummary(records,a,months,metric,filters);
  const total=changeBetween(current,previous);
  if(total.delta==null)return {a,b,current,previous,...total,items:[],reason:`${a}: ${previous.reason||'available'}; ${b}: ${current.reason||'available'}`};
  const candidates=scoped.filter(r=>r.dataset==='actual'&&[a,b].includes(r.year)&&months.includes(r.month)).sort((x,y)=>(x.year===b)-(y.year===b)),names=[...new Map(candidates.map(r=>{const name=dimension==='product'?productName(r):r[dimension]||'NOT PROVIDED';return [dimension==='product'?productKey(name):name,name]})).values()];
  const items=[],unmatched=[];
- for(const name of names){const groupFilters={...filters,[dimension]:[name]},old=comparableSummary(records,a,months,metric,groupFilters),now=comparableSummary(records,b,months,metric,groupFilters),change=changeBetween(now,old);
-  if(change.delta==null)unmatched.push(name);else items.push({name,current:now.value,previous:old.value,...change});
+ for(const name of names){const groupFilters={...filters,[dimension]:[name]},old=movementSummary(records,a,months,metric,groupFilters),now=movementSummary(records,b,months,metric,groupFilters),change=changeBetween(now,old);
+  if(change.delta==null)unmatched.push(name);else {const newSales=old.value===0&&now.value>0&&!old.rows?.length;items.push({name,current:now.value,previous:old.value,...change,newSales,activity:newSales?(dimension==='channel'||filters.channel?.length?'New channel':dimension==='product'?'New product':'New sales'):null});}
  }
  items.sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta)||x.name.localeCompare(y.name));
  const residual=total.delta-items.reduce((n,r)=>n+r.delta,0);
- // Reconcile totals without treating a new, absent or incomplete series as a zero baseline.
- if(unmatched.length||Math.abs(residual)>1e-7)items.push({name:'Unmatched / unavailable detail',delta:residual,residual:true,unmatched});
+ // Retain a residual only for genuinely unavailable detail or aggregate reconciliation.
+ const roundingTolerance=Math.max(1e-7,Number.EPSILON*Math.max(1,Math.abs(current.value),Math.abs(previous.value),items.reduce((n,r)=>n+Math.abs(r.delta),0))*32);
+ if(unmatched.length||Math.abs(residual)>roundingTolerance)items.push({name:'Unmatched / unavailable detail',delta:residual,residual:true,unmatched});
  return {a,b,current,previous,...total,items,unmatched,reason:null};
 }
 export function commonAvailableMonths(records,years,requested,metric='units',filters={}){
@@ -52,11 +62,21 @@ export function commonAvailableMonths(records,years,requested,metric='units',fil
 export function runRateProjection(records,year,metric='units',filters={}){
  const months=Array.from({length:12},(_,i)=>i+1),sums=months.map(m=>comparableSummary(records,year,[m],metric,filters));
  const end=sums.findLastIndex(s=>s.value!=null)+1;
- if(end<3||end===12||sums.slice(0,end).some(s=>s.value==null))return {value:null,reason:'Needs at least three complete consecutive months from January and a remaining year period.'};
- const observed=sums.slice(0,end).reduce((n,s)=>n+s.value,0),last=sums.slice(end-3,end);
- if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Recent months contain negative net sales or estimated amounts; projection withheld.'};
- const monthly=last.reduce((n,s)=>n+s.value,0)/3;
- return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of the last 3 complete months × remaining months. No seasonality adjustment; scenario, not a commitment.'};
+ if(end<1||end===12||sums.slice(0,end).some(s=>s.value==null))return {value:null,reason:'Needs complete consecutive months from January and a remaining year period.'};
+ const observed=sums.slice(0,end).reduce((n,s)=>n+s.value,0),last=sums.slice(0,end);
+ if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; projection withheld.'};
+ const monthly=observed/end;
+ return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of all complete months from January through the selected cutoff × remaining months. No seasonality adjustment; scenario, not a commitment.'};
+}
+export function seasonalProjection(records,year,cutoff,metric='units',filters={}){
+ const fail=reason=>({value:null,reason});if(!Number.isInteger(cutoff)||cutoff<1||cutoff>=12)return fail('Choose an incomplete year with a YTD cutoff from January to November.');
+ const months=Array.from({length:12},(_,i)=>i+1),prior=months.map(m=>comparableSummary(records,year-1,[m],metric,filters)),current=months.slice(0,cutoff).map(m=>comparableSummary(records,year,[m],metric,filters));
+ const verified=s=>finite(s.value)&&s.value>=0&&!s.estimated&&!s.approximate&&!s.review;
+ if(current.some(s=>!verified(s)))return fail('Needs complete nonnegative actual sales from January through the cutoff; estimated or unverified amounts are excluded.');
+ if(prior.some(s=>!verified(s)))return fail('Needs a complete prior year for the same selection: 12 monthly actuals, without missing, estimated or unverified amounts. New products without a prior year cannot use this method.');
+ const priorFull=prior.reduce((n,s)=>n+s.value,0),priorYTD=prior.slice(0,cutoff).reduce((n,s)=>n+s.value,0),observed=current.reduce((n,s)=>n+s.value,0);
+ if(priorFull<=0||priorYTD<=0)return fail('Prior-year full sales and same-period YTD must both be positive.');
+ const share=priorYTD/priorFull;return {value:observed/share,observed,priorFull,priorYTD,share,priorYear:year-1,through:cutoff,reason:null,method:'Current YTD actual divided by the share of prior-year annual sales earned in the same months. Assumes the prior-year seasonal pattern repeats; exceptional tenders, launches or other one-off sales can distort the result. Scenario, not a commitment.'};
 }
 export function portfolioTarget(records,snapshot,product,chosen,metric,filters={},annual=false){
  const members=records.filter(r=>r.dataset==='actual'&&r.year===snapshot.year&&productKey(r.product)===productKey(product));
