@@ -15,3 +15,6 @@ KPI order: selected period Actual/Target/Achievement/Remaining-or-Above; second 
 
 ## V43 — identical company/product composition panels
 Company Distributor mix and Sales-type mix now use the same mixPanelsTemplate and productMixDonut renderer as the single-product overview/drawer. Both panels occupy equal columns with identical headings, spacing, SVG dimensions, legend styling and responsive stacking. Company-only visible measure/comparison controls removed from these panels; measure follows the dashboard metric. Legacy hidden controls retained for base renderer compatibility. No sales calculations or stored data changed.
+
+## V44 — independent mix measures
+Distributor mix and Sales-type mix each have their own Units/Value toggle in company, single-product and product drawer views. Shared renderMixChart uses independently validated distributorMetric/channelMetric state, retained in saved views. Both numerator and denominator use the chart-specific metric and current filters/months. KPI/global metric is unaffected.
