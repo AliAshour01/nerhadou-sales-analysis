@@ -12,11 +12,10 @@
 </section><details class="methodology"><summary>Definitions &amp; data notes</summary><p class="footnote">Units include Qty + Bounce, matching the current workbook convention. Sales value follows the source workbook. Ebdaa is included. Value targets use Target2 units × the target-sheet price, pending approval. The Period and Data view controls set actual sales everywhere. Target period changes targets and achievement only. Monthly performance always uses monthly targets and ignores the global Target period. Negative sales adjustments remain included. Targets are product-level; distributor/channel selections show sales only. Fractional units are retained in calculations. Ranked charts compare actual units or EGP values. Breakdown percentages use total selected sales after filters, for either units or value. Portfolio company shares retain total company sales for the same period as their denominator. Target-gap percentages use the selected total shortfall. Selected months are combined once each; period targets cover only those months. Gaps in a month selection are not treated as zero sales.</p></details></section>
 <section id="comparison" hidden>
  <div class="heading"><div><h1>Sales comparison</h1></div><span class="badge" id="comparison-revision"></span></div>
- <nav class="focus-scope-tabs" aria-label="Comparison scope"><button data-focus-scope="company" class="active" aria-pressed="true"><b>Company</b><span>Total company sales</span></button><button data-focus-scope="product" aria-pressed="false"><b>Product</b><span>A specific product / strength</span></button></nav>
- <div class="focus-filters">
+  <div class="focus-filters">
   <div class="focus-year-row"><span>Years</span><div id="focus-years" class="focus-year-buttons"></div><button id="focus-all-years">All years</button><button id="focus-clear-years">Clear</button></div>
   <div class="focus-filter-row">
-   <label id="focus-product-label" hidden>Product<select id="focus-product" aria-label="Select product"></select></label>
+   <label id="focus-product-label">Product<select id="focus-product" aria-label="Filter by product"></select></label>
    <label>Period<select id="focus-period"><option value="ytd">YTD through month</option><option value="month">Selected months</option><option value="annual">Full year</option></select></label>
    <label id="focus-through-label">Through<select id="focus-through"></select></label>
    <details id="focus-month-picker" hidden><summary>Months <span id="focus-month-count"></span></summary><div id="focus-month-options"></div></details>

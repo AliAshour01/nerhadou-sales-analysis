@@ -33,13 +33,12 @@ function renderYears(){
 }
 function render(){
  if(!payload)return;
- hideTip();matchedMonths=null;const metric=currentMetric(),years=[...state.years].sort((a,b)=>a-b);
- document.querySelectorAll('[data-focus-scope]').forEach(b=>{const selected=b.dataset.focusScope===state.scope;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});
- document.querySelectorAll('[data-focus-metric]').forEach(b=>{const selected=b.dataset.focusMetric===metric;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});
- $('focus-product-label').hidden=state.scope!=='product';$('focus-through-label').hidden=state.mode!=='ytd';$('focus-month-picker').hidden=state.mode!=='month';$('focus-month-count').textContent=state.selected.size+' selected';
+ hideTip();matchedMonths=null;state.scope=state.product?'product':'company';const metric=currentMetric(),years=[...state.years].sort((a,b)=>a-b);
+  document.querySelectorAll('[data-focus-metric]').forEach(b=>{const selected=b.dataset.focusMetric===metric;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});
+ $('focus-through-label').hidden=state.mode!=='ytd';$('focus-month-picker').hidden=state.mode!=='month';$('focus-month-count').textContent=state.selected.size+' selected';
  $('focus-context').textContent=`${focusName()} · ${period()||'No months selected'} · ${years.length} year${years.length===1?'':'s'}`;
  $('comparison-revision').textContent='Revision '+payload.revision;$('comparison-revision').setAttribute('data-owner-only','');$('comparison-revision').hidden=window.nerhadouSecurity?.me?.user?.role!=='owner';
- const message=!years.length?'Select one or more years above.':state.mode==='month'&&!state.selected.size?'Select at least one month.':state.scope==='product'&&!state.product?'Select a product to compare.':'';
+ const message=!years.length?'Select one or more years above.':state.mode==='month'&&!state.selected.size?'Select at least one month.':'';
  $('focus-empty').hidden=!message;$('focus-empty').textContent=message;$('focus-content').hidden=!!message;$('focus-export').disabled=!!message;
  if(message){model=null;modelKey='';return}
  if(state.compositionYear!=='all'&&!years.includes(state.compositionYear))state.compositionYear=years.at(-1);
@@ -115,9 +114,9 @@ function renderNotes(){
 window.updateComparison=data=>{
  const first=!payload;payload=data;allYears=[...new Set(data.records.filter(r=>r.dataset==='actual'&&r.month>0).map(r=>r.year))].sort((a,b)=>a-b);productNames=[...new Set(data.records.filter(r=>r.dataset==='actual').map(comparisonProduct))].sort();
  const latest=allYears.at(-1);defaultMonth=Math.max(1,...data.records.filter(r=>r.dataset==='actual'&&r.year===latest&&r.month>0).map(r=>r.month));
- if(first){state.years=new Set(allYears);state.month=defaultMonth;state.selected=new Set([defaultMonth]);state.product=productNames.includes('ONDALENZ 8MG')?'ONDALENZ 8MG':productNames[0]||'';state.compositionYear=latest;}
- else {state.years=followAllYears?new Set(allYears):new Set([...state.years].filter(y=>allYears.includes(y)));if(followLatestThrough&&followAllYears)state.month=defaultMonth;if(!productNames.includes(state.product))state.product=productNames[0]||'';}
- syncControls();$('focus-product').innerHTML=productNames.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');$('focus-product').value=state.product;modelKey='';renderYears();render();
+ if(first){state.years=new Set(allYears);state.month=defaultMonth;state.selected=new Set([defaultMonth]);state.product='';state.compositionYear=latest;}
+ else {state.years=followAllYears?new Set(allYears):new Set([...state.years].filter(y=>allYears.includes(y)));if(followLatestThrough&&followAllYears)state.month=defaultMonth;if(state.product&&!productNames.includes(state.product))state.product='';}
+ syncControls();$('focus-product').innerHTML='<option value="">All products (total company)</option>'+productNames.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');$('focus-product').value=state.product;modelKey='';renderYears();render();
 };
 window.comparisonLoadError=message=>{$('focus-content').hidden=true;$('focus-empty').hidden=false;$('focus-empty').textContent=message;$('focus-export').disabled=true};
 function syncControls(){
@@ -126,7 +125,6 @@ function syncControls(){
  $('focus-month-options').querySelectorAll('input').forEach(input=>input.onchange=()=>{const m=Number(input.value);input.checked?state.selected.add(m):state.selected.delete(m);render()});
 }
 $('focus-through').innerHTML=months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
-for(const b of document.querySelectorAll('[data-focus-scope]'))b.onclick=()=>{state.scope=b.dataset.focusScope;render()};
 for(const b of document.querySelectorAll('[data-focus-metric]'))b.onclick=()=>{state.metrics[state.scope]=b.dataset.focusMetric;render()};
 $('focus-period').onchange=()=>{state.mode=$('focus-period').value;render()};
 $('focus-through').onchange=()=>{followLatestThrough=false;state.month=Number($('focus-through').value);render()};
@@ -138,4 +136,4 @@ $('focus-clear-years').onclick=()=>{followAllYears=false;state.years.clear();ren
 $('focus-reset').onclick=()=>{followAllYears=true;followLatestThrough=true;state.years=new Set(allYears);state.mode='ytd';state.month=defaultMonth;state.selected=new Set([defaultMonth]);state.growthBasis='calendar';state.metrics[state.scope]='units';state.compositionYear=allYears.at(-1);syncControls();renderYears();render()};
 $('focus-export').onclick=()=>{if(!model)return;const blob=new Blob([comparisonWorkbook(model,period())],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`nerhadou-${state.scope}-${currentMetric()}-${model.years.join('-')}.xlsx`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 
-window.comparisonDashboard={render,capture:()=>({...state,years:[...state.years],selected:[...state.selected],commonMonths:!!$('focus-common-months')?.checked}),restore:config=>{if(!config||!payload)return;state.scope=config.scope==='product'?'product':'company';if(productNames.includes(config.product))state.product=config.product;if(Array.isArray(config.years))state.years=new Set(config.years.filter(y=>allYears.includes(y)));if(['ytd','month','annual'].includes(config.mode))state.mode=config.mode;if(Number.isInteger(config.month)&&config.month>=1&&config.month<=12)state.month=config.month;if(Array.isArray(config.selected))state.selected=new Set(config.selected.filter(m=>Number.isInteger(m)&&m>=1&&m<=12));if(['selected','calendar'].includes(config.growthBasis))state.growthBasis=config.growthBasis;for(const scope of ['company','product'])if(['units','value'].includes(config.metrics?.[scope]))state.metrics[scope]=config.metrics[scope];if($('focus-common-months'))$('focus-common-months').checked=!!config.commonMonths;followAllYears=false;followLatestThrough=false;syncControls();renderYears();render()}};
+window.comparisonDashboard={render,capture:()=>({...state,years:[...state.years],selected:[...state.selected],commonMonths:!!$('focus-common-months')?.checked}),restore:config=>{if(!config||!payload)return;state.product=productNames.includes(config.product)?config.product:'';if(Array.isArray(config.years))state.years=new Set(config.years.filter(y=>allYears.includes(y)));if(['ytd','month','annual'].includes(config.mode))state.mode=config.mode;if(Number.isInteger(config.month)&&config.month>=1&&config.month<=12)state.month=config.month;if(Array.isArray(config.selected))state.selected=new Set(config.selected.filter(m=>Number.isInteger(m)&&m>=1&&m<=12));if(['selected','calendar'].includes(config.growthBasis))state.growthBasis=config.growthBasis;for(const scope of ['company','product'])if(['units','value'].includes(config.metrics?.[scope]))state.metrics[scope]=config.metrics[scope];if($('focus-common-months'))$('focus-common-months').checked=!!config.commonMonths;followAllYears=false;followLatestThrough=false;syncControls();renderYears();render()}};
