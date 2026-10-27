@@ -37,3 +37,8 @@
 /* V45: use company monthly column renderer and responsive sizing in product views. */
 #single-chart,#drawer-chart{overflow:visible;}
 #single-chart>svg,#drawer-chart>svg{width:100%;height:auto;max-height:none;min-width:0!important;display:block;}
+
+/* V46: identical compact monthly control groups in company and product views. */
+.product-monthly-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 12px;}
+.product-monthly-controls>.control-group,.product-monthly-controls>span{flex:0 0 auto;width:auto;}
+.product-monthly-controls>span{display:inline-flex;}

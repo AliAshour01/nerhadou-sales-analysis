@@ -21,3 +21,6 @@ Distributor mix and Sales-type mix each have their own Units/Value toggle in com
 
 ## V45 — shared company/product monthly renderer
 Extracted the existing company Monthly performance SVG generation unchanged into actualDashboard.monthlyChartHTML(data,metric). Company, single-product and drawer default views all call it: same columns, target markers, overachievement fill, axis, tooltips and legend. Product view supplies product-filtered actuals/monthly targets; optional previous-year mode retains the same pairedChart renderer used by company. Removed product-specific fixed 300px/600px SVG sizing. No stored data or target math changes.
+
+## V46 — match monthly control layout
+Single-product/drawer monthly controls now place Units / EGP value and Actual + target / Add previous year together below the Monthly performance title and period caption, matching company order and compact sizing. No full-width prior-year strip.
