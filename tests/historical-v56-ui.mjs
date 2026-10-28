@@ -6,3 +6,14 @@ window.comparisonDashboard.restore({scope:'company',years:[2025,2026],mode:'ytd'
 window.comparisonDashboard.restore({scope:'company',years:[2025,2026],mode:'ytd',month:3,commonMonths:true});assert($('focus-context').textContent.includes('YTD Mar'));assert(!$('focus-context').textContent.includes('Jan, Feb'));
 window.comparisonDashboard.restore({scope:'company',years:[2025,2026],mode:'month',selected:[1,3],commonMonths:false});assert($('focus-context').textContent.includes('Jan, Mar'));assert(!$('focus-context').textContent.includes('YTD'));
 console.log('Historical compact YTD labels passed: Sep/Aug, common-month mode, table and explicit month distinction.');
+
+const contexts=['focus-sales-context','focus-growth-note','focus-trend-context','focus-composition-context'];
+for(const [mode,label] of [['ytd','YTD Sep'],['annual','Full year'],['month','Selected months: Jan, Mar']]){
+ window.comparisonDashboard.restore({scope:'company',years:[2025,2026],mode,month:9,selected:[1,3],commonMonths:false,metrics:{company:'units'},trendMode:'monthly'});
+ for(const id of contexts){assert($(id).textContent.includes(label),id+' names period '+label);assert(($(id).textContent+(id==='focus-trend-context'?$('focus-trend-title').textContent:'')).includes('Units'),id+' names units');assert(/2025|2026/.test($(id).textContent),id+' names year');}
+}
+window.comparisonDashboard.restore({scope:'product',product:'ONDALENZ 8MG',years:[2025,2026],mode:'ytd',month:9,commonMonths:false,metrics:{product:'value'},trendMode:'monthly'});
+for(const id of ['focus-sales-context','focus-growth-note','focus-trend-context','focus-share-context','historical-products-context']){assert($(id).textContent.includes('YTD Sep'),id+' names product cutoff');assert(($(id).textContent+(id==='focus-trend-context'?$('focus-trend-title').textContent:'')).includes('Value · EGP'),id+' names EGP');}
+assert($('focus-trend-context').textContent.includes('Each point = that month only'));document.querySelector('[data-history-trend="cumulative"]').click();assert($('focus-trend-title').textContent.includes('Cumulative'));assert($('focus-trend-context').textContent.includes('Jan–that month total'));assert($('focus-trend-chart').querySelector('[data-focus-tip]').getAttribute('data-focus-tip').includes('YTD'));
+window.comparisonDashboard.restore({scope:'company',years:[2023,2025,2026],mode:'annual',commonMonths:true,metrics:{company:'units'}});assert(!$('focus-sales-context').textContent.startsWith('Full year ·'),'Restricted annual common-month intersection must not claim full-year totals');assert($('focus-sales-context').textContent.includes('common months'));
+console.log('V59 all-chart context passed: YTD/full year/selected months, Units/EGP, years, company/product, cumulative semantics and limited annual coverage.');
