@@ -153,3 +153,10 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
  #meeting-report thead{display:table-header-group;}#meeting-report tr{break-inside:avoid;}
  .report-footer{position:static;}
 }
+
+/* V62: this setting is rendered only for the authenticated standalone owner. */
+#auto-approval-settings .panel-title{align-items:center;gap:16px;flex-wrap:wrap;}
+#auto-approval-toggle{min-height:44px;min-width:174px;border:1px solid #c9d6e6;border-radius:9px;padding:10px 16px;color:#415b7b;background:#f4f7fb;font-weight:650;cursor:pointer;}
+#auto-approval-toggle[aria-checked="true"]{background:#e7f5ec;color:#246a42;border-color:#85bc99;}
+#auto-approval-toggle:disabled{opacity:.6;cursor:wait;}
+#auto-approval-message{font-size:12px;line-height:1.6;}
