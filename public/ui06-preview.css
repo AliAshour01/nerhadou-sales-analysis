@@ -111,3 +111,45 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 .tab-scroll-help{font-size:12px;color:#5c7391;margin:-12px 0 14px;display:none;}
 @media(max-width:700px){.tab-scroll-help{display:block;}#sales>.section-tabs{background:linear-gradient(to left,#dce7f7 0,#eef3fa 24px,#eef3fa 100%);}#sales .chart-grid,#single-product-overview>.chart-grid,#company-rate-panels{grid-template-columns:minmax(0,1fr)!important;}#sales>.section-tabs button{font-size:13px;padding:11px 16px;}#sales .panel-title{flex-wrap:wrap;gap:12px;}#sales .panel-title>div{min-width:0;}#sales .panel{overflow-wrap:anywhere;}#bd-full-chart{max-height:70vh;}}
 @media(prefers-reduced-motion:reduce){.chart-scroll,#sales>.section-tabs{scroll-behavior:auto;}}
+
+/* V61 Meeting report is a document, not a copy of interactive dashboard panels. */
+#report-dialog{width:min(1120px,96vw);box-sizing:border-box;background:#fff;color:#243b59;}
+#meeting-report,#meeting-report:hover{background:#fff!important;color:#243b59!important;box-shadow:none!important;border:0!important;min-width:0;}
+.report-header{display:flex;align-items:center;gap:24px;padding:16px 0 24px;border-bottom:2px solid #dbe5f2;margin-bottom:24px;}
+.report-header img{width:150px;height:auto;object-fit:contain;flex:none;}
+.report-header h1{font-size:26px;line-height:1.25;margin:6px 0 10px;}
+.report-header p{margin:0;color:#63758e;}
+.report-scope{padding:14px 18px;background:#f0f5fc;border:1px solid #dce6f3;border-radius:9px;font-size:13px;line-height:1.65;margin:0 0 20px;}
+.report-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 26px;}
+.report-kpi{background:#f8fafd;border:1px solid #dfe7f1;border-radius:9px;padding:14px;min-width:0;}
+.report-kpi span,.report-kpi strong,.report-kpi small{display:block;}
+.report-kpi span{font-size:12px;color:#506887;line-height:1.5;}
+.report-kpi strong{font-size:23px;line-height:1.35;margin:8px 0;color:#1e4d88;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.report-kpi small{font-size:11px;color:#63758e;line-height:1.5;}
+.report-section{margin:24px 0;padding:0 0 22px;border-bottom:1px solid #e2e9f2;min-width:0;}
+.report-section h2{margin:0 0 8px;font-size:18px;color:#294b76;}
+.report-caption{margin:0 0 16px;font-size:12px;line-height:1.6;color:#61758e;}
+.report-chart{max-width:100%;overflow:auto;scrollbar-width:auto;overscroll-behavior-x:contain;padding-bottom:8px;}
+.report-chart svg{display:block;flex:none;margin:0 auto;max-width:none;min-width:0;}
+.report-chart svg text{font-size:12px;}
+.report-table-wrap{max-width:100%;overflow:auto;}
+#meeting-report table{width:100%;min-width:620px;font-size:12px;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+#meeting-report th{background:#edf3fb;color:#304d70;white-space:normal;position:static;}
+#meeting-report th,#meeting-report td{border:1px solid #dae4f0;padding:10px 12px;line-height:1.5;}
+#meeting-report tbody tr:nth-child(even){background:#f8fafd;}
+#meeting-report tr.total-row td{background:#e9f1fb!important;font-weight:700;}
+.report-notes p{font-size:12px;line-height:1.7;}
+.report-footer{font-size:12px;color:#61758e;text-align:center;padding:18px 0;}
+@media(max-width:700px){#report-dialog{padding:16px;max-width:98vw;max-height:94vh;}.report-header{align-items:flex-start;gap:14px;flex-direction:column;}.report-header img{width:125px;}.report-header h1{font-size:23px;}.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}.report-kpi{padding:12px;}.report-kpi strong{font-size:20px;}.report-controls{top:-16px;}}
+@media print{
+ body.printing-report>#report-dialog{display:block!important;}
+ #meeting-report{background:white!important;color:#243b59!important;}
+ .report-header{break-after:avoid;}.report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;break-inside:avoid;}
+ .report-kpi{break-inside:avoid;}.report-section h2,.report-caption{break-after:avoid;}
+ .report-chart,.report-table-wrap{overflow:visible!important;max-height:none!important;}
+ #meeting-report svg,#meeting-report svg.responsive-plot,#meeting-report svg.report-snapshot{max-width:100%!important;min-width:0!important;width:100%!important;height:auto!important;break-inside:avoid;}
+ #meeting-report table{min-width:0!important;font-size:10px;table-layout:auto;}
+ #meeting-report th,#meeting-report td{padding:6px 8px;}
+ #meeting-report thead{display:table-header-group;}#meeting-report tr{break-inside:avoid;}
+ .report-footer{position:static;}
+}

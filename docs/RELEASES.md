@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V61 — Approved Historical/responsive release and repaired Meeting report
+
+Owner approved publishing the V56–60 previews and requested a clean Meeting report first. Fixes the report's accidental primary-button CSS, replaces interactive DOM copies with scoped report data/read-only charts, correct company/product monthly values and clear targets, Historical years/period/measure/coverage, Cairo timestamp, print-friendly tables and responsive document styling. Preserves source sales, targets, account state, secrets and standalone security. See RELEASE-V61.md for detailed handoff, validation, rollback and deployment evidence.
+
 ## V60 — Actual Sales responsive chart preview
 
 Card-width SVG geometry with fixed readable type, consistent monthly/rate/timeline heights, shared company/product renderers, top-eight Movement plus exact signed Other and full detail, responsive horizontal product rows, top-four mobile line chart with complete View all, and keyboard-visible chart/tab scrolling. Resize reflows only presentation, without network or data changes. See RESPONSIVE-V60-HANDOFF.md for files, tests, known browser QA limitation and rollback. Private preview only; company site unchanged.
