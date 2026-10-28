@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V63 — Manager readability, private trial only
+
+Built from verified main V62 abcd3d2. Adds a scoped Overview headline, plain-language copy, responsive Historical plots and year patterns, unified contribution panel, visible partial coverage, clearable product scope, container-fit Top8+Other Movement, top-five mobile line preview, tab scroll snap and central release/cache config. Forecast UI follows the brief: Owner/Admin only. No core math, targets, sales, auth/server/schema or Cloudflare config changes. Existing personal credit/version disclosure and PR #14 remain pending owner decisions. See READABILITY-V63-HANDOFF.md, V63-CHART-GEOMETRY.md and CSS-CASCADE-V63.md for validation, pre-existing fixture repair, blocked browser screenshots and code-only rollback. Production unchanged; private preview only. Prior private V62: appgprj_6acfda6514988191b70ce8587b602beb~appgver_67c4a1daea2c8191a79b2e93fccc1faf / af1b50887ace556f0c0a0ef1f1b89ebedde99661.
+
 ## V62 — Owner automatic approval switch
 
 Users & access gains a persistent owner-only ON/OFF switch. Default OFF retains manual review; ON activates new @nerhadou.com application accounts as Viewer only. Existing pending/active/rejected/suspended accounts remain unchanged. Fresh owner session, same-origin CSRF, strict schema, durable audit, optimistic concurrency and explicit domain-only enrollment acknowledgement are enforced. No provider settings, secrets, schema or sales changes. See AUTO-APPROVAL-V62.md for behavior, limits, tests and rollback.

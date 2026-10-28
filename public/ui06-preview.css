@@ -160,3 +160,37 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 #auto-approval-toggle[aria-checked="true"]{background:#e7f5ec;color:#246a42;border-color:#85bc99;}
 #auto-approval-toggle:disabled{opacity:.6;cursor:wait;}
 #auto-approval-message{font-size:12px;line-height:1.6;}
+
+/* V63: additive presentation layer. Legacy cascade retained pending visual diffs. */
+:root{--chart-axis-size:11px;--chart-label-size:12px;--chart-value-size:12px;}
+#sales svg.responsive-plot text,#comparison svg.historical-plot text,#product-drawer svg.responsive-plot text,#breakdown-detail svg.responsive-plot text{font-size:var(--chart-label-size);}
+#comparison svg.historical-plot text[font-size="11"]{font-size:var(--chart-axis-size);}
+#comparison svg.historical-plot{display:block;flex:none;min-width:0!important;max-width:none!important;}
+#comparison .focus-trend-scroll{overflow-x:auto;min-width:0;max-width:100%;}
+#comparison .focus-legend button{display:inline-flex;align-items:center;gap:7px;min-height:44px;}
+#comparison .focus-legend svg{width:36px!important;min-width:36px!important;max-width:36px!important;height:16px;}
+.manager-headline{border-left:4px solid #3165e9;background:#eff5ff;color:#254667;padding:14px 18px;font-size:14px;line-height:1.8;border-radius:8px;}
+.scope-chip,#product-scope-chip{font-size:13px;color:#294b76;}
+.scope-chip:not([hidden]){display:flex;align-items:center;gap:10px;margin:8px 0 18px;}
+.scope-chip button,#product-scope-chip button{min-width:44px;min-height:44px;font-size:19px;}
+.coverage-alert{grid-column:1/-1;border:1px solid #d6ac60;background:#fff8e9;color:#674c21;padding:12px 16px;line-height:1.7;border-radius:8px;margin:0 0 10px;}
+.bridge-fit{max-width:100%;overflow:hidden;}
+.bridge-key{padding-left:24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 26px;font-size:12px;}
+.bridge-key li{padding:6px 0;border-bottom:1px solid #e3eaf3;}
+.bridge-key li span{overflow-wrap:anywhere;}
+.bridge-key strong{display:block;font-variant-numeric:tabular-nums;}
+#sales>.section-tabs{scroll-snap-type:x proximity;}
+#sales>.section-tabs button{scroll-snap-align:start;}
+#historical-contribution-panel{min-width:0;}
+@media(max-width:700px){
+ .bridge-key{grid-template-columns:minmax(0,1fr);}
+ .manager-headline{font-size:13px;padding:12px;}
+ #comparison .focus-primary-charts{grid-template-columns:minmax(0,1fr);}
+ #comparison .focus-legend{display:flex;flex-wrap:wrap;gap:6px;}
+ #comparison .historical-ranking-controls{display:flex;flex-wrap:wrap;gap:10px;}
+ #comparison .historical-ranking-controls>*{max-width:100%;min-width:0;}
+ #sales>.section-tabs{box-shadow:inset -12px 0 14px -12px #4b73a7;}
+}
+/* A 180px donut keeps its 14-unit measure label above 11 physical pixels. */
+.product-mix-donut>svg{width:180px!important;min-width:180px!important;max-width:180px!important;}
+@media(min-width:1151px){.product-mix-donut{grid-template-columns:minmax(180px,210px) minmax(0,440px);}}
