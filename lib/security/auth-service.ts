@@ -40,7 +40,7 @@ let actor: string | null = null; try {
           if (error) return response({ error: 'Unable to create an account with these details. If you already registered, sign in.', code: 'registration_failed' }, 400);
           if (!data.session) throw new SecurityError(503, 'Registration setup is incomplete. Contact the workspace owner.', 'configuration_required');
           const s = await createSession(env, data.session);
-          return response({ ok: true, status: s.user.status, role: s.user.role, message: 'Waiting for administrator approval.' }, 200, { 'Set-Cookie': s.cookie });
+          return response({ ok: true, status: s.user.status, role: s.user.role, message: s.user.status==='active'?'Account approved. You can continue to the dashboard.':'Waiting for administrator approval.' }, 200, { 'Set-Cookie': s.cookie });
         }
         return response(generic);
       }

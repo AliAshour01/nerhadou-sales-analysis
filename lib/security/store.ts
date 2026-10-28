@@ -1,14 +1,19 @@
+import { latestPolicySQL } from './approval-policy';
 import { cookie, hash, random, seal, unseal, sessionCookie } from './crypto';
-import { SecurityError, mode, origin, standalone } from './config';
+import { SecurityError, mode, origin, standalone, companyEmail } from './config';
 import { identity, provider, providerFailure } from './provider';
 export async function event(env: any, actor: string | null, name: string) { await env.DB.prepare('INSERT INTO security_events(id,actor,event,created_at) VALUES(?,?,?,?)').bind(crypto.randomUUID(), actor, name, Date.now()).run() ;}
-export async function ensureUser(env: any, who: any) {
-  const now = Date.now(), statements = [env.DB.prepare("INSERT INTO app_users(id,email,name,created_at,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING").bind(who.id, who.email, who.name, now, now)];
+export async function ensureUser(env: any, who: any, allowAutoApproval = true) {
+  companyEmail(who.email);
+  const now = Date.now(), eligible = allowAutoApproval && env.AUTH_MODE==='standalone' && env.AUTH_SETUP_VERIFIED==='true';
+  const policy = `SELECT p.actor FROM (${latestPolicySQL}) p WHERE p.action='auto-approval-enabled' AND ? AND EXISTS(SELECT 1 FROM app_users o WHERE o.id=p.actor AND o.role='owner' AND o.status='active')`;
+  const statements = [env.DB.prepare(`WITH policy AS (${policy}) INSERT INTO app_users(id,email,name,role,status,created_at,updated_at,reviewed_by,reviewed_at) SELECT ?,?,?,'viewer',CASE WHEN EXISTS(SELECT 1 FROM policy) THEN 'active' ELSE 'pending' END,?,?,(SELECT actor FROM policy),CASE WHEN EXISTS(SELECT 1 FROM policy) THEN ? ELSE NULL END WHERE 1=1 ON CONFLICT(id) DO NOTHING`).bind(eligible?1:0,who.id,who.email,who.name,now,now,now),
+    env.DB.prepare("INSERT OR IGNORE INTO approval_events(id,actor,target,action,note,created_at,target_version) SELECT ?,reviewed_by,id,'auto-approved','New company account automatically approved as Viewer by owner policy.',?,version FROM app_users WHERE id=? AND role='viewer' AND status='active' AND version=1 AND created_at=? AND reviewed_at=? AND reviewed_by IS NOT NULL").bind('auto-approved-'+who.id,now,who.id,now,now)];
   if (env.OWNER_EMAIL) statements.push(env.DB.prepare("INSERT OR IGNORE INTO notification_outbox(id,recipient,kind,payload,created_at) SELECT ?,?,'approval_requested','{}',? WHERE EXISTS(SELECT 1 FROM app_users WHERE id=? AND status='pending')").bind('request-' + who.id, env.OWNER_EMAIL, now, who.id));
   await env.DB.batch(statements); const user = await env.DB.prepare('SELECT * FROM app_users WHERE id=?').bind(who.id).first(); if (!user || user.email !== who.email) throw new SecurityError(403, 'Your account needs an administrator review.', 'email_changed'); return user;
 }
 export async function createSession(env: any, auth: any, purpose = 'login') {
-  const who = await identity(env, auth.access_token), user = await ensureUser(env, who), token = random(), id = await hash(token), now = Date.now(), ttl = purpose === 'recovery' ? 600000 : 86400000, csrf = random();
+  const who = await identity(env, auth.access_token), user = await ensureUser(env, who, purpose === 'login'), token = random(), id = await hash(token), now = Date.now(), ttl = purpose === 'recovery' ? 600000 : 86400000, csrf = random();
   const sealed = await seal(env, { access: auth.access_token, refresh: auth.refresh_token, expires: auth.expires_at }, id);
   await env.DB.prepare('INSERT INTO app_sessions(id,user_id,provider_session,sealed,csrf,created_at,last_seen,expires_at,purpose) VALUES(?,?,?,?,?,?,?,?,?)').bind(id, who.id, who.providerSession, sealed, csrf, now, now, now + ttl, purpose).run();
   await event(env, who.id, purpose === 'recovery' ? 'recovery_verified' : 'signed_in'); return { user, who, id, csrf, token, cookie: sessionCookie(token, Math.floor(ttl / 1000)), purpose };

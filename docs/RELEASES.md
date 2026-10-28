@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V62 — Owner automatic approval switch
+
+Users & access gains a persistent owner-only ON/OFF switch. Default OFF retains manual review; ON activates new @nerhadou.com application accounts as Viewer only. Existing pending/active/rejected/suspended accounts remain unchanged. Fresh owner session, same-origin CSRF, strict schema, durable audit, optimistic concurrency and explicit domain-only enrollment acknowledgement are enforced. No provider settings, secrets, schema or sales changes. See AUTO-APPROVAL-V62.md for behavior, limits, tests and rollback.
+
 ## V61 — Approved Historical/responsive release and repaired Meeting report
 
 Owner approved publishing the V56–60 previews and requested a clean Meeting report first. Fixes the report's accidental primary-button CSS, replaces interactive DOM copies with scoped report data/read-only charts, correct company/product monthly values and clear targets, Historical years/period/measure/coverage, Cairo timestamp, print-friendly tables and responsive document styling. Preserves source sales, targets, account state, secrets and standalone security. See RELEASE-V61.md for detailed handoff, validation, rollback and deployment evidence.

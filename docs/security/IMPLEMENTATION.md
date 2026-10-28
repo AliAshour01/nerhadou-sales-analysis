@@ -1,3 +1,7 @@
+# V62 owner-selectable enrollment approval
+
+The Owner explicitly requested an automatic approval switch on 28 October 2026. Default OFF preserves manual app approval. When the Owner enables ON, new application accounts receive Viewer access without human approval, after the existing provider identity/domain/CAPTCHA/rate checks. Under the current admin_review provider policy, mailbox ownership is not verified; the UI/API require explicit owner acknowledgement. No provider email-confirmation settings are changed. Existing pending/rejected/suspended accounts stay unchanged. See ../AUTO-APPROVAL-V62.md for authorization, persistence, audit, tests and rollback. The older manual-only descriptions below apply when the switch is OFF.
+
 # Secure access implementation — release 30
 
 ## Optional authenticator — owner-approved change
