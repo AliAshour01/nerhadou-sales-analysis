@@ -3,6 +3,22 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V66 — Modern filter presentation (private trial)
+
+Replaces the heavy blue filter treatment with white rounded surfaces, faint borders/soft elevation, quiet labels, light filled fields, inset segmented selection, compact year pills and floating menus. Keeps visible keyboard focus, minimum control heights and reduced-motion support. Headings remain text-only; no SVG icons reintroduced. Filters, numbers, calculations, access and Owner-only version unchanged. See FILTER-STYLE-V66.md. Prior private V65: appgprj_6acfda6514988191b70ce8587b602beb~appgver_dbb14f3ea660819191cfb012e3f171bd / 3ffb9743fc666cd38ea5090a67845b1f16e716da.
+
+## V65 — Filter heading oversize fix (private trial)
+
+Removed the two decorative SVGs from the Actual/Historical Filters headings. Existing chart CSS (`svg` / `#comparison svg` width:100%, height:auto) overrode the SVG width/height attributes, making the icon enormous. Headings are now text-only; filter backgrounds, borders, controls and behavior remain unchanged. Owner-only version display retained. No formulas, data, auth or production change. Prior private V64: appgprj_6acfda6514988191b70ce8587b602beb~appgver_1d9336bef06c819182f38380d551160b / ee7daf219c0de966c8c304339851586af53c2008. See FILTER-ICON-V65.md.
+
+## V64 — Selected readability changes and prominent filters (private trial)
+
+Owner selected items 2–15, 17, 19 and then approved item 16 from the readability brief. Retains the unified contribution panel. Removes the extra Overview headline (item 1) and extra requested-month coverage alert (item 18), retaining the original coverage indicators and definitions. Both analytics filter bars gain clear blue-tinted panels, an accent border, Filters heading, stronger controls and keyboard focus. Version/footer number is Owner-only, hidden by default for everyone else; existing release-history access remains Owner-only. Personal credit unchanged. No source data, formulas, target definitions, auth/server/schema or production changes. See FILTERS-V64-HANDOFF.md. Prior private V63: appgprj_6acfda6514988191b70ce8587b602beb~appgver_6272dc03c76c81918977ee04718f6162 / 07604cb7dbad2b8657c7ef8089a475e143d68b79.
+
+## V63 — Manager readability, private trial only
+
+Built from verified main V62 abcd3d2. Adds a scoped Overview headline, plain-language copy, responsive Historical plots and year patterns, unified contribution panel, visible partial coverage, clearable product scope, container-fit Top8+Other Movement, top-five mobile line preview, tab scroll snap and central release/cache config. Forecast UI follows the brief: Owner/Admin only. No core math, targets, sales, auth/server/schema or Cloudflare config changes. Existing personal credit/version disclosure and PR #14 remain pending owner decisions. See READABILITY-V63-HANDOFF.md, V63-CHART-GEOMETRY.md and CSS-CASCADE-V63.md for validation, pre-existing fixture repair, blocked browser screenshots and code-only rollback. Production unchanged; private preview only. Prior private V62: appgprj_6acfda6514988191b70ce8587b602beb~appgver_67c4a1daea2c8191a79b2e93fccc1faf / af1b50887ace556f0c0a0ef1f1b89ebedde99661.
+
 ## V62 — Owner automatic approval switch
 
 Users & access gains a persistent owner-only ON/OFF switch. Default OFF retains manual review; ON activates new @nerhadou.com application accounts as Viewer only. Existing pending/active/rejected/suspended accounts remain unchanged. Fresh owner session, same-origin CSRF, strict schema, durable audit, optimistic concurrency and explicit domain-only enrollment acknowledgement are enforced. No provider settings, secrets, schema or sales changes. See AUTO-APPROVAL-V62.md for behavior, limits, tests and rollback.

@@ -1,5 +1,5 @@
-import {breakdownModel,breakdownTop} from './breakdown-core.js?v=ui02';
-import {tableWorkbook} from './comparison-xlsx.js?v=32';
+import {breakdownModel,breakdownTop} from './breakdown-core.js?v=readability-v66';
+import {tableWorkbook} from './comparison-xlsx.js?v=readability-v66';
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=v=>v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:0}),p=v=>v==null?'—':v.toFixed(1)+'%',short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(0)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+'K':n(v);
 const pixels=(node,fallback)=>Math.max(260,Math.round(node?.getBoundingClientRect?.().width||node?.clientWidth||fallback));
@@ -32,7 +32,7 @@ export function createBreakdown({read,changed}){
    markup+=`<g tabindex="0" role="button" data-bd-product="${e(r.name)}" data-tip="${e(tip(r,gap,chartMetric))}" aria-label="${e(tip(r,gap,chartMetric))}"><rect x="0" y="${y-17}" width="${W}" height="${rowH-3}" fill="transparent"/><text x="4" y="${y+4}" font-size="12" fill="#91a0b4">${i+1}</text><text x="27" y="${y+4}" fill="#38516f" font-size="12">${e(label)}</text><rect x="${Math.min(zero,X(v))}" y="${barY}" width="${Math.abs(X(v)-zero)}" height="18" rx="3" fill="${gap||v<0?'#bb7764':'#2d64c8'}"/><text x="${W-8}" y="${numberY}" text-anchor="end" font-size="12" fill="#304b6f">${n(v)}${mobile?'':`<tspan fill="#8c9eb7"> · ${p(gap?r.gapShare:r.share)}</tspan>`}</text>${mobile?`<text x="${W-8}" y="${y+55}" text-anchor="end" font-size="12" fill="#647c96">${p(gap?r.gapShare:r.share)} of selected</text>`:''}</g>`});$(destination).innerHTML=markup+'</svg>';
  }
  function drawLines(modelOverride=null,destination='breakdown-lines-chart',limit=6){
-  const model=modelOverride||models.line,available=pixels($(destination),640),mobile=available<520,visibleLimit=destination==='breakdown-lines-chart'&&mobile?Math.min(4,limit):limit,top=breakdownTop(model,'sales',visibleLimit);$('breakdown-lines-count').textContent=`Top ${top.shown} of ${model.rows.length}`;
+  const model=modelOverride||models.line,available=pixels($(destination),640),mobile=available<520,visibleLimit=destination==='breakdown-lines-chart'&&mobile?Math.min(5,limit):limit,top=breakdownTop(model,'sales',visibleLimit);$('breakdown-lines-count').textContent=`Top ${top.shown} of ${model.rows.length}`;
   $('breakdown-lines-note').textContent=(model.negative?'Includes negative sales adjustments.':model.partial?'Incomplete selection · unavailable amounts remain —.':'Click a line to see its products.')+(mobile&&destination==='breakdown-lines-chart'?' View all for remaining lines.':'');
   if(!top.items.length){$(destination).innerHTML='<p class="bd-empty">No available line sales in this selection.</p>';return}
   const lo=Math.min(0,...top.items.map(r=>r.actual)),hi=Math.max(0,...top.items.map(r=>r.actual)),range=hi-lo||1,W=destination==='bd-full-chart'?Math.max(available,top.items.length*98+80):available,L=55,R=W-24,T=38,B=235,H=355,Y=v=>B-(v-lo)/range*(B-T),step=(R-L)/top.items.length,bw=Math.min(52,step*.62);
