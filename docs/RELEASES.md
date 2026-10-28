@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V65 — Filter heading oversize fix (private trial)
+
+Removed the two decorative SVGs from the Actual/Historical Filters headings. Existing chart CSS (`svg` / `#comparison svg` width:100%, height:auto) overrode the SVG width/height attributes, making the icon enormous. Headings are now text-only; filter backgrounds, borders, controls and behavior remain unchanged. Owner-only version display retained. No formulas, data, auth or production change. Prior private V64: appgprj_6acfda6514988191b70ce8587b602beb~appgver_1d9336bef06c819182f38380d551160b / ee7daf219c0de966c8c304339851586af53c2008. See FILTER-ICON-V65.md.
+
 ## V64 — Selected readability changes and prominent filters (private trial)
 
 Owner selected items 2–15, 17, 19 and then approved item 16 from the readability brief. Retains the unified contribution panel. Removes the extra Overview headline (item 1) and extra requested-month coverage alert (item 18), retaining the original coverage indicators and definitions. Both analytics filter bars gain clear blue-tinted panels, an accent border, Filters heading, stronger controls and keyboard focus. Version/footer number is Owner-only, hidden by default for everyone else; existing release-history access remains Owner-only. Personal credit unchanged. No source data, formulas, target definitions, auth/server/schema or production changes. See FILTERS-V64-HANDOFF.md. Prior private V63: appgprj_6acfda6514988191b70ce8587b602beb~appgver_6272dc03c76c81918977ee04718f6162 / 07604cb7dbad2b8657c7ef8089a475e143d68b79.
