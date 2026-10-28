@@ -18,7 +18,16 @@ const state={scope:'company',metrics:{company:'units',product:'units'},product:'
 const currentMetric=()=>state.metrics[state.scope];
 const color=year=>palette[Math.max(0,allYears.indexOf(year))%palette.length];
 const focusName=()=>state.scope==='company'?(state.line?'Line: '+state.line:'Total company'):state.product;
-function period(){if(matchedMonths!==null)return 'Common months: '+(matchedMonths.map(m=>months[m-1]).join(', ')||'none');return state.mode==='annual'?'Full year':state.mode==='ytd'?'YTD Jan–'+months[state.month-1]:[...state.selected].sort((a,b)=>a-b).map(m=>months[m-1]).join(', ')}
+function period(){
+ if(state.mode==='ytd'){
+  if(matchedMonths===null)return 'YTD '+months[state.month-1];
+  if(!matchedMonths.length)return 'YTD '+months[state.month-1]+' · no common months';
+  const end=matchedMonths.at(-1),continuous=matchedMonths.every((m,i)=>m===i+1);
+  return continuous?'YTD '+months[end-1]:'YTD '+months[state.month-1]+' · common months only';
+ }
+ if(matchedMonths!==null)return matchedMonths.length===12&&state.mode==='annual'?'Full year':'Common months: '+(matchedMonths.map(m=>months[m-1]).join(', ')||'none');
+ return state.mode==='annual'?'Full year':[...state.selected].sort((a,b)=>a-b).map(m=>months[m-1]).join(', ');
+}
 function amountTip(year,sales){return `${focusName()} · ${year} · ${period()} · ${currentMetric()==='value'?'EGP ':''}${number(sales.total)}${sales.partial?' · Incomplete data':''}${sales.estimated?' · Includes estimated value':''}${sales.review?' · Source scope needs review':''}`}
 function tipAttrs(text){return `tabindex="0" data-focus-tip="${esc(text)}" aria-label="${esc(text)}"`}
 function chartStart(w,h,label){return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(label)}">`}
@@ -55,7 +64,7 @@ function render(){
  if(state.scope==='company'){
   $('focus-composition-year').innerHTML='<option value="all">All years</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');$('focus-composition-year').value=String(state.compositionYear);compositionChart();
  }else shareChart();renderProductComparison();
- renderNotes();wireTips();window.dispatchEvent?.(new CustomEvent('commercial:comparison',{detail:{model,records:payload.records}}));
+ renderNotes();wireTips();window.dispatchEvent?.(new CustomEvent('commercial:comparison',{detail:{model,records:payload.records,periodLabel:period()}}));
 }
 function renderTable(){
  const share=model.scope==='product';
