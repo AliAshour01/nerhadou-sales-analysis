@@ -20,6 +20,7 @@ async function main() {
  const item=(key,dataset={})=>{if(!registry.has(key))registry.set(key,{dataset,value:'',checked:false,hidden:false,open:false,classList:{toggle(){}},setAttribute(){},contains(){return false}});return registry.get(key)};
  const decode=text=>text.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');
  function qsa(selector){
+  if(selector==='#sales > section[id^="view-"]')return Object.entries(nodes).filter(([id])=>id.startsWith('view-')).map(([id,node])=>Object.assign(node,{id}));
   if(selector==='[data-global]')return buttons;
   if(selector==='[data-section]')return ['overview','trends','breakdown','portfolio'].map(section=>item('tab-'+section,{section}));
   if(selector==='[data-multi]')return keys.map(multi=>item('menu-'+multi,{multi}));

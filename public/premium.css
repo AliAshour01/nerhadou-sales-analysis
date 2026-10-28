@@ -261,7 +261,7 @@ button:active:not(:disabled) {
 #line-save,
 #focus-export,
 #fullscreen-toggle,
-#meeting-report {
+#meeting-open {
   background: linear-gradient(135deg, #2f6bff 0%, #1d4ed8 100%);
   border-color: transparent;
   color: #ffffff;
@@ -274,7 +274,7 @@ button:active:not(:disabled) {
 #line-save:hover:not(:disabled),
 #focus-export:hover:not(:disabled),
 #fullscreen-toggle:hover:not(:disabled),
-#meeting-report:hover:not(:disabled) {
+#meeting-open:hover:not(:disabled) {
   background: linear-gradient(135deg, #3d77ff 0%, #2257e6 100%);
   border-color: transparent;
   color: #ffffff;

@@ -3,6 +3,32 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V61 — Approved Historical/responsive release and repaired Meeting report
+
+Owner approved publishing the V56–60 previews and requested a clean Meeting report first. Fixes the report's accidental primary-button CSS, replaces interactive DOM copies with scoped report data/read-only charts, correct company/product monthly values and clear targets, Historical years/period/measure/coverage, Cairo timestamp, print-friendly tables and responsive document styling. Preserves source sales, targets, account state, secrets and standalone security. See RELEASE-V61.md for detailed handoff, validation, rollback and deployment evidence.
+
+## V60 — Actual Sales responsive chart preview
+
+Card-width SVG geometry with fixed readable type, consistent monthly/rate/timeline heights, shared company/product renderers, top-eight Movement plus exact signed Other and full detail, responsive horizontal product rows, top-four mobile line chart with complete View all, and keyboard-visible chart/tab scrolling. Resize reflows only presentation, without network or data changes. See RESPONSIVE-V60-HANDOFF.md for files, tests, known browser QA limitation and rollback. Private preview only; company site unchanged.
+
+## V59 — Explicit context on every Historical chart
+
+All Historical charts now carry local period, measure, selected year(s) and scope captions: sales totals, growth, monthly/cumulative trend, contribution ranking, company share, multi-product comparison and Movement bridge. Captions explain what a bar/point/percentage means. Monthly points remain individual month sales; cumulative points are Jan-through-month totals and tooltips now say YTD. Annual common-month intersections explicitly disclose a reduced actual period rather than claiming full-year totals. Selected months remain distinct; no month data or arithmetic changes. Original 2023 coverage limits and source precision remain intact. Comparison and management cache tokens move together to historical-v59. Private preview only; no company deployment or data changes. Prior V58: appgprj_6acfda6514988191b70ce8587b602beb~appgver_da5dc143218081919c6a68d2871658f6; source 44f6ba7f57432abd6b6dcc51e70da2793bfeb13b.
+
+## V58 — Compact Historical YTD labels
+
+Historical YTD context, chart tooltips, KPI notes, contribution-chart context and Excel subtitles now show YTD Sep / YTD Aug instead of listing every month. With Common available months enabled, a consecutive Jan–cutoff intersection shows its actual cutoff; non-consecutive intersections explicitly say common months only, and empty intersections say no common months. Explicit month selections still list selected months and full-year mode remains distinct. Monthly chart axes retain their month labels. No calculation, source data, permissions or company deployment changes. Prior private V57: appgprj_6acfda6514988191b70ce8587b602beb~appgver_01e6b7dd4f348191bdce223009891052, source aa1c16cb0d5799594bec7de5e995c67e7a49b264.
+
+## V57 — Private preview sign-in address repair
+
+The Sites host now returns https://nerhadou-commercial-hub.ali-ashour01.chatgpt.site. The previous runtime APP_ORIGIN and strict platform-origin guard still referred only to the royal-fly-3435 address, which would reject requests after the ChatGPT sign-in gate. Allow only these two exact verified addresses, and update this private Site's APP_ORIGIN to its returned current URL. Keep platform identity, owner-only Sites audience, exact request-origin matching and independent standalone security unchanged. The initial Continue with ChatGPT gate remains intentional; use the owner's ChatGPT account ali.ashour01@gmail.com, not company-site credentials. No sales data, passwords, company deployment or schema changes. Regression test covers both exact preview origins, missing identity and standalone forged-header rejection.
+
+Rollback source: V56 appgprj_6acfda6514988191b70ce8587b602beb~appgver_c373710b23108191976be7186012c9e1, commit 0d255485ff5d1f3e79805e14b77dc2e4087cabe5. A rollback to that code also requires restoring the old APP_ORIGIN runtime setting; data must not be restored.
+
+## V56 — Historical comparison preview
+
+Private preview only. Compact comparison cards, coverage chips, automatic/explicit growth baselines, cumulative trend and series controls, Historical new-activity rules, separate Units share, searchable/sortable ranking, optional three-product comparison, source-only historical line filters, annual/monthly table modes and matching Excel exports. Reuses existing period controls, reviewed historical mapping and coverage exceptions. See HISTORICAL-V56-HANDOFF.md. Previous V55 version/source retained there. No company deployment, data write or migration.
+
 ## UI09 production release — 28 October 2026
 
 Publishes approved preview work through saved Site V55 (`appgprj_6acfda6514988191b70ce8587b602beb~appgver_d09d4e5f818c81919d444e582586aa85`, source `71c87140d8ccea95671ab0b4419f2236f1cb212c`). Includes compact/context-aware KPIs, shared monthly/mix renderers, independent chart metrics, combined Sales Analysis, new-activity Movement rules, seasonality forecast, fixed company email suffix and Powered by Ali Ashour attribution. See UI09-HANDOFF.md for per-update details. Adds owner-only masked password editor, server freshness/CSRF/role/version checks, session revocation and audit without credentials. Owner explicitly requested minimum six characters and no composition or predictable-password restrictions; 72 UTF-8 bytes remains a provider constraint. Provider Auth minimum/composition configuration must match; owner password editing additionally needs server-only SUPABASE_SERVICE_ROLE_KEY. These external settings are not implied by a successful build. No production user passwords are changed by deployment. No sales data or schema migration. Validation: standalone production build/private-artifact gate, 21 regression/security suites, 154 authentication assertions, 28 built-Worker assertions, and the new masked owner-password dialog tests passed. Provider HTTP is mocked in account tests; no live password was changed. Production deployment evidence will be appended after Cloudflare confirms it.
