@@ -10,8 +10,8 @@ const evidence=[];
 function inspect(id){const svg=$(id).querySelector('svg.responsive-plot');assert(svg,id+' SVG');const box=svg.getAttribute('viewBox').split(' ').map(Number);assert.equal(box[2],Math.max(260,width()),id+' exact container width');assert(box[3]>=180,id+' height');const sizes=[...svg.querySelectorAll('text')].map(t=>Number(t.getAttribute('font-size')||12));assert(sizes.every(s=>s>=11),id+' font >=11px');evidence.push({viewport,chart:id,width:box[2],height:box[3],minimumFont:Math.min(...sizes)});}
 for(viewport of [1440,1024,768,390,360]){
  await window.actualDashboard.apply(cfg);inspect('trend');inspect('company-achievement-chart');inspect('company-ppg-chart');
- assert($('manager-headline').textContent.includes('Products below period target:'));assert(!$('manager-headline').hidden);
- window.actualDashboard.showSection('analysis');inspect('movement-chart');assert($('manager-headline').hidden);assert($('movement-chart').querySelectorAll('g[data-tip]').length<=12);
+ assert.equal($('manager-headline'),null,'Unselected manager-headline addition is removed');
+ window.actualDashboard.showSection('analysis');inspect('movement-chart');assert($('movement-chart').querySelectorAll('g[data-tip]').length<=12);
  inspect('timeline');inspect('breakdown-products-chart');inspect('breakdown-lines-chart');
  if(viewport<700){assert($('breakdown-lines-count').textContent.startsWith('Top 5'));assert($('movement-chart').querySelector('.bridge-key'));}
  // Historical redraw without network/data writes; select known complete comparable pair.
@@ -22,9 +22,9 @@ for(viewport of [1440,1024,768,390,360]){
  window.comparisonDashboard.restore({scope:'product',product:'ONDALENZ 8MG',years:[2024,2025],mode:'ytd',month:8,commonMonths:true});inspect('focus-share-chart');assert(!$('historical-scope-chip').hidden);$('clear-historical-product').click();assert($('historical-scope-chip').hidden);assert(!$('focus-company-panel').hidden);
  await window.actualDashboard.apply({...cfg,selection:{...cfg.selection,product:['CALCITRON']}});inspect('single-chart');inspect('single-achievement-chart');inspect('single-ppg-chart');assert(!$('product-scope-chip').hidden);
 }
-window.comparisonDashboard.restore({scope:'company',years:[2023,2025],mode:'annual',commonMonths:true});assert($('historical-coverage').textContent.includes('2023: Oct, Nov, Dec'),'Q4 2023 coverage warning remains visible even when common months removes Q4');
+window.comparisonDashboard.restore({scope:'company',years:[2023,2025],mode:'annual',commonMonths:true});assert.equal($('historical-coverage').querySelector('.coverage-alert'),null,'Unselected extra coverage banner is removed; original coverage notes stay');
 let calls=0;const old=globalThis.fetch;globalThis.fetch=(...args)=>{calls++;return old(...args)};viewport=360;window.dispatchEvent(new window.Event('resize'));await new Promise(r=>setTimeout(r,450));assert.equal(calls,0,'Resize is presentation only');globalThis.fetch=old;
 const html=fs.readFileSync('public/index.html','utf8'),config=JSON.parse(fs.readFileSync('release.config.json'));for(const m of html.matchAll(/(?:src|href)="[^"?]+\.(?:js|css|png)\?v=([^"&]+)/g))assert.equal(m[1],config.assetToken,'Central cache token');
 assert.equal(document.querySelector('#comparison h1').textContent,document.querySelector('[data-page="comparison"] span').textContent);
 const output=process.env.V63_GEOMETRY_REPORT;if(output)fs.writeFileSync(output,JSON.stringify(evidence,null,2));
-console.log('V63 readability passed: '+evidence.length+' simulated chart measurements; 1440/1024/768/390/360; company/product, complete coverage warning, scope clear, unified panel, year patterns and resize without network. Browser screenshots unverified.');
+console.log('V'+config.version+' readability passed: '+evidence.length+' simulated chart measurements; 1440/1024/768/390/360; company/product, selected scope, original coverage notes, scope clear, unified panel, year patterns and resize without network. Browser screenshots unverified.');

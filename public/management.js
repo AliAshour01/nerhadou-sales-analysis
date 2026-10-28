@@ -1,7 +1,7 @@
-import {createBreakdown} from './breakdown.js?v=readability-v63';
-import {comparisonProduct} from './compare-core.js?v=readability-v63';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=readability-v63';
-import {tableWorkbook} from './comparison-xlsx.js?v=readability-v63';
+import {createBreakdown} from './breakdown.js?v=readability-v64';
+import {comparisonProduct} from './compare-core.js?v=readability-v64';
+import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=readability-v64';
+import {tableWorkbook} from './comparison-xlsx.js?v=readability-v64';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+'K':n(v);
@@ -61,13 +61,13 @@ function render(){
  // Never mix an old snapshot with a newly refreshed record revision.
  if(d.snapshot.revision!==payload.revision){$('data-health').textContent='Synchronising analysis with shared data…';return}
  const key=JSON.stringify([payload.revision,d.snapshot.year,d.months,d.selection]);if(key!==contextKey){cache.clear();contextKey=key}
- renderSingleScope();renderHealth();renderSummary();renderManagerHeadline();renderAttention();renderExisting();renderSection();
+ renderSingleScope();renderHealth();renderSummary();renderAttention();renderExisting();renderSection();
  $('summary-measure').innerHTML=buttons('Summary measure',[['units','Units'],['value','Value']],ui.metric,'data-manager-metric');
  if(drawer)renderDrawer();window.updateWorkspaceVisibility?.();window.actualDashboard.wire();wireDrilldowns();
  if(!restored&&storageKey){restored=true;readLink()}
 }
 function renderSection(){
- const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;const privileged=['owner','admin'].includes(window.nerhadouSecurity?.me?.user?.role);document.querySelector('[data-section="forecast"]').hidden=!privileged;if(d.section==='forecast'&&!privileged){$('view-forecast').hidden=true;window.actualDashboard.showSection('overview');return}$('manager-headline').hidden=d.section!=='overview';
+ const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;const privileged=['owner','admin'].includes(window.nerhadouSecurity?.me?.user?.role);document.querySelector('[data-section="forecast"]').hidden=!privileged;if(d.section==='forecast'&&!privileged){$('view-forecast').hidden=true;window.actualDashboard.showSection('overview');return}
  if(d.section==='analysis'){renderMovement();if(d.selection.product.length!==1)breakdown?.render()}else if(d.section==='movement')renderMovement();else if(d.section==='forecast'||d.section==='trends')renderPlanning();
  scheduleChartReflow();$('analysis-target-control').hidden=!['breakdown','portfolio'].includes(d.section);if(d.section==='breakdown')breakdown?.render();if(d.section==='overview'){if(d.selection.product.length===1)renderProductView({product:d.selection.product[0],month:null,metric:ui.metric},'single');else renderRatePanels();}window.actualDashboard.wire();wireDrilldowns();
 }
@@ -78,12 +78,6 @@ function renderHealth(){
 }
 function performanceCards(f,chosen,metric){const d=dashboard(),period=periodLabel(d,chosen),previousPeriod=periodLabel({...d,snapshot:{...d.snapshot,year:d.snapshot.year-1}},chosen),products=selectedProducts(d,f),cur=summary(d.snapshot.year,chosen,metric,f),prior=summary(d.snapshot.year-1,chosen,metric,f),growth=changeBetween(cur,prior),t=target(products,metric,chosen,false,f),annual=target(products,metric,chosen,true,f),gap=cur.value!=null&&t!=null?cur.value-t:null,company=summary(d.snapshot.year,chosen,metric,{}),scoped=Object.values(f).some(x=>x.length),share=cur.value!=null&&company.value>0?cur.value/company.value*100:null,label=d.periodMode==='ytd'?'YTD':'Selected-period';return [['Actual Sales',amt(cur.value,metric),scoped?(metric==='value'?'Share of company value (V%): ':'Share of company units: ')+(share==null?'—':share.toFixed(1)+'%')+' · '+metric:period],[label+' Target',amt(t,metric),'Provisional target'],[label+' Achievement',cur.value!=null&&t>0?n(cur.value/t*100)+'%':'—',period],[gap==null?'Gap unavailable':gap>=0?'Above '+label+' Target':'Remaining to '+label+' Target',amt(gap==null?null:Math.abs(gap),metric),period],['Previous-year Sales',amt(prior.value,metric),previousPeriod],['Growth vs previous year (PPG%)',pct(growth.ppg),'vs '+previousPeriod],['Full-year Target',amt(annual,metric),'Jan–Dec '+d.snapshot.year+' · provisional'],['Full-year Achievement',cur.value!=null&&annual>0?n(cur.value/annual*100)+'%':'—',period+' actual ÷ annual target']];}
 
-function renderManagerHeadline(){
- const d=dashboard(),f=d.selection,chosen=d.months,metric=ui.metric,products=selectedProducts(d,f),cur=summary(d.snapshot.year,chosen,metric,f),prior=summary(d.snapshot.year-1,chosen,metric,f),growth=changeBetween(cur,prior),t=target(products,metric,chosen,false,f);
- const gaps=products.map(p=>{const actual=summary(d.snapshot.year,chosen,metric,{...f,product:[p]}).value,plan=target([p],metric,chosen,false,f);return actual==null||plan==null?null:actual<plan});
- const achieved=cur.value!=null&&t>0?n(cur.value/t*100)+'%':'—',below=products.length&&gaps.every(x=>x!==null)?gaps.filter(Boolean).length:'—';
- $('manager-headline').textContent=periodLabel()+' · '+(metric==='value'?'Value · EGP':'Units')+' · Achievement: '+achieved+' · Growth vs previous year: '+pct(growth.ppg)+' · Products below period target: '+below;
-}
 function renderSummary(){const d=dashboard();if(!$('sales').hidden)$('chrome-page-label').textContent='Actual Sales · '+d.snapshot.year;document.querySelector('[data-page="sales"] span').textContent='Actual Sales · '+d.snapshot.year;$('sales').querySelector('h1').textContent='Actual Sales · '+d.snapshot.year;$('period-explanation').textContent='Actual: '+periodLabel()+'. Summary shows period and full-year targets separately. Compare against applies to Breakdown / Portfolio only.';$('summary-context').textContent=periodLabel()+' · '+scopeText()+' · '+ui.metric;const cards=performanceCards(d.selection,d.months,ui.metric);$('kpis').innerHTML=cards.map(([label,value,note],i)=>`${i===0?`<div class="kpi-group-label">Period performance · ${e(periodLabel())}</div>`:i===4?'<div class="kpi-group-label">Comparison & full-year position</div>':''}<div class="kpi ${i===0?'kpi-actual':''}"><div class="label">${e(label)}</div><strong>${e(value)}</strong><small>${e(note)}</small></div>`).join('');}
 
 function drawBridge(id,result,metric){
