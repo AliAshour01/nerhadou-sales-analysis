@@ -1,7 +1,7 @@
-import {createBreakdown} from './breakdown.js?v=readability-v65';
-import {comparisonProduct} from './compare-core.js?v=readability-v65';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=readability-v65';
-import {tableWorkbook} from './comparison-xlsx.js?v=readability-v65';
+import {createBreakdown} from './breakdown.js?v=readability-v66';
+import {comparisonProduct} from './compare-core.js?v=readability-v66';
+import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=readability-v66';
+import {tableWorkbook} from './comparison-xlsx.js?v=readability-v66';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+'K':n(v);

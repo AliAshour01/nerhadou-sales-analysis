@@ -223,3 +223,66 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
  #sales>.filters>.filter-slot{flex-basis:100%;}
  #comparison .focus-filter-row{gap:12px;}
 }
+
+/* V66: quiet, contemporary filter surfaces; scoped away from charts and auth. */
+#sales>.filters,#comparison .focus-filters{
+ background:#fff;border:1px solid #e1e7ef;border-left:1px solid #e1e7ef;
+ border-radius:18px;padding:18px 20px;gap:14px;
+ box-shadow:0 2px 4px #142b4803,0 12px 32px -20px #253b6352;
+}
+#sales>.filters>.filter-bar-title,#comparison .focus-filters>.filter-bar-title{
+ color:#24354c;font-size:12px;font-weight:650;letter-spacing:0;
+ margin:0;gap:0;line-height:1.4;
+}
+#comparison .focus-filters>.filter-bar-title{margin-bottom:16px;}
+#sales>.filters>label,#sales>.filters .multi-label,#comparison .focus-filter-row>label,#comparison .focus-year-row>label{
+ color:#65748a;font-size:11px;font-weight:550;letter-spacing:.015em;
+}
+#sales>.filters select,#sales>.filters .multi-select>summary,#sales>.filters #more-filters>summary,#comparison .focus-filters select,#comparison .focus-filters #focus-month-picker>summary{
+ background:#f5f7fa;border:1px solid #e8edf3;border-radius:10px;
+ min-height:44px;color:#273b55;font-size:13px;font-weight:500;box-shadow:none;
+ transition:background .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+#sales>.filters select:hover,#sales>.filters .multi-select>summary:hover,#sales>.filters #more-filters>summary:hover,#comparison .focus-filters select:hover,#comparison .focus-filters #focus-month-picker>summary:hover{
+ background:#edf2f8;border-color:#cbd7e6;box-shadow:none;
+}
+#sales>.filters .control-group{
+ background:#eef2f7;border:1px solid transparent;padding:4px;border-radius:11px;gap:3px;
+}
+#sales>.filters .control-group button{
+ min-height:34px;border:0;border-radius:8px;padding:7px 12px;color:#64748b;
+ font-size:12px;font-weight:550;background:transparent;box-shadow:none;
+}
+#sales>.filters .control-group button.chosen{
+ color:#245fd1;background:#fff;border:0;box-shadow:0 1px 3px #1d35531a;font-weight:650;
+}
+#sales>.filters #reset,#comparison .focus-filters #focus-reset{
+ color:#68788e;background:transparent;border:1px solid transparent;border-radius:10px;
+ min-height:44px;font-size:12px;font-weight:500;box-shadow:none;
+}
+#sales>.filters #reset:hover,#comparison .focus-filters #focus-reset:hover{background:#f2f5f9;color:#283d59;}
+#comparison .focus-filters .focus-year-buttons{gap:6px;}
+#comparison .focus-filters .focus-year-buttons button{
+ border:1px solid #e8edf3;border-radius:9px;background:#f5f7fa;color:#69788e;
+ font-size:12px;font-weight:550;box-shadow:none;min-height:38px;padding:7px 13px;
+}
+#comparison .focus-filters .focus-year-buttons button.selected{
+ background:#243b5b;border-color:#243b5b;color:#fff;box-shadow:none;
+}
+#sales>.filters :is(select,button,summary,input):focus-visible,#comparison .focus-filters :is(select,button,summary,input):focus-visible{
+ outline:2px solid #6798e8;outline-offset:2px;box-shadow:0 0 0 4px #3165e90c;
+}
+#more-filter-count:not(:empty){background:#e5edff;color:#245fd1;min-width:20px;text-align:center;border-radius:6px;padding:2px 6px;font-size:10px;}
+#sales #active-filters:not(:empty){background:transparent;padding:2px 0 6px;gap:7px;margin-top:-4px;}
+#sales>.filters .multi-select[open]>summary,#sales>.filters #more-filters[open]>summary{background:#fff;border-color:#a7bedf;box-shadow:0 0 0 3px #3165e90a;}
+#sales>.filters .multi-select>div,#sales>.filters .advanced-body{
+ border:1px solid #e1e7ef;border-radius:14px;background:#fff;
+ box-shadow:0 12px 40px -12px #21375438,0 3px 8px #21375408;
+}
+@media(max-width:700px){
+ #sales>.filters,#comparison .focus-filters{padding:16px 14px;border-radius:15px;gap:12px;}
+ #comparison .focus-filters>.filter-bar-title{margin-bottom:12px;}
+}
+@media(prefers-reduced-motion:reduce){
+ #sales>.filters :is(select,button,summary,input),#comparison .focus-filters :is(select,button,summary,input){transition:none;}
+}
