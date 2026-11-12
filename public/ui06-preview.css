@@ -286,3 +286,7 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 @media(prefers-reduced-motion:reduce){
  #sales>.filters :is(select,button,summary,input),#comparison .focus-filters :is(select,button,summary,input){transition:none;}
 }
+
+/* Preserve the full rate-chart labels when the panel is narrow. */
+.rate-chart-scroll{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;}
+.rate-chart-scroll-hint{margin:0 0 4px;}

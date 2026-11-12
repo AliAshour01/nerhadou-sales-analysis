@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V67 — Monthly achievement and growth labels
+
+Show the percentage and month on every bar in the company and product monthly rate charts. Separate the negative-label area from the month axis and retain exact percentages in tooltips. Narrow panels scroll horizontally rather than hide labels. No sales, target calculations or access logic changed. Previous production V66: `7ab452b4727a507e16c745e7a5dfb22976875190` / Worker `eac29977-9a55-4e38-8b86-df07ea407056`; private V66: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_6fa4a9035a80819191d4816e380da9d3` / `49d14ff237a4a5c76c8adfafad7d275cb4bca75c`.
+
 ## V66 — Modern filter presentation (private trial)
 
 Replaces the heavy blue filter treatment with white rounded surfaces, faint borders/soft elevation, quiet labels, light filled fields, inset segmented selection, compact year pills and floating menus. Keeps visible keyboard focus, minimum control heights and reduced-motion support. Headings remain text-only; no SVG icons reintroduced. Filters, numbers, calculations, access and Owner-only version unchanged. See FILTER-STYLE-V66.md. Prior private V65: appgprj_6acfda6514988191b70ce8587b602beb~appgver_dbb14f3ea660819191cfb012e3f171bd / 3ffb9743fc666cd38ea5090a67845b1f16e716da.
