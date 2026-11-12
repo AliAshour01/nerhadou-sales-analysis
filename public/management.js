@@ -1,7 +1,7 @@
-import {createBreakdown} from './breakdown.js?v=readability-v66';
-import {comparisonProduct} from './compare-core.js?v=readability-v66';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=readability-v66';
-import {tableWorkbook} from './comparison-xlsx.js?v=readability-v66';
+import {createBreakdown} from './breakdown.js?v=rate-labels-v67';
+import {comparisonProduct} from './compare-core.js?v=rate-labels-v67';
+import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection} from './management-core.js?v=rate-labels-v67';
+import {tableWorkbook} from './comparison-xlsx.js?v=rate-labels-v67';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>Math.abs(v)>=1e6?(v/1e6).toFixed(1)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+'K':n(v);
@@ -137,9 +137,27 @@ function productMixDonut(items,metric,total,chartId=null){
  return `<div class="product-mix-donut"><svg viewBox="0 0 220 220" role="img" aria-label="Selected ${e(metric)} mix"><circle cx="110" cy="110" r="78" fill="none" stroke="#edf1f7" stroke-width="28"/>${arcs}<text x="110" y="106" text-anchor="middle" font-size="23" font-weight="700" fill="#233653">${e(short(total))}</text><text x="110" y="127" text-anchor="middle" font-size="14" fill="#6a7890">${metric==='value'?'EGP':'Units'}</text></svg><ul class="product-mix-legend">${items.map((r,i)=>`<li><i style="background:${colors[i%colors.length]}"></i><span>${e(r.name)}</span><strong>${n(r.value)}<small>${(r.value/total*100).toFixed(1)}%</small></strong></li>`).join('')}</ul></div>`;
 }
 function rateChart(rows,achievement,id){
- if(!rows.some(r=>r.value!=null))return '<p class="empty-chart">'+(achievement?'Monthly targets unavailable.':'Comparable prior-year baseline unavailable.')+'</p>';
- const W=plotWidth(id,700),H=250,L=52,R=W-18,T=32,B=200,lo=Math.min(0,...rows.map(r=>r.value??0)),hi=Math.max(achievement?100:0,...rows.map(r=>r.value??0)),range=hi-lo||1,Y=v=>B-(v-lo)/range*(B-T),step=(R-L)/Math.max(1,rows.length),stride=labelStride(rows.length,R-L);
- return svgPlot(W,H,`Monthly ${achievement?'achievement':'PPG'} percentages`,'rate-chart')+`<line x1="${L}" x2="${R}" y1="${Y(0)}" y2="${Y(0)}" stroke="#abb7c9"/>${achievement?`<line x1="${L}" x2="${R}" y1="${Y(100)}" y2="${Y(100)}" stroke="#bd8b39" stroke-dasharray="5 4"/><text x="5" y="${Y(100)+4}" font-size="12">100%</text>`:''}${rows.map((r,i)=>{const x=L+step*(i+.5),tip=r.name+' · '+(r.value==null?'Unavailable':r.value.toFixed(1)+'%');return `<g tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}">${r.value==null?`<text x="${x}" y="${B-10}" text-anchor="middle">—</text>`:`<rect x="${x-step*.23}" width="${step*.46}" y="${Math.min(Y(0),Y(r.value))}" height="${Math.max(1,Math.abs(Y(r.value)-Y(0)))}" fill="${r.value<0?'#c56865':'#3165e9'}"/>${i%stride===0||i===rows.length-1?`<text x="${x}" y="${r.value>=0?Y(r.value)-6:Y(r.value)+14}" font-size="12" text-anchor="middle">${r.value.toFixed(0)}%</text>`:''}`}${i%stride===0||i===rows.length-1?`<text x="${x}" y="${B+25}" font-size="12" text-anchor="middle">${r.name}</text>`:''}</g>`}).join('')}</svg>`;
+ if(!rows.some(r=>Number.isFinite(r.value)))return '<p class="empty-chart">'+(achievement?'Monthly targets unavailable.':'Comparable prior-year baseline unavailable.')+'</p>';
+ const labels=rows.map(r=>Number.isFinite(r.value)?r.value.toFixed(0)+'%':'—');
+ const viewport=plotWidth(id,700),L=52,padRight=18,minStep=Math.max(48,...labels.map(label=>label.length*9+12));
+ const W=Math.max(viewport,L+padRight+rows.length*minStep),R=W-padRight,H=262,T=32,B=200;
+ const values=rows.filter(r=>Number.isFinite(r.value)).map(r=>r.value);
+ const lo=Math.min(0,...values),hi=Math.max(achievement?100:0,...values),range=hi-lo||1;
+ const Y=v=>B-(v-lo)/range*(B-T),step=(R-L)/rows.length,zero=Y(0);
+ const title='Monthly '+(achievement?'achievement':'PPG')+' percentages';
+ const svg=svgPlot(W,H,title,'rate-chart')
+  +'<line x1="'+L+'" x2="'+R+'" y1="'+zero+'" y2="'+zero+'" stroke="#abb7c9"/>'
+  +(achievement?'<line x1="'+L+'" x2="'+R+'" y1="'+Y(100)+'" y2="'+Y(100)+'" stroke="#bd8b39" stroke-dasharray="5 4"/><text x="5" y="'+(Y(100)+4)+'" font-size="12">100%</text>':'')
+  +rows.map((r,i)=>{
+    const x=L+step*(i+.5),available=Number.isFinite(r.value),y=available?Y(r.value):zero;
+    const tip=r.name+' · '+(available?r.value.toFixed(1)+'%':'Unavailable');
+    const bar=available?'<rect x="'+(x-step*.23)+'" width="'+(step*.46)+'" y="'+Math.min(zero,y)+'" height="'+Math.max(1,Math.abs(y-zero))+'" fill="'+(r.value<0?'#c56865':'#3165e9')+'"/>':'';
+    const labelY=available&&r.value<0?y+16:y-7;
+    return '<g tabindex="0" data-tip="'+e(tip)+'" aria-label="'+e(tip)+'">'+bar
+     +'<text class="rate-value" x="'+x+'" y="'+labelY+'" font-size="12" text-anchor="middle">'+labels[i]+'</text>'
+     +'<text class="rate-month" x="'+x+'" y="'+(B+42)+'" font-size="12" text-anchor="middle">'+e(r.name)+'</text></g>';
+  }).join('')+'</svg>';
+ return W>viewport?'<p class="chart-note rate-chart-scroll-hint">Scroll horizontally to see every month.</p><div class="rate-chart-scroll" tabindex="0" role="region" aria-label="'+title+'">'+svg+'</div>':svg;
 }
 function renderRateCharts(f,chosen,metric,prefix){const d=dashboard(),products=selectedProducts(d,f),rows=chosen.map(m=>{const cur=summary(d.snapshot.year,[m],metric,f),prior=summary(d.snapshot.year-1,[m],metric,f),t=target(products,metric,[m],false,f);return {name:ms[m-1],ach:cur.value!=null&&t>0?cur.value/t*100:null,ppg:changeBetween(cur,prior).ppg}});for(const [id,key]of [['achievement','ach'],['ppg','ppg']])$(prefix+'-'+id+'-chart').innerHTML=rateChart(rows.map(r=>({name:r.name,value:r[key]})),key==='ach',prefix+'-'+id+'-chart');}
 function renderRatePanels(){const d=dashboard();if(d.selection.product.length===1)return;if(!$('company-achievement-chart')){const node=document.createElement('div');node.id='company-rate-panels';node.className='chart-grid';node.innerHTML=panel('Monthly achievement %','<div id="company-achievement-chart"></div>')+panel('Monthly growth (PPG%)','<div id="company-ppg-chart"></div>');$('trend').closest('article').insertAdjacentElement('afterend',node)}$('company-rate-panels').hidden=false;renderRateCharts(d.selection,d.months,ui.metric,'company');}
