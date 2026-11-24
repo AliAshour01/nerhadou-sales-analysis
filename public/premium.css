@@ -10,7 +10,7 @@
 :root {
   --pm-ink: #10233f;
   --pm-ink-2: #33465f;
-  --pm-muted: #7e8fa8;
+  --pm-muted: var(--text-muted);
   --pm-brand: #1d4ed8;
   --pm-brand-bright: #2f6bff;
   --pm-gold: #b98a2e;
@@ -104,7 +104,7 @@ h1, h2, h3 {
   color: #263b55;
   border-top-color: #dfe4eb;
 }
-#workspace-sidebar .side-bottom small { color: #62738a; }
+#workspace-sidebar .side-bottom small { color:var(--text-muted); }
 #workspace-sidebar .avatar {
   background: #e4ecfb;
   color: #1d4ed8;
@@ -215,7 +215,7 @@ input:focus-visible {
 .focus-measure-tabs button {
   border-radius: 7px;
   font-weight: 600;
-  color: #5f7391;
+  color:var(--text-muted);
   border: 0;
   background: transparent;
 }
@@ -284,7 +284,7 @@ button:active:not(:disabled) {
 button:disabled {
   background: #eef2f7;
   border-color: #e2e8f1;
-  color: #93a3ba;
+  color:var(--text-muted);
 }
 
 button:focus-visible,
@@ -464,7 +464,7 @@ summary:focus-visible,
 }
 
 .section-tabs button {
-  color: #687b95;
+  color:var(--text-muted);
   font-weight: 600;
   transition: color 0.16s;
 }
@@ -545,7 +545,7 @@ summary:focus-visible,
 #approvals thead th,
 .focus-vertical-table thead th {
   background: #f6f8fc;
-  color: #64789a;
+  color:var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 10px;
@@ -740,7 +740,7 @@ svg text[fill="#8a9db8"],
 svg text[fill="#91a0b4"],
 svg text[fill="#93a7b0"],
 svg text[fill="#718994"] {
-  fill: #8296b0;
+  fill:var(--text-muted);
 }
 
 svg text[fill="#405b78"],
@@ -842,13 +842,13 @@ svg g[tabindex]:focus-visible circle {
 
 /* ---------- Empty / note states ---------- */
 .empty-chart {
-  color: #94a5be;
+  color:var(--text-muted);
   font-style: italic;
 }
 
 .chart-note,
 .footnote {
-  color: #8d9eb6;
+  color:var(--text-muted);
 }
 
 .no-results {
@@ -967,7 +967,7 @@ dialog::backdrop {
 
 /* ---------- Footer ---------- */
 footer {
-  color: #93a3ba;
+  color:var(--text-muted);
   border-top: 1px solid #e8edf5;
 }
 
