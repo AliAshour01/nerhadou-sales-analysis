@@ -345,3 +345,23 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 #filter-summary-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 html{scroll-padding-top:120px}
 @media(max-width:699px){.filter-summary{font-size:12px;padding:7px 10px}}
+/* S-12 four primary KPI cards */
+#kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+#kpis .kpi{min-height:0;max-height:150px;padding:14px 16px!important;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+#kpis .kpi strong{font-size:30px;line-height:1.1}
+#kpis .kpi small{font-size:12px;color:#5b6b7f;line-height:1.35}
+#kpis .kpi-sales{background:linear-gradient(135deg,#2f63e0,#1d3f9a)!important;color:#fff;border-color:transparent!important}
+#kpis .kpi-sales .label,#kpis .kpi-sales small,#kpis .kpi-sales strong{color:#fff!important}
+.delta-chip{display:inline-flex;align-items:center;gap:4px;width:fit-content;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
+.delta-chip.up{background:#e3f5ec;color:#146c43}.delta-chip.down{background:#fde8e6;color:#a1261b}.delta-chip.neutral{background:#eef1f5;color:#4b5a6d}
+.kpi-progress{position:relative;height:8px;border-radius:999px;background:#e6ebf2;overflow:visible}
+.kpi-progress>span{display:block;height:100%;border-radius:999px;background:#7b8797}
+.kpi-progress.good>span{background:#1f8a5a}.kpi-progress.warn>span{background:#c98a12}.kpi-progress.bad>span{background:#c0392b}
+.kpi-progress .pace-marker{position:absolute;top:-4px;width:2px;height:16px;background:#1f3555;transform:translateX(-1px)}
+.status-word{font-size:12px;font-weight:700}.status-word.good{color:#146c43}.status-word.warn{color:#8a5a00}.status-word.bad{color:#a1261b}.status-word.unknown{color:#4b5a6d}
+@media(max-width:999px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:699px){#kpis{gap:10px!important}#kpis .kpi{padding:11px 12px!important}#kpis .kpi strong{font-size:22px}#kpis .kpi small{font-size:11px}.delta-chip,.status-word{font-size:11px}}
+#kpis .kpi strong{white-space:nowrap;font-size:clamp(20px,1.95vw,30px)}
+#kpis .kpi .kpi-unit{font-size:.5em;font-weight:700;letter-spacing:.04em;vertical-align:.35em}
+#kpis .kpi-compact{display:none}
+@media(max-width:699px){#kpis .kpi strong{font-size:22px}#kpis .kpi-full{display:none}#kpis .kpi-compact{display:inline}}
