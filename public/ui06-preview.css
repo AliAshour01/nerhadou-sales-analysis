@@ -389,3 +389,37 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 .legend.progress-legend span.lg-item{margin-left:0}
 /* S-16 Breakdown: product and line cards share one full-width horizontal-bar layout */
 #view-breakdown .bd-grid{grid-template-columns:minmax(0,1fr)}
+/* S-18 Portfolio: grouped header, pinned total, page scroll, card list on phones */
+#view-portfolio .table-wrap.portfolio-table{max-height:none;overflow:visible}
+#view-portfolio table{border-collapse:separate;border-spacing:0;width:100%}
+#view-portfolio thead th{position:sticky;top:calc(64px + var(--filter-bar-h,0px) + var(--tabs-h,58px));z-index:3;background:#f5f8fc;white-space:nowrap}
+#view-portfolio thead tr.sub-row th{top:calc(64px + var(--filter-bar-h,0px) + var(--tabs-h,58px) + 33px)}
+#view-portfolio thead tr.group-row th{text-align:center;font-size:12px;color:#1f3555;border-bottom:1px solid #dfe7f2}
+#view-portfolio thead th button{white-space:nowrap}
+#view-portfolio .sticky-col{position:sticky;left:0;z-index:2;background:#fff}
+#view-portfolio thead .sticky-col{z-index:4;background:#f5f8fc}
+#view-portfolio tr.pinned-total>*{background:#eef4fd;font-weight:700}
+#view-portfolio td.variance.positive,.portfolio-card .variance.positive{color:#146c43}
+#view-portfolio td.variance.negative,.portfolio-card .variance.negative{color:#a1261b}
+.ach.ach-good{background:#e3f5ec;color:#146c43}.ach.ach-warn{background:#fff4dc;color:#7a4f00}.ach.ach-bad{background:#fde8e6;color:#a1261b}.ach.ach-unknown{background:#eef1f5;color:#4b5a6d}
+.ach-bar{display:block;height:3px;margin-top:4px;background:#e6ebf2;border-radius:2px;min-width:44px}
+.ach-bar i{display:block;height:100%;border-radius:2px;background:#7b8797}.ach-bar.ach-good i{background:#1f8a5a}.ach-bar.ach-warn i{background:#c98a12}.ach-bar.ach-bad i{background:#c0392b}
+.search-box{position:relative;display:inline-flex;align-items:center}
+.search-box #search-clear{position:absolute;right:6px;border:0;background:transparent;font-size:18px;line-height:1;color:#4b5a6d;cursor:pointer;padding:4px}
+.search-box #search-clear[hidden]{display:none}
+.portfolio-cards,.portfolio-sort-label{display:none}
+@media(max-width:1099px){#view-portfolio .table-wrap.portfolio-table{overflow-x:auto}}
+@media(max-width:699px){
+ #view-portfolio .table-wrap.portfolio-table{display:none}
+ .portfolio-sort-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;margin:8px 0}
+ .portfolio-cards{display:grid;gap:8px}
+ .portfolio-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;text-align:left;padding:12px;border:1px solid #dfe7f2;border-radius:10px;background:#fff;min-height:44px;cursor:pointer}
+ .portfolio-card .pc-name{font-weight:700;color:#1f3555;overflow-wrap:anywhere}
+ .portfolio-card .pc-sales{grid-column:1;color:#2a4466}
+ .portfolio-card .ach{grid-column:2;grid-row:1;align-self:start}
+ .portfolio-card .variance{grid-column:2;grid-row:2;font-weight:600;font-size:12px}
+}
+#view-portfolio .table-wrap th,#view-portfolio .table-wrap td{padding:9px 8px}
+#view-portfolio .table-wrap .sticky-col{text-align:left;white-space:normal;min-width:150px;max-width:210px}
+#view-portfolio .table-wrap td.sticky-col button{text-align:left}
+.portfolio-card.pinned-total{background:#eef4fd;cursor:default}

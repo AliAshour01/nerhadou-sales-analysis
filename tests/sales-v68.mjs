@@ -49,4 +49,8 @@ window.actualDashboard.showSection('analysis');for(const id of ['breakdown-produ
 assert($('breakdown-lines-chart').querySelector('rect[height="16"]'),'lines use horizontal bars');
 // S-17 movement bridge truncated axis with a visible break
 await window.actualDashboard.apply(cfg({section:'analysis'}));assert($('movement-chart').querySelector('.axis-break'));assert(/Axis starts at \d/.test($('movement-chart').textContent));assert.equal($('movement-chart').querySelector('svg').getAttribute('viewBox').split(' ')[3],'300','dead space removed');
+// S-18 portfolio
+await window.actualDashboard.apply(cfg({section:'portfolio'}));{const head=$('detail-head');assert.equal(head.querySelectorAll('tr').length,2);assert(head.textContent.includes('Units')&&head.textContent.includes('Value (EGP)'));const total=$('details').querySelector('tr.pinned-total');assert(total);const t=total.textContent;for(const v of ['21,599,730','22,310,000'])assert(t.includes(v),'totals row = KPI '+v);
+ assert($('details').querySelector('td.variance.negative'));assert($('details').querySelector('.ach-bar'));assert($('portfolio-cards').querySelectorAll('[data-product-detail]').length>10);assert(/^\d+ of \d+ products/.test($('rowcount').textContent));
+ $('search').value='calci';$('search').oninput();{const [a,b]=$('rowcount').textContent.match(/^(\d+) of (\d+)/).slice(1).map(Number);assert(a>=1&&a<b,'live count')}assert.equal($('search-clear').hidden,false);$('search-clear').onclick();assert.equal($('search').value,'')}
 console.log('Sales V68 checks passed.');
