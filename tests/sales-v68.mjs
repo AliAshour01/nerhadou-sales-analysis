@@ -47,4 +47,6 @@ await window.actualDashboard.apply(cfg());{const seen={};const collect=root=>roo
 // S-16 breakdown labels: no mid-word breaks, full name kept in aria-label
 window.actualDashboard.showSection('analysis');for(const id of ['breakdown-products-chart','breakdown-lines-chart']){const gs=[...$(id).querySelectorAll('g[role="button"]')];assert(gs.length);for(const g of gs){const full=g.getAttribute('data-bd-product')||g.getAttribute('data-bd-line');assert(g.getAttribute('aria-label').includes(full));const shown=[...g.querySelectorAll('text')].map(t=>t.textContent).join(' ');assert(shown.includes(full)||shown.includes('…'),'name shown whole or truncated with …')}}
 assert($('breakdown-lines-chart').querySelector('rect[height="16"]'),'lines use horizontal bars');
+// S-17 movement bridge truncated axis with a visible break
+await window.actualDashboard.apply(cfg({section:'analysis'}));assert($('movement-chart').querySelector('.axis-break'));assert(/Axis starts at \d/.test($('movement-chart').textContent));assert.equal($('movement-chart').querySelector('svg').getAttribute('viewBox').split(' ')[3],'300','dead space removed');
 console.log('Sales V68 checks passed.');
