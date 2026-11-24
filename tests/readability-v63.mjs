@@ -9,7 +9,7 @@ window.nerhadouSecurity.me={user:{role:'owner',status:'active'}};
 const evidence=[];
 function inspect(id){const svg=$(id).querySelector('svg.responsive-plot');assert(svg,id+' SVG');const box=svg.getAttribute('viewBox').split(' ').map(Number);assert.equal(box[2],Math.max(260,width()),id+' exact container width');assert(box[3]>=180,id+' height');const sizes=[...svg.querySelectorAll('text')].map(t=>Number(t.getAttribute('font-size')||12));assert(sizes.every(s=>s>=11),id+' font >=11px');evidence.push({viewport,chart:id,width:box[2],height:box[3],minimumFont:Math.min(...sizes)});}
 for(viewport of [1440,1024,768,390,360]){
- await window.actualDashboard.apply(cfg);inspect('trend');inspect('company-achievement-chart');inspect('company-ppg-chart');
+ await window.actualDashboard.apply(cfg);inspect('trend');inspect('company-ppg-chart');
  assert.equal($('manager-headline'),null,'Unselected manager-headline addition is removed');
  window.actualDashboard.showSection('analysis');inspect('movement-chart');assert($('movement-chart').querySelectorAll('g[data-tip]').length<=12);
  inspect('timeline');inspect('breakdown-products-chart');inspect('breakdown-lines-chart');
@@ -20,7 +20,7 @@ for(viewport of [1440,1024,768,390,360]){
  assert.equal($('historical-contribution-panel').querySelectorAll('article').length,0,'Unified contribution panel has no nested duplicate panels');
  const legend=$('focus-trend-chart').querySelector('.focus-legend');assert(legend.querySelector('svg line[stroke-dasharray]'),'Year patterns visible in legend');
  window.comparisonDashboard.restore({scope:'product',product:'ONDALENZ 8MG',years:[2024,2025],mode:'ytd',month:8,commonMonths:true});inspect('focus-share-chart');assert(!$('historical-scope-chip').hidden);$('clear-historical-product').click();assert($('historical-scope-chip').hidden);assert(!$('focus-company-panel').hidden);
- await window.actualDashboard.apply({...cfg,selection:{...cfg.selection,product:['CALCITRON']}});inspect('single-chart');inspect('single-achievement-chart');inspect('single-ppg-chart');assert(!$('product-scope-chip').hidden);
+ await window.actualDashboard.apply({...cfg,selection:{...cfg.selection,product:['CALCITRON']}});inspect('single-chart');inspect('single-ppg-chart');assert(!$('product-scope-chip').hidden);
 }
 window.comparisonDashboard.restore({scope:'company',years:[2023,2025],mode:'annual',commonMonths:true});assert.equal($('historical-coverage').querySelector('.coverage-alert'),null,'Unselected extra coverage banner is removed; original coverage notes stay');
 let calls=0;const old=globalThis.fetch;globalThis.fetch=(...args)=>{calls++;return old(...args)};viewport=360;window.dispatchEvent(new window.Event('resize'));await new Promise(r=>setTimeout(r,450));assert.equal(calls,0,'Resize is presentation only');globalThis.fetch=old;

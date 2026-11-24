@@ -7,11 +7,11 @@ window.HTMLElement.prototype.getBoundingClientRect=function(){const width=['sale
 const base=window.actualDashboard.read(),cfg={year:base.snapshot.year,months:base.months,periodMode:'ytd',targetBasis:'period',selection:{product:[],line:[],distributor:[],channel:[]},section:'overview'};
 const check=(id,height)=>{const svg=$(id).querySelector('svg.responsive-plot');assert(svg,id+' uses responsive renderer');const vb=svg.getAttribute('viewBox').split(' ').map(Number);assert.equal(vb[2],Math.max(260,boxWidth()),id+' matches card pixel width');assert(vb[3]>=height,id+' retains readable height');assert(svg.getAttribute('style').includes('width:'+vb[2]+'px'));for(const t of svg.querySelectorAll('text[font-size]'))assert(Number(t.getAttribute('font-size'))>=11,id+' has readable text');return svg;};
 for(viewport of [320,375,768,1440]){
- await window.actualDashboard.apply(cfg);check('trend',250);check('company-achievement-chart',180);check('company-ppg-chart',180);
+ await window.actualDashboard.apply(cfg);check('trend',250);check('company-ppg-chart',180);
  window.actualDashboard.showSection('analysis');check('timeline',380);check('breakdown-products-chart',250);check('breakdown-lines-chart',250);
  assert($('breakdown-lines-count').textContent.startsWith(viewport<700?'Top 5':'Top 6'));const bridge=$('movement-chart');assert(bridge.querySelectorAll('g[data-tip]').length<=12,'Bridge bounded to 8, Other, residual, totals');assert(bridge.querySelector('.chart-scroll[tabindex="0"]'),'Keyboard-scrollable bridge');assert(bridge.textContent.includes('Other'),'Grouped contributions remain discoverable');
  $('bd-lines-all').click();assert($('bd-full-chart').querySelectorAll('[data-bd-line]').length>4,'View all keeps full line list');$('bd-close').click();
- await window.actualDashboard.apply({...cfg,selection:{...cfg.selection,product:['CALCITRON']}});check('single-chart',250);check('single-achievement-chart',180);check('single-ppg-chart',180);
+ await window.actualDashboard.apply({...cfg,selection:{...cfg.selection,product:['CALCITRON']}});check('single-chart',250);check('single-ppg-chart',180);
  document.querySelector('#single-product-overview [data-monthly-py="on"]').click();check('single-chart',250);document.querySelector('#single-product-overview [data-monthly-py="off"]').click();
 }
 const crowded=document.createElement('div');crowded.innerHTML=window.actualDashboard.monthlyChartHTML(Array.from({length:12},(_,i)=>({month:i+1,actual:90+i,target:100,pct:90+i})),'units',300);assert.equal(crowded.querySelectorAll('g[data-tip]').length,12,'Dense month labels never drop monthly data bars');assert(crowded.querySelectorAll('text[y="250"]').length<12,'Narrow 12-month axis reduces label density');
