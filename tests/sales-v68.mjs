@@ -15,4 +15,7 @@ await window.actualDashboard.apply(cfg({selection:{product:[],line:[],distributo
 for(const card of $('kpis').querySelectorAll('.kpi')){const value=card.querySelector('strong')?.textContent.trim(),note=card.querySelector('small')?.textContent||'';if(value==='—')assert(note.length>10&&!/Provisional target/.test(note)&&note!=='—',`— KPI needs a reason: ${card.textContent}`)}
 assert(!/Provisional target/.test($('kpis').textContent)||/\d/.test($('kpis').textContent),'Provisional target only beside a value');
 window.actualDashboard.showSection('portfolio');for(const td of $('details').querySelectorAll('td'))if(td.textContent.trim()==='—')assert(td.getAttribute('title')?.length>10,'Portfolio — has a reason');
+// S-10 header
+await window.actualDashboard.apply(cfg());assert.equal($('sales').querySelector('.heading .eyebrow'),null);assert.equal($('period-explanation'),null);assert($('sales').querySelector('.heading .manager-actions #meeting-open'),'actions on the H1 row');assert($('data-health').textContent.includes('Actual data Jan–Aug '+base.snapshot.year),'month range in health strip');assert($('data-health').querySelector('.target-definition'),'provisional targets ⓘ in strip');
+for(const id of ['saved-view','view-name','save-view','delete-view','share-view','meeting-open'])assert($(id),id+' reachable');
 console.log('Sales V68 checks passed.');

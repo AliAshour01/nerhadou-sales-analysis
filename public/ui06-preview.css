@@ -296,3 +296,40 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 .provisional-badge{display:inline-flex;align-items:center;margin-left:12px;padding:3px 10px;border-radius:999px;background:#fff4e0;border:1px solid #e8c27d;color:#7a4b00;font-size:12px;font-weight:600;vertical-align:middle;cursor:help}
 .provisional-badge[hidden]{display:none}
 .withheld-note{color:#5b6b7f;font-style:normal}
+/* S-10 header: H1 + actions on one row; source and period merged into the data-health strip */
+#sales>.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:14px 0 12px}
+#sales>.heading>div:first-child{display:flex;align-items:center;flex-wrap:wrap;gap:4px 0}
+#sales>.heading h1{margin:0}
+#sales .manager-actions{margin:0;position:relative;display:flex;align-items:center;gap:8px}
+.actions-cluster{display:flex;align-items:center;gap:8px}
+.actions-cluster>button,.views-menu>summary{border:1px solid #d6e2f0;background:#fff;color:#28517b;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;min-height:36px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.actions-cluster>button.primary-action{background:#2456d6;border-color:#2456d6;color:#fff}
+.views-menu{position:relative}
+.views-menu>summary{list-style:none}
+.views-menu>summary::-webkit-details-marker{display:none}
+.views-menu-body{position:absolute;right:0;top:calc(100% + 6px);z-index:40;display:grid!important;gap:8px;min-width:250px;padding:12px;background:#fff;border:1px solid #dfe7f2;border-radius:10px;box-shadow:0 12px 30px rgba(20,40,80,.14)}
+.views-menu-body select,.views-menu-body input{width:100%;max-width:none!important;min-height:36px}
+.views-menu-buttons{display:flex;gap:8px}
+.actions-toggle{display:none;border:1px solid #d6e2f0;background:#fff;color:#28517b;border-radius:8px;min-width:40px;min-height:40px;font-size:20px;line-height:1;cursor:pointer}
+@media(max-width:699px){
+ .actions-toggle{display:inline-flex;align-items:center;justify-content:center}
+ #sales .manager-actions>.actions-cluster{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:45;flex-direction:column;align-items:stretch;min-width:220px;padding:10px;background:#fff;border:1px solid #dfe7f2;border-radius:10px;box-shadow:0 12px 30px rgba(20,40,80,.14)}
+ #sales .manager-actions.open>.actions-cluster{display:flex}
+ #sales>.filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;padding:12px}
+ #sales>.filters>.filter-bar-title,#sales>.filters>#product-filter,#sales>.filters>#months-filter{grid-column:1/-1}
+ #sales>.filters>label,#sales>.filters>div,#sales>.filters>details{min-width:0;width:auto;max-width:none;margin:0}
+ #sales>.filters select{width:100%}
+ #sales>.filters #reset{min-height:40px}
+ .data-health{gap:4px 14px;padding:8px 10px}
+ #sales>.heading{margin:8px 0 10px}
+ .views-menu-body{position:static;box-shadow:none;border:0;padding:8px 0 0;min-width:0}
+ #sales>.heading{flex-wrap:nowrap}
+ #sales>.heading h1{font-size:24px}
+}
+.data-health{align-items:center}
+.data-health .health-source{display:inline-flex;align-items:center;gap:6px}
+.data-health .health-source .dot{width:7px;height:7px;border-radius:50%;background:#2456d6;display:inline-block}
+.data-health .health-targets{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
+.data-health .target-definition{display:inline-block;position:relative}
+.data-health .target-definition>p{position:absolute;right:0;top:18px;z-index:30;width:280px;padding:10px;background:#fff;border:1px solid #dfe7f2;border-radius:8px;box-shadow:0 8px 24px rgba(20,40,80,.12)}
+@media(max-width:699px){.data-health>span{flex-basis:auto}.data-health .health-targets{margin-left:0}}
