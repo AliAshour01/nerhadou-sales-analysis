@@ -54,8 +54,6 @@
 @media(prefers-reduced-motion:reduce){#sales>.section-tabs button{transition:none;}}
 
 /* V48: company Sales Analysis is one continuous page, no nested tabs. */
-.analysis-section-heading{display:none;}
-.in-sales-analysis>.analysis-section-heading{display:block;font-size:18px;color:#233653;margin:26px 0 14px;}
 #sales>.section-tabs button[hidden]{display:none!important;}
 #view-movement.in-sales-analysis,#view-breakdown.in-sales-analysis{margin-top:28px;}
 
@@ -442,3 +440,6 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 .product-mix-legend li.mix-focus{cursor:pointer;border-radius:6px}
 .product-mix-legend li.mix-focus:hover{background:#f1f5fb}
 .product-mix-legend li.mix-focus:focus-visible{outline:2px solid #2456d6;outline-offset:2px}
+/* S-33 data notes live behind a link in the health strip */
+#sales .methodology:not([open]){display:none}
+.data-notes-link{background:none;border:0;padding:0;color:#2456d6;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
