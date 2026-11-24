@@ -434,3 +434,11 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 .forecast-legend .fl{display:inline-block;width:20px;height:0;border-top:2.5px solid #2456d6;margin-right:6px;vertical-align:middle}
 .forecast-legend .fl.runrate{border-top-style:dashed}.forecast-legend .fl.seasonal{border-top:2.5px dashed #b0603e}.forecast-legend .fl.target{border-top:2.5px dotted #1f3555}
 @media(max-width:999px){#view-forecast .forecast-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* S-20 undo toast */
+.undo-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:14px;background:#1f3555;color:#fff;padding:10px 12px 10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(15,30,50,.25);font-size:14px;max-width:calc(100vw - 32px)}
+.undo-toast[hidden]{display:none}
+.undo-toast button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer}
+.product-mix-legend li.mix-focus{cursor:pointer;border-radius:6px}
+.product-mix-legend li.mix-focus:hover{background:#f1f5fb}
+.product-mix-legend li.mix-focus:focus-visible{outline:2px solid #2456d6;outline-offset:2px}

@@ -106,6 +106,10 @@ function initMultiFilters(){for(const key of [...Object.keys(selection),'months'
 }
 // V68 S-11: chips name the values; a sticky one-line summary appears once the filter card scrolls away.
 const singular={product:'Product',line:'Line',distributor:'Distributor',channel:'Sales type'};
+// V68 S-20: a chart click filters in place (no scroll) and offers Undo for 8 seconds.
+let toastTimer=null;
+function focusFilter(key,value){const previous=Object.fromEntries(Object.entries(selection).map(([k,v])=>[k,new Set(v)]));selection[key]=new Set([value]);syncMultiFilters();render();undoToast('Filtered to '+value,()=>{for(const k of Object.keys(selection))selection[k]=previous[k];syncMultiFilters();render()})}
+function undoToast(text,undo){if(!document.body?.insertAdjacentHTML)return;let t=document.querySelector('#undo-toast');if(!t){document.body.insertAdjacentHTML('beforeend','<div id="undo-toast" class="undo-toast" role="status" aria-live="polite" hidden><span></span><button type="button">Undo</button></div>');t=document.querySelector('#undo-toast')}t.querySelector('span').textContent=text;t.hidden=false;clearTimeout(toastTimer);const hide=()=>{t.hidden=true;clearTimeout(toastTimer)};t.querySelector('button').onclick=()=>{hide();undo()};toastTimer=setTimeout(hide,8000)}
 function chipText(key){const values=[...selection[key]];return (values.length===1?singular[key]:filterLabels[key])+': '+values.slice(0,2).join(', ')+(values.length>2?' +'+(values.length-2):'')}
 function filtersChanged(){return actualYearChoice!=='latest'||Object.values(selection).some(s=>s.size)||periodMode!=='ytd'||targetBasis!=='period'||!followLatestPeriod&&$('period').value!==String(Math.max(1,...filterOptions('months')))||!!$('search')?.value}
 function summaryText(){const chosen=periodMonths(),end=chosen.length?Math.max(...chosen):0,ytd=chosen.length===end&&chosen.every((m,i)=>m===i+1),period=!chosen.length?'No months':chosen.length===12?'Full year':ytd?'YTD '+months[end-1]:chosen.map(m=>months[m-1]).join(', '),products=selection.product.size?[...selection.product].slice(0,1).join('')+(selection.product.size>1?' +'+(selection.product.size-1):''):'All products',count=['line','distributor','channel'].filter(k=>selection[k].size).length;return [D.year,period,products,count?count+' filter'+(count>1?'s':''):'No other filters'].join(' · ')}
@@ -125,7 +129,7 @@ function showTooltip(element,x,y){const tooltip=element.closest?.('dialog')?.que
 function wire(){
  document.querySelectorAll('[data-global]').forEach(b=>{const value=b.dataset.global==='periodMode'?periodMode:targetBasis;b.classList.toggle('chosen',value===b.dataset.choice);b.setAttribute('aria-pressed',String(value===b.dataset.choice));b.onclick=()=>{if(b.dataset.global==='periodMode')periodMode=b.dataset.choice;else targetBasis=b.dataset.choice;render()}});
  document.querySelectorAll('[data-control]').forEach(b=>b.onclick=()=>{states[b.dataset.panel][b.dataset.control]=b.dataset.choice;render()});
- document.querySelectorAll('[data-focus]').forEach(b=>{b.onclick=()=>{selection[b.dataset.focus]=new Set([b.dataset.key]);syncMultiFilters();render();window.scrollTo({top:0,behavior:'smooth'})};if(b.tagName?.toLowerCase()==='g')b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.onclick()}}});
+ document.querySelectorAll('[data-focus]').forEach(b=>{b.onclick=()=>focusFilter(b.dataset.focus,b.dataset.key);if(b.tagName?.toLowerCase()==='g')b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.onclick()}}});
  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{desc=sortKey===b.dataset.sort?!desc:true;sortKey=b.dataset.sort;render()});
  document.querySelectorAll('[data-tip]').forEach(e=>{e.onmousemove=event=>showTooltip(e,event.clientX,event.clientY);e.onmouseleave=hideTooltip;e.onfocus=()=>{const r=e.getBoundingClientRect();showTooltip(e,r.left+r.width/2,r.bottom)};e.onblur=hideTooltip;e.onkeydown=event=>{if(event.key==='Escape')hideTooltip();else if((event.key==='Enter'||event.key===' ')&&e.dataset.focus){event.preventDefault();e.onclick()}}})
 }
@@ -170,7 +174,7 @@ const originalTimeline=renderTimeline;renderTimeline=function(){if(missingMetric
 const originalSummary=renderSummary;renderSummary=function(){originalSummary();const cards=$('kpis').querySelectorAll?.('.kpi');if(!cards)return;for(const [metric,indexes] of [['units',[0,3]],['value',[1]]])if(missingMetric('summary',metric))for(const i of indexes){cards[i].querySelector('strong').textContent='—';cards[i].querySelector('small').textContent='Missing '+metric+' in selected records'}};
 
 // Read-only analysis integration; existing import and authorization paths stay authoritative.
-window.actualDashboard={read:()=>D?({snapshot:D,months:periodMonths(),selection:Object.fromEntries(Object.entries(selection).map(([k,v])=>[k,[...v]])),periodMode,targetBasis,section:activeSection}):null,
+window.actualDashboard={focusFilter:(key,value)=>focusFilter(key,value),read:()=>D?({snapshot:D,months:periodMonths(),selection:Object.fromEntries(Object.entries(selection).map(([k,v])=>[k,[...v]])),periodMode,targetBasis,section:activeSection}):null,
  target:(product,metric,chosen=periodMonths(),annual=targetBasis==='annual')=>targetFor(product,{...context('summary'),months:chosen,count:annual?12:chosen.length},metric),
  render,showSection,wire,monthlyChartHTML,monthlyData,monthlyMetric:()=>states.monthly.metric,chartWidth,plotSVG,monthStride,compact,axisFor,axisTicks,tickLabel,
  apply:async config=>{if(!config||typeof config!=='object')return;const y=Number(config.year);if(Number.isInteger(y)&&D?.availableYears.includes(y)&&D.year!==y){actualYearChoice=String(y);await loadSalesSnapshot(true)}
