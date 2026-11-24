@@ -333,3 +333,15 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 .data-health .target-definition{display:inline-block;position:relative}
 .data-health .target-definition>p{position:absolute;right:0;top:18px;z-index:30;width:280px;padding:10px;background:#fff;border:1px solid #dfe7f2;border-radius:8px;box-shadow:0 8px 24px rgba(20,40,80,.12)}
 @media(max-width:699px){.data-health>span{flex-basis:auto}.data-health .health-targets{margin-left:0}}
+/* S-11 named chips, Clear all, sticky one-line filter summary */
+#active-filters{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+#active-filters .filter-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;border:1px solid #c9d8ee;background:#eef4fd;color:#1f467c;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#active-filters .clear-all-chip{background:#fff;color:#4a5f7a}
+#reset[hidden]{display:none!important}
+.filter-summary-wrap{position:sticky;top:64px;height:0;z-index:39}
+.filter-summary{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:8px 14px;background:#fff;border:1px solid #dfe7f2;border-radius:0 0 10px 10px;box-shadow:0 6px 18px rgba(20,40,80,.08);font-size:13px;color:#2a4466;font-weight:600}
+.filter-summary[hidden]{display:none}
+.filter-summary button{border:1px solid #c9d8ee;background:#eef4fd;color:#1f467c;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#filter-summary-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+html{scroll-padding-top:120px}
+@media(max-width:699px){.filter-summary{font-size:12px;padding:7px 10px}}

@@ -18,4 +18,11 @@ window.actualDashboard.showSection('portfolio');for(const td of $('details').que
 // S-10 header
 await window.actualDashboard.apply(cfg());assert.equal($('sales').querySelector('.heading .eyebrow'),null);assert.equal($('period-explanation'),null);assert($('sales').querySelector('.heading .manager-actions #meeting-open'),'actions on the H1 row');assert($('data-health').textContent.includes('Actual data Jan–Aug '+base.snapshot.year),'month range in health strip');assert($('data-health').querySelector('.target-definition'),'provisional targets ⓘ in strip');
 for(const id of ['saved-view','view-name','save-view','delete-view','share-view','meeting-open'])assert($(id),id+' reachable');
+// S-11 filters
+const years=[...$('actual-year').querySelectorAll('option')].map(o=>o.textContent);assert.equal(years[0],base.snapshot.latestYear+' (latest)');assert.equal(new Set(years.map(y=>y.slice(0,4))).size,years.length,'no duplicate year');
+await window.actualDashboard.apply(cfg());assert.equal($('reset').hidden,true,'Reset hidden at defaults');assert.equal($('reset').textContent,'Reset filters');
+await window.actualDashboard.apply(cfg({selection:{product:['CALCITRON','ZINCTRON','FERROTRON','ONDALENZ 8MG'],line:[],distributor:['PHARMA'],channel:[]}}));
+assert($('active-filters').textContent.includes('Products: CALCITRON, ZINCTRON +2'));assert($('active-filters').textContent.includes('Distributor: PHARMA'));assert($('active-filters').querySelector('[data-clear-filters]'));assert.equal($('reset').hidden,false);
+assert.equal($('filter-summary-text').textContent,base.snapshot.year+' · YTD Aug · CALCITRON +3 · 1 filter');
+$('active-filters').querySelector('[data-clear-filters]').click();assert.equal(window.actualDashboard.read().selection.distributor.length,0);
 console.log('Sales V68 checks passed.');
