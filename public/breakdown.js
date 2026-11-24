@@ -4,7 +4,7 @@ import {niceAxis,axisTicks,tickLabel,compact} from './chart-utils.js?v=rate-labe
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=v=>v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:0}),p=v=>v==null?'—':v.toFixed(1)+'%',short=v=>compact(v);
 const pixels=(node,fallback)=>Math.max(260,Math.round(node?.getBoundingClientRect?.().width||node?.clientWidth||fallback));
-const svg=(w,h,label)=>`<svg class="responsive-plot" style="width:${w}px;height:${h}px;max-width:none" viewBox="0 0 ${w} ${h}" role="img" aria-label="${e(label)}">`;
+const svg=(w,h,label)=>`<svg class="responsive-plot" style="width:${w}px;height:${h}px;max-width:none" viewBox="0 0 ${w} ${h}" role="group" aria-label="${e(label)}">`;
 export function createBreakdown({read,changed}){
  const $=id=>document.getElementById(id);let metric='units',lineMetric='units',mode='sales',detail=null,returnFocus=null,sort='actual',descending=true,models={},context=null;
  const period=()=>{const d=read().dashboard,names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],end=Math.max(0,...d.months);if(!end)return 'No months selected';if(d.periodMode==='ytd'&&d.months.length===end&&d.months.every((m,i)=>m===i+1))return 'YTD '+names[end-1]+' '+d.snapshot.year;return d.months.map(m=>names[m-1]).join(', ')+' '+d.snapshot.year};
@@ -17,7 +17,7 @@ export function createBreakdown({read,changed}){
   $('breakdown-lines-measure').querySelectorAll('button').forEach(b=>{b.classList.toggle('chosen',b.dataset.bdLineMetric===lineMetric);b.setAttribute('aria-pressed',String(b.dataset.bdLineMetric===lineMetric))});
   $('breakdown-ranking').value=mode;$('breakdown-context').textContent=period();
   $('breakdown-product-title').textContent=mode==='gap'?'Target shortfall':'Product performance';
-  $('breakdown-target-note').textContent=mode==='gap'?'Target: '+(s.dashboard.targetBasis==='annual'?'full year':'selected period'):'';
+  const basis=document.querySelector('[data-target-basis-for="breakdown"]');if(basis)basis.hidden=mode!=='gap';$('breakdown-target-note').textContent=mode==='gap'?'Target: '+(s.dashboard.targetBasis==='annual'?'full year':'selected period'):'';
   drawProducts();drawLines();if(detail)renderDetail();
  }
  function drawProducts(modelOverride=null,destination='breakdown-products-chart',limit=8,chartMetric=metric,chartMode=mode){

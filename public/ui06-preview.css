@@ -48,7 +48,7 @@
 #sales>.section-tabs{display:flex;align-items:center;gap:8px;padding:8px;background:#eaf0f8;border:1px solid #d5dfed;border-radius:13px;margin:22px 0;overflow-x:auto;}
 #sales>.section-tabs button{flex:0 0 auto;min-height:44px;padding:11px 18px;border:1px solid transparent;border-radius:9px;background:#fff;color:#465e7e;font-size:13px;font-weight:650;line-height:1.4;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;}
 #sales>.section-tabs button:hover{background:#f4f8ff;border-color:#b9ccea;color:#245fa7;}
-#sales>.section-tabs button.active,#sales>.section-tabs button[aria-pressed="true"]{background:#245fa7;border-color:#245fa7;color:#fff;box-shadow:0 2px 5px #245fa725;}
+#sales>.section-tabs button.active{background:#245fa7;border-color:#245fa7;color:#fff;box-shadow:0 2px 5px #245fa725;}
 #sales>.section-tabs button:focus-visible{outline:3px solid #83afe6;outline-offset:2px;}
 @media(max-width:680px){#sales>.section-tabs{gap:6px;padding:6px;}#sales>.section-tabs button{padding:10px 14px;font-size:12px;}}
 @media(prefers-reduced-motion:reduce){#sales>.section-tabs button{transition:none;}}
@@ -108,8 +108,7 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 #sales>.section-tabs{position:relative;max-width:100%;scrollbar-width:auto;scrollbar-color:#8ba3c4 #edf2f9;scroll-padding-inline:12px;padding-bottom:12px;overscroll-behavior-x:contain;}
 #sales>.section-tabs button{flex:0 0 auto;overflow:visible;text-overflow:clip;min-width:max-content;}
 #sales>.section-tabs:focus-visible{outline:2px solid #3165e9;}
-.tab-scroll-help{font-size:12px;color:#5c7391;margin:-12px 0 14px;display:none;}
-@media(max-width:700px){.tab-scroll-help{display:block;}#sales>.section-tabs{background:linear-gradient(to left,#dce7f7 0,#eef3fa 24px,#eef3fa 100%);}#sales .chart-grid,#single-product-overview>.chart-grid,#company-rate-panels{grid-template-columns:minmax(0,1fr)!important;}#sales>.section-tabs button{font-size:13px;padding:11px 16px;}#sales .panel-title{flex-wrap:wrap;gap:12px;}#sales .panel-title>div{min-width:0;}#sales .panel{overflow-wrap:anywhere;}#bd-full-chart{max-height:70vh;}}
+@media(max-width:700px){#sales .chart-grid,#single-product-overview>.chart-grid,#company-rate-panels{grid-template-columns:minmax(0,1fr)!important;}#sales>.section-tabs button{font-size:13px;padding:11px 16px;}#sales .panel-title{flex-wrap:wrap;gap:12px;}#sales .panel-title>div{min-width:0;}#sales .panel{overflow-wrap:anywhere;}#bd-full-chart{max-height:70vh;}}
 @media(prefers-reduced-motion:reduce){.chart-scroll,#sales>.section-tabs{scroll-behavior:auto;}}
 
 /* V61 Meeting report is a document, not a copy of interactive dashboard panels. */
@@ -365,3 +364,15 @@ html{scroll-padding-top:120px}
 #kpis .kpi .kpi-unit{font-size:.5em;font-weight:700;letter-spacing:.04em;vertical-align:.35em}
 #kpis .kpi-compact{display:none}
 @media(max-width:699px){#kpis .kpi strong{font-size:22px}#kpis .kpi-full{display:none}#kpis .kpi-compact{display:inline}}
+/* S-13 real, sticky tabs; four labels fit at 360px */
+#sales>.section-tabs{position:sticky;top:64px;z-index:35;margin:18px 0;padding:6px;gap:6px;overflow:visible;box-shadow:0 4px 14px rgba(20,40,80,.06)}
+body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))}
+#sales>.section-tabs button[aria-selected="true"]{background:#245fa7;border-color:#245fa7;color:#fff}
+.target-basis{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:600;color:#3b5372;margin:6px 0}
+.target-basis[hidden]{display:none}
+.target-basis .control-group button{min-height:32px;padding:5px 10px;font-size:12px}
+@media(max-width:699px){
+ #sales>.section-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px}
+ #sales>.section-tabs button{padding:9px 4px!important;font-size:12px!important;min-height:40px;text-align:center}
+ #sales>.section-tabs .tab-long{display:none}
+}

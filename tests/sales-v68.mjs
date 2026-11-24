@@ -27,4 +27,10 @@ assert.equal($('filter-summary-text').textContent,base.snapshot.year+' · YTD Au
 $('active-filters').querySelector('[data-clear-filters]').click();assert.equal(window.actualDashboard.read().selection.distributor.length,0);
 // S-12 four cards equal V67 figures for 2026 YTD Aug
 await window.actualDashboard.apply(cfg());{const t=$('kpis').textContent;for(const v of ['21,599,730','22,310,000','97%','710,270','15,476,653','39.6%','33,465,000','65%'])assert(t.includes(v),'KPI shows '+v);assert.equal($('kpis').querySelectorAll('.kpi').length,4);assert($('kpis').querySelector('.pace-marker'));assert(/On pace|Ahead|Behind/.test(t));assert($('kpis').querySelector('[data-kpi="achievement"]').dataset.status==='warn','97% is amber')}
+// S-13 tabs
+{const list=document.querySelector('.section-tabs');assert.equal(list.getAttribute('role'),'tablist');const tabs=[...list.querySelectorAll('[role="tab"]')];assert.deepEqual(tabs.map(t=>t.dataset.section),['overview','analysis','portfolio','forecast']);for(const t of tabs){assert(t.getAttribute('aria-controls'));assert(['true','false'].includes(t.getAttribute('aria-selected')))}
+ for(const id of ['view-overview','view-movement','view-breakdown','view-portfolio','view-forecast'])assert.equal($(id).getAttribute('role'),'tabpanel',id);
+ assert.equal(document.querySelector('.tab-scroll-help'),null);for(const old of ['trends','breakdown','movement'])assert.equal(document.querySelector(`[data-section="${old}"]`),null);
+ await window.actualDashboard.apply(cfg({section:'breakdown'}));assert.equal(window.actualDashboard.read().section,'analysis','old breakdown views open Analysis');
+ assert($('view-portfolio').querySelector('[data-target-basis-for="portfolio"]'));assert($('view-breakdown').querySelector('[data-target-basis-for="breakdown"]'));assert.equal($('analysis-target-control').hidden,true);}
 console.log('Sales V68 checks passed.');
