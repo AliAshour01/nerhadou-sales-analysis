@@ -75,4 +75,7 @@ for(const year of base.snapshot.availableYears||[2022,2023,2024,2025,2026]){awai
  const css=fs.readFileSync('public/ui06-preview.css','utf8');assert(css.includes('--text-muted:#5b6b7f')&&css.includes('--text-subtle:#64748b'));assert(ratio('#5b6b7f','#ffffff')>=5.4);
  for(const f of ['app','breakdown','management'])for(const m of fs.readFileSync(`public/${f}.js`,'utf8').matchAll(/<text\b[^>]*fill="(#[0-9a-fA-F]{6})"/g))if(greyish(m[1]))assert(ratio(m[1],'#ffffff')>=4.5,f+' svg text '+m[1]);
  for(const f of ['style','theme','management','polish','premium','ui06-preview'])for(const m of fs.readFileSync(`public/${f}.css`,'utf8').matchAll(/(?<![-\w])color:\s*(#[0-9a-fA-F]{6})\b/g))if(greyish(m[1])&&ratio(m[1],'#ffffff')>1.6)assert(ratio(m[1],'#eef2f7')>=4.5,f+'.css color '+m[1])}
+// S-37 state in the URL: tab change pushes, filters replace, invalid params ignored
+{const pushes=history.pushes;await window.actualDashboard.apply(cfg({section:'overview'}));window.actualDashboard.showSection('portfolio');assert(location.search.includes('tab=portfolio'));assert(history.pushes>pushes,'tab change pushes a history entry');
+ await window.actualDashboard.apply(cfg({section:'portfolio',selection:{product:[],line:[],distributor:['PHARMA'],channel:[]}}));assert(new URLSearchParams(location.search).getAll('d').includes('PHARMA'));assert(new URLSearchParams(location.search).get('year')==String(base.snapshot.year))}
 console.log('Sales V68 checks passed.');
