@@ -2,7 +2,7 @@ import {createBreakdown} from './breakdown.js?v=rate-labels-v67';
 import {comparisonProduct} from './compare-core.js?v=rate-labels-v67';
 import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=rate-labels-v67';
 import {tableWorkbook} from './comparison-xlsx.js?v=rate-labels-v67';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS} from './chart-utils.js?v=rate-labels-v67';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor} from './chart-utils.js?v=rate-labels-v67';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>compact(v);
@@ -174,7 +174,8 @@ function productMixDonut(items,metric,total,chartId=null){
  if(total<=0)return '<p class="empty-chart">No positive sales for this selection.</p>';
  if(items.length>6){const top=items.slice(0,5),rest=items.slice(5);return productMixDonut([...top,{name:'Others',value:rest.reduce((a,r)=>a+r.value,0)}],metric,total,chartId)+'<details><summary>View all '+items.length+' groups</summary>'+rankedHTML(items,metric,false,chartId)+'</details>'}
  const sum=items.reduce((a,r)=>a+r.value,0);if(Math.abs(sum-total)>Math.max(1e-6,Math.abs(total)*1e-8))return rankedHTML(items,metric,false,chartId)+'<p class="chart-note">Complete mix is unavailable; known amounts are shown without a donut.</p>';
- const palette=['#3165e9','#e6a63c','#29a394','#9770c9','#df7891','#7086a3'],fixed={'IBN SINA':0,'PHARMA':1,'EGY':2,'NERHADOU DIRECT':3,'PRIVATE':0,'HOSPITALS':1,'TENDER':2},color=name=>palette[fixed[name.toUpperCase()]??([...name.toUpperCase()].reduce((a,c)=>a+c.charCodeAt(0),0)%palette.length)],colors=items.map(r=>color(r.name));let offset=0;
+ // V68 S-15: one colour per category everywhere (chart-utils CATEGORY_COLORS); NOT PROVIDED is neutral grey.
+ const colors=items.map(r=>categoryColor(r.name));let offset=0;
  const arcs=items.map((r,i)=>{const share=r.value/total*100,tip=r.name+' · '+amt(r.value,metric)+' · '+share.toFixed(1)+'% of selected',arc=`<circle cx="110" cy="110" r="78" fill="none" stroke="${colors[i%colors.length]}" stroke-width="28" pathLength="100" stroke-dasharray="${share} ${100-share}" stroke-dashoffset="${-offset}" transform="rotate(-90 110 110)" tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}"></circle>`;offset+=share;return arc}).join('');
  return `<div class="product-mix-donut"><svg viewBox="0 0 220 220" role="img" aria-label="Selected ${e(metric)} mix"><circle cx="110" cy="110" r="78" fill="none" stroke="#edf1f7" stroke-width="28"/>${arcs}<text x="110" y="106" text-anchor="middle" font-size="23" font-weight="700" fill="#233653">${e(short(total))}</text><text x="110" y="127" text-anchor="middle" font-size="14" fill="#6a7890">${metric==='value'?'EGP':'Units'}</text></svg><ul class="product-mix-legend">${items.map((r,i)=>`<li><i style="background:${colors[i%colors.length]}"></i><span>${e(r.name)}</span><strong>${n(r.value)}<small>${(r.value/total*100).toFixed(1)}%</small></strong></li>`).join('')}</ul></div>`;
 }

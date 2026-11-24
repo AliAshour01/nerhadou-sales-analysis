@@ -2,6 +2,7 @@
 import './management-ui.mjs';
 import assert from 'node:assert/strict';
 import {checkTicks} from './tick-check.mjs';
+import {categoryColor,CATEGORY_COLORS} from '../public/chart-utils.js';
 const $=id=>document.getElementById(id),base=window.actualDashboard.read();
 const cfg=(over={})=>({year:base.snapshot.year,months:[1,2,3,4,5,6,7,8],periodMode:'ytd',targetBasis:'period',selection:{product:[],line:[],distributor:[],channel:[]},section:'overview',...over});
 // S-01 movement ticks
@@ -40,4 +41,7 @@ await window.actualDashboard.apply(cfg());assert.equal($('company-achievement-ch
 {const order=[...$('view-overview').children].filter(n=>!n.hidden).map(n=>n.id||n.className);assert(order[0].includes('overview-monthly'));assert.equal(order[1],'company-rate-panels');assert($('company-rate-panels').querySelector('#attention-list'));assert.equal(order[2],'company-mix-panels')}
 for(const metric of ['units','value']){document.querySelector(`#monthly-controls [data-panel="monthly"][data-choice="${metric}"]`)?.click();document.querySelector('[data-monthly-view="cumulative"]').click();const data=window.actualDashboard.monthlyData();let run=0;const bars=[...$('trend').querySelectorAll('g[data-cumulative]')].map(g=>Number(g.dataset.cumulative));assert.equal(bars.length,data.length);data.forEach((d,i)=>{run+=d.actual;assert(Math.abs(bars[i]-run)<1e-6,metric+' cumulative = running sum')});assert($('trend').querySelector('.cumulative-ytd'))}
 document.querySelector('[data-monthly-view="monthly"]').click();document.querySelector('#monthly-controls [data-panel="monthly"][data-choice="units"]')?.click();
+// S-15 colours
+await window.actualDashboard.apply(cfg());{const seen={};const collect=root=>root.querySelectorAll('.product-mix-legend li').forEach(li=>{const name=li.querySelector('span').textContent,c=li.querySelector('i').getAttribute('style').match(/#[0-9a-f]{6}/i)[0].toLowerCase();assert.equal(c,categoryColor(name).toLowerCase(),name);if(seen[name])assert.equal(seen[name],c,name+' same everywhere');seen[name]=c});
+ collect($('company-mix-panels'));document.querySelector('[data-product-detail]').click();collect($('product-drawer'));$('drawer-close').click();assert.equal(categoryColor('NOT PROVIDED'),CATEGORY_COLORS['NOT PROVIDED']);assert(Object.keys(seen).includes('PHARMA'))}
 console.log('Sales V68 checks passed.');
