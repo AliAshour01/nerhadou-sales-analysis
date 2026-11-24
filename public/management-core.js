@@ -27,6 +27,11 @@ export function comparableSummary(records,year,months,metric='units',filters={})
  const value=(!s.partial||approved)&&!s.review?s.total:null;
  return {...s,value,approximate:approved,reason:value!=null?null:!selected.length?'Select months':s.review?'Source period is not verified':!s.rows.length?'No matching records':`Incomplete ${metric} or period coverage`};
 }
+// V68 S-02: one source of truth for provisional years. Any growth, PPG, delta, bridge or
+// seasonality that uses a provisional year as either side is withheld, never shown.
+export const PROVISIONAL_YEARS=new Set([2023]);
+export const PROVISIONAL_REASON='Growth withheld: 2023 data is provisional.';
+export function growthAllowed(a,b){const bad=[a,b].find(y=>PROVISIONAL_YEARS.has(Number(y)));return bad==null?{ok:true,reason:null}:{ok:false,year:Number(bad),reason:`Growth withheld: ${bad} data is provisional.`}}
 export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
@@ -70,6 +75,7 @@ export function runRateProjection(records,year,metric='units',filters={}){
 }
 export function seasonalProjection(records,year,cutoff,metric='units',filters={}){
  const fail=reason=>({value:null,reason});if(!Number.isInteger(cutoff)||cutoff<1||cutoff>=12)return fail('Choose an incomplete year with a YTD cutoff from January to November.');
+ const allowed=growthAllowed(year-1,year);if(!allowed.ok)return fail(allowed.reason);
  const months=Array.from({length:12},(_,i)=>i+1),prior=months.map(m=>comparableSummary(records,year-1,[m],metric,filters)),current=months.slice(0,cutoff).map(m=>comparableSummary(records,year,[m],metric,filters));
  const verified=s=>finite(s.value)&&s.value>=0&&!s.estimated&&!s.approximate&&!s.review;
  if(current.some(s=>!verified(s)))return fail('Needs complete nonnegative actual sales from January through the cutoff; estimated or unverified amounts are excluded.');

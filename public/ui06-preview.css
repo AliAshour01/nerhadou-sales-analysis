@@ -290,3 +290,9 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:#71839a
 /* Preserve the full rate-chart labels when the panel is narrow. */
 .rate-chart-scroll{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;}
 .rate-chart-scroll-hint{margin:0 0 4px;}
+
+/* V68 sales UX */
+/* S-02 provisional 2023 */
+.provisional-badge{display:inline-flex;align-items:center;margin-left:12px;padding:3px 10px;border-radius:999px;background:#fff4e0;border:1px solid #e8c27d;color:#7a4b00;font-size:12px;font-weight:600;vertical-align:middle;cursor:help}
+.provisional-badge[hidden]{display:none}
+.withheld-note{color:#5b6b7f;font-style:normal}
