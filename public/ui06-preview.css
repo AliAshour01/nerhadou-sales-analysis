@@ -387,3 +387,5 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 @media(max-width:999px){#view-overview>.overview-row2{grid-template-columns:minmax(0,1fr)}}
 .legend.progress-legend svg.lg-line{width:22px!important;height:10px!important;min-width:0!important;flex:0 0 22px}
 .legend.progress-legend span.lg-item{margin-left:0}
+/* S-16 Breakdown: product and line cards share one full-width horizontal-bar layout */
+#view-breakdown .bd-grid{grid-template-columns:minmax(0,1fr)}

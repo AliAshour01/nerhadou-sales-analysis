@@ -44,4 +44,7 @@ document.querySelector('[data-monthly-view="monthly"]').click();document.querySe
 // S-15 colours
 await window.actualDashboard.apply(cfg());{const seen={};const collect=root=>root.querySelectorAll('.product-mix-legend li').forEach(li=>{const name=li.querySelector('span').textContent,c=li.querySelector('i').getAttribute('style').match(/#[0-9a-f]{6}/i)[0].toLowerCase();assert.equal(c,categoryColor(name).toLowerCase(),name);if(seen[name])assert.equal(seen[name],c,name+' same everywhere');seen[name]=c});
  collect($('company-mix-panels'));document.querySelector('[data-product-detail]').click();collect($('product-drawer'));$('drawer-close').click();assert.equal(categoryColor('NOT PROVIDED'),CATEGORY_COLORS['NOT PROVIDED']);assert(Object.keys(seen).includes('PHARMA'))}
+// S-16 breakdown labels: no mid-word breaks, full name kept in aria-label
+window.actualDashboard.showSection('analysis');for(const id of ['breakdown-products-chart','breakdown-lines-chart']){const gs=[...$(id).querySelectorAll('g[role="button"]')];assert(gs.length);for(const g of gs){const full=g.getAttribute('data-bd-product')||g.getAttribute('data-bd-line');assert(g.getAttribute('aria-label').includes(full));const shown=[...g.querySelectorAll('text')].map(t=>t.textContent).join(' ');assert(shown.includes(full)||shown.includes('…'),'name shown whole or truncated with …')}}
+assert($('breakdown-lines-chart').querySelector('rect[height="16"]'),'lines use horizontal bars');
 console.log('Sales V68 checks passed.');
