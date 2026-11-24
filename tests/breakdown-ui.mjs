@@ -1,6 +1,6 @@
 // Actual DOM fixture replaces the old fake document, which threw for dynamic #bd-full-chart on V62.
 import assert from 'node:assert/strict';import fs from 'node:fs';
-import {createBreakdown} from '../public/breakdown.js';import {effectiveRecords,snapshotFrom} from '../public/data-core.js';
+import {createBreakdown} from '../public/breakdown.js';import {checkTicks} from './tick-check.mjs';import {effectiveRecords,snapshotFrom} from '../public/data-core.js';
 const {parseHTML}=await import(process.env.NERHADOU_DOM_MODULE||'linkedom');
 const {window}=parseHTML(fs.readFileSync('public/index.html','utf8'));globalThis.window=window;globalThis.document=window.document;
 const values=new WeakMap();Object.defineProperty(window.HTMLSelectElement.prototype,'value',{get(){return values.has(this)?values.get(this):(this.querySelector('option[selected]')||this.querySelector('option'))?.value||''},set(v){values.set(this,String(v))},configurable:true});
@@ -9,6 +9,7 @@ $('breakdown-detail').showModal=()=>{$('breakdown-detail').open=true};$('breakdo
 const seed=JSON.parse(fs.readFileSync('private/seed.json')),records=effectiveRecords(seed),snapshot=snapshotFrom(seed),dashboard={snapshot,months:snapshot.availableMonths,selection:{},targetBasis:'period'};let opened;
 const ui=createBreakdown({read:()=>({records,dashboard,openProduct:name=>opened=name})});ui.render();
 assert($('breakdown-products-count').textContent.startsWith('Top 8 of '));assert($('breakdown-lines-count').textContent.startsWith('Top 6 of '));assert.equal($('breakdown-products-chart').querySelectorAll('[data-bd-product]').length,8);
+checkTicks($('breakdown-products-chart'),'#breakdown-products-chart');checkTicks($('breakdown-lines-chart'),'#breakdown-lines-chart');
 $('bd-products-all').click();assert($('breakdown-detail').open);assert($('bd-full-chart').querySelectorAll('[data-bd-product]').length>8,'All products remain in chart detail');
 $('bd-search').value='ONDALENZ';$('bd-search').oninput();assert($('bd-rows').textContent.includes('ONDALENZ'));assert(!$('bd-rows').textContent.includes('CALCITRON'));assert($('bd-detail-count').textContent.includes('selected sales'));
 $('breakdown-measure').onclick({target:{closest:()=>({dataset:{bdMetric:'value'}})}});assert.equal(ui.capture().metric,'value');assert($('bd-detail-context').textContent.includes('Units'),'An already open detail keeps its own selected measure');
