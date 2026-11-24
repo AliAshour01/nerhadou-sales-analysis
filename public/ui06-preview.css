@@ -423,3 +423,14 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 #view-portfolio .table-wrap .sticky-col{text-align:left;white-space:normal;min-width:150px;max-width:210px}
 #view-portfolio .table-wrap td.sticky-col button{text-align:left}
 .portfolio-card.pinned-total{background:#eef4fd;cursor:default}
+/* S-19 Forecast: vs FY target, required pace, cumulative scenario chart */
+#view-forecast .forecast-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.forecast-vs-line{font-size:13px;margin:6px 0 0;color:#2a4466}
+.forecast-vs-line.status-good b{color:#146c43}.forecast-vs-line.status-warn b{color:#8a5a00}.forecast-vs-line.status-bad b{color:#a1261b}
+.projection-number.small{font-size:26px}.projection-number small{font-size:13px;margin-left:3px;color:#5b6b7f}
+.forecast-sentence{font-size:13px;font-weight:600;color:#1f3555}
+.forecast-chart-wrap{margin-top:18px}
+.forecast-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px}
+.forecast-legend .fl{display:inline-block;width:20px;height:0;border-top:2.5px solid #2456d6;margin-right:6px;vertical-align:middle}
+.forecast-legend .fl.runrate{border-top-style:dashed}.forecast-legend .fl.seasonal{border-top:2.5px dashed #b0603e}.forecast-legend .fl.target{border-top:2.5px dotted #1f3555}
+@media(max-width:999px){#view-forecast .forecast-grid{grid-template-columns:minmax(0,1fr)}}
