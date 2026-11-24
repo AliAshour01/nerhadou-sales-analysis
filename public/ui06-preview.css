@@ -443,3 +443,9 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 /* S-33 data notes live behind a link in the health strip */
 #sales .methodology:not([open]){display:none}
 .data-notes-link{background:none;border:0;padding:0;color:#2456d6;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+/* S-35 attention: tone + magnitude chip */
+.attention-item .attention-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.attention-chip{flex:none;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2f7;color:#33475f;white-space:nowrap}
+.attention-chip.negative{background:#fdecea;color:#a1302a}
+.attention-chip.positive{background:#e6f5ee;color:#17694a}
+.attention-item.positive{border-left:3px solid #1f9a6b}.attention-item.negative{border-left:3px solid #c8483f}
