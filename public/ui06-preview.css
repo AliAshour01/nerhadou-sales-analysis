@@ -451,3 +451,18 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 .attention-item.positive{border-left:3px solid #1f9a6b}.attention-item.negative{border-left:3px solid #c8483f}
 /* S-30 text contrast tokens (WCAG AA): muted 5.45:1 on white; subtle only for >=14px or non-essential text */
 :root{--text-muted:#5b6b7f;--text-subtle:#64748b}
+/* S-36 loading skeletons and inline error card */
+#kpis .kpi.skeleton{min-height:139px!important;display:flex;flex-direction:column;gap:12px;justify-content:center}
+.sk-line{display:block;height:11px;border-radius:6px;background:linear-gradient(90deg,#edf1f7 25%,#f6f8fb 50%,#edf1f7 75%);background-size:200% 100%;animation:sk-shimmer 1.2s linear infinite}
+.sk-line.big{height:26px}.sk-line.w40{width:40%}.sk-line.w60{width:60%}.sk-line.w70{width:70%}.sk-line.w90{width:90%}
+.skeleton-chart{height:270px;border-radius:10px;background:linear-gradient(90deg,#edf1f7 25%,#f6f8fb 50%,#edf1f7 75%);background-size:200% 100%;animation:sk-shimmer 1.2s linear infinite}
+@keyframes sk-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.sk-line,.skeleton-chart{animation:none}}
+@media(max-width:699px){#kpis .kpi.skeleton{min-height:135px!important}}
+.load-error{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #f0c7c2;background:#fff6f5;border-radius:12px;color:#7a2219}
+.load-error b{display:block;font-size:15px;margin-bottom:4px}.load-error span{font-size:13px;color:#5b3a36}
+.load-error button{flex:none;background:#1f3555;color:#fff;border:0;border-radius:8px;padding:9px 18px;font-weight:600;cursor:pointer}
+/* S-36: reserve the loaded heights while the snapshot loads so content does not jump */
+html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #data-health{min-height:35px}html:not(.sales-ready) #sales .summary-toolbar{min-height:51px}html:not(.sales-ready) #monthly-controls{min-height:36px}
+@media(max-width:699px){html:not(.sales-ready) #sales .filters{min-height:330px}html:not(.sales-ready) #data-health{min-height:98px}html:not(.sales-ready) #sales .summary-toolbar{min-height:99px}html:not(.sales-ready) #monthly-controls{min-height:124px}}
+@media(max-width:699px){html:not(.sales-ready) article:has(#trend)>.panel-title{min-height:69px}html:not(.sales-ready) article:has(#trend)>.legend{min-height:42px}}
