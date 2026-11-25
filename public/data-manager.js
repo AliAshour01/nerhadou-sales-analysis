@@ -9,7 +9,7 @@ function period(r){return r.year+' · '+(r.month?names[r.month-1]:'FY')}
 function tab(name){document.querySelectorAll('[data-data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.dataTab===name));for(const n of ['paste','tables','lines','audit','notes'])$('data-pane-'+n).hidden=n!==name}
 function setOptions(id,options){const before=$(id).value;$(id).innerHTML=options.map(([v,label])=>`<option value="${html(v)}">${html(label)}</option>`).join('');if(options.some(([v])=>String(v)===before))$(id).value=before}
 async function load(){
- const data=await api(),previousRevision=state?.revision;state=data;if(previousRevision!=null&&previousRevision!==state.revision){invalidate();invalidateCutoff();if(!busy)status('Shared data changed. Preview edits again before saving.')} $('shared-data-state').textContent=state.updatedAt?'Updated '+new Date(state.updatedAt).toLocaleDateString():'Source data';records=effectiveRecords(state.seed,state.overrides);$('admin-nav').hidden=!state.isAdmin;$('data-revision').textContent='Shared revision '+state.revision;
+ const data=await api(),previousRevision=state?.revision;state=data;if(previousRevision!=null&&previousRevision!==state.revision){invalidate();invalidateCutoff();if(!busy)status('Shared data changed. Preview edits again before saving.')} showUpdated();records=effectiveRecords(state.seed,state.overrides);$('admin-nav').hidden=!state.isAdmin;$('data-revision').textContent='Shared revision '+state.revision;
  setOptions('table-year',[['','All years'],...[...new Set(records.map(r=>r.year).filter(y=>y>0))].sort((a,b)=>b-a).map(y=>[y,String(y)])]);
  $('data-notes').innerHTML=state.seed.notes.map(n=>`<p>${html(n)}</p>`).join('');renderTable();renderAudit();renderComparison();renderRefreshTools();editors.refresh();
 }
@@ -90,3 +90,7 @@ $('import-single-file').onchange=async event=>{
   $('paste-input').value=await file.text();invalidate();showPreview();status('Loaded '+file.name+'. Review the preview, approve any new series, then save. Nothing has been saved yet.');
  }catch(e){status(e.message,true)}finally{event.target.value=''}
 };
+// V68 S-36: header freshness as a relative time from the shared revision's updatedAt.
+function relativeTime(ts,now=Date.now()){const t=new Date(ts).getTime();if(!Number.isFinite(t))return null;const s=Math.round((now-t)/1000);if(s<45)return 'just now';const m=Math.round(s/60);if(m<60)return m+' min ago';const h=Math.round(m/60);if(h<24)return h+(h===1?' hour ago':' hours ago');const d=Math.round(h/24);if(d===1)return 'yesterday';if(d<30)return d+' days ago';return new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+function showUpdated(){const el=document.getElementById('shared-data-state');if(!el||!state)return;const rel=state.updatedAt?relativeTime(state.updatedAt):null;el.textContent=rel?'Updated '+rel:'Baseline data · no edits yet';el.title=state.updatedAt?'Last saved '+new Date(state.updatedAt).toLocaleString()+' · revision '+state.revision:'No manual update recorded since the source baseline.'}
+setInterval(showUpdated,60000)?.unref?.();

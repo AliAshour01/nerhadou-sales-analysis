@@ -3,13 +3,20 @@ import {comparisonProduct} from './compare-core.js?v=32';
 export const finite=Number.isFinite;
 // Actual identity preserves source products/packs/channels. Historical comparison opts into its reviewed mapping separately.
 export const productName=r=>r.product;
-export const productKey=name=>String(name??'').replace(/\s+/g,'').toUpperCase();
+const productKeys=new Map();
+export const productKey=name=>{const raw=String(name??'');let key=productKeys.get(raw);if(key===undefined){key=raw.replace(/\s+/g,'').toUpperCase();if(productKeys.size>20000)productKeys.clear();productKeys.set(raw,key)}return key};
+// V68 S-31: index records by dataset/year/product once per records array instead of scanning per product.
+const productIndex=new WeakMap();
+function productRows(records,dataset,year,product){let index=productIndex.get(records);if(!index){index=new Map();for(const r of records){const k=r.dataset+'|'+r.year+'|'+productKey(r.product);let list=index.get(k);if(!list)index.set(k,list=[]);list.push(r)}productIndex.set(records,index)}return index.get(dataset+'|'+year+'|'+productKey(product))||[]}
 export function scopeRecords(records,filters={}){
- return records.filter(r=>Object.entries(filters).every(([key,values])=>!values?.length||(key==='product'?values.some(name=>productKey(name)===productKey(r.product)):values.includes(r[key]))));
+ const active=Object.entries(filters).filter(([,values])=>values?.length).map(([key,values])=>key==='product'?[key,new Set(values.map(productKey))]:[key,new Set(values)]);if(!active.length)return records.slice();
+ return records.filter(r=>active.every(([key,set])=>set.has(key==='product'?productKey(r.product):r[key])));
 }
+const yearIndex=new WeakMap();
+function recordsForYear(records,year){let index=yearIndex.get(records);if(!index){index=new Map();for(const r of records){let list=index.get(r.year);if(!list)index.set(r.year,list=[]);list.push(r)}yearIndex.set(records,index)}return index.get(year)||[]}
 export function comparableSummary(records,year,months,metric='units',filters={}){
  const selected=[...new Set(months)].filter(m=>Number.isInteger(m)&&m>=1&&m<=12).sort((a,b)=>a-b);
- const yearRecords=records.filter(r=>r.year===year),scoped=scopeRecords(yearRecords,filters);
+ const yearRecords=recordsForYear(records,year),scoped=scopeRecords(yearRecords,filters);
  // Current Actual is a sparse monthly transaction report. Sum its recorded numeric rows,
  // checking company file coverage before dimension filters; never manufacture absent rows.
  const companyMonthly=yearRecords.filter(r=>r.dataset==='actual'&&r.month>0);
@@ -27,6 +34,11 @@ export function comparableSummary(records,year,months,metric='units',filters={})
  const value=(!s.partial||approved)&&!s.review?s.total:null;
  return {...s,value,approximate:approved,reason:value!=null?null:!selected.length?'Select months':s.review?'Source period is not verified':!s.rows.length?'No matching records':`Incomplete ${metric} or period coverage`};
 }
+// V68 S-02: one source of truth for provisional years. Any growth, PPG, delta, bridge or
+// seasonality that uses a provisional year as either side is withheld, never shown.
+export const PROVISIONAL_YEARS=new Set([2023]);
+export const PROVISIONAL_REASON='Growth withheld: 2023 data is provisional.';
+export function growthAllowed(a,b){const bad=[a,b].find(y=>PROVISIONAL_YEARS.has(Number(y)));return bad==null?{ok:true,reason:null}:{ok:false,year:Number(bad),reason:`Growth withheld: ${bad} data is provisional.`}}
 export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
@@ -70,6 +82,7 @@ export function runRateProjection(records,year,metric='units',filters={}){
 }
 export function seasonalProjection(records,year,cutoff,metric='units',filters={}){
  const fail=reason=>({value:null,reason});if(!Number.isInteger(cutoff)||cutoff<1||cutoff>=12)return fail('Choose an incomplete year with a YTD cutoff from January to November.');
+ const allowed=growthAllowed(year-1,year);if(!allowed.ok)return fail(allowed.reason);
  const months=Array.from({length:12},(_,i)=>i+1),prior=months.map(m=>comparableSummary(records,year-1,[m],metric,filters)),current=months.slice(0,cutoff).map(m=>comparableSummary(records,year,[m],metric,filters));
  const verified=s=>finite(s.value)&&s.value>=0&&!s.estimated&&!s.approximate&&!s.review;
  if(current.some(s=>!verified(s)))return fail('Needs complete nonnegative actual sales from January through the cutoff; estimated or unverified amounts are excluded.');
@@ -79,9 +92,9 @@ export function seasonalProjection(records,year,cutoff,metric='units',filters={}
  const share=priorYTD/priorFull;return {value:observed/share,observed,priorFull,priorYTD,share,priorYear:year-1,through:cutoff,reason:null,method:'Current YTD actual divided by the share of prior-year annual sales earned in the same months. Assumes the prior-year seasonal pattern repeats; exceptional tenders, launches or other one-off sales can distort the result. Scenario, not a commitment.'};
 }
 export function portfolioTarget(records,snapshot,product,chosen,metric,filters={},annual=false){
- const members=records.filter(r=>r.dataset==='actual'&&r.year===snapshot.year&&productKey(r.product)===productKey(product));
+ const members=productRows(records,'actual',snapshot.year,product);
  if(['distributor','channel','line'].some(k=>filters[k]?.length&&members.some(r=>!filters[k].includes(r[k]))))return null;
- const targets=records.filter(r=>r.dataset==='target'&&r.year===snapshot.year&&productKey(r.product)===productKey(product)),key=metric==='value'?'target_value':'target_units',ms=annual?Array.from({length:12},(_,i)=>i+1):chosen;
+ const targets=productRows(records,'target',snapshot.year,product),key=metric==='value'?'target_value':'target_units',ms=annual?Array.from({length:12},(_,i)=>i+1):chosen;
  const scheduled=targets.filter(r=>r.month>0);
  if(scheduled.length){const values=ms.map(m=>{const rows=scheduled.filter(r=>r.month===m);return rows.length===1?rows[0][key]:null});return values.every(finite)?values.reduce((a,b)=>a+b,0):null;}
  const full=targets.filter(r=>r.month===0);return full.length===1&&finite(full[0][key])?full[0][key]/12*ms.length:null;
