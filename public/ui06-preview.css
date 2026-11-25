@@ -475,3 +475,4 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 .chart-table th,.chart-table td{padding:6px 10px;border-bottom:1px solid #edf1f7;text-align:left}.chart-table td{font-variant-numeric:tabular-nums}
 .chart-table thead th{font-size:12px;color:var(--text-muted);font-weight:600}
 .chart-table th,.chart-table thead th{text-transform:none;letter-spacing:normal}.chart-table tbody th{font-size:13px;font-weight:500;color:#233653;background:none}
+.forecast-chart-wrap>.chart-table-toggle{display:block;margin:0 0 8px auto}
