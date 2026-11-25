@@ -184,7 +184,10 @@ function progressBar(pct,status,marker=null){const width=pct==null?0:Math.max(0,
 function statusWord(status){return {good:'On or above target',warn:'Within 10% of target',bad:'More than 10% below target',unknown:'Status unavailable'}[status]}
 
 // ── V69 U-12: KPI card sets (plan 4.1). Each slot has an ordered fallback list so no card is a bare "—". ──
-function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}${labelHTML}</div><strong title="${e(value)}">${String(value).startsWith('EGP ')&&/^[\d,.]+$/.test(String(value).slice(4))?'<span class="kpi-unit">EGP</span> <span class="kpi-full">'+e(value.slice(4))+'</span><span class="kpi-compact">'+e(compact(Number(value.slice(4).replace(/,/g,'')),2))+'</span>':e(value)}</strong>${body}</div>`}
+// V72 R-04: a value longer than 14 characters is shown compact (EGP 1.75B, +EGP 215.7M) on every viewport;
+// the exact value stays in the title and in screen-reader text, and CSS ellipsis is only a safety net.
+function kpiValueHTML(value){const text=String(value),m=text.match(/^([+−-]?)(EGP )?([\d,]+(?:\.\d+)?)$/);if(!m||text.length<=14)return m&&m[2]?`${m[1]}<span class="kpi-unit">EGP</span> ${e(m[3])}`:e(text);const num=Number(m[3].replace(/,/g,'')),short=compact(num,Math.abs(num)>=1e9?2:1);return `<span class="kpi-value" aria-hidden="true">${m[1]}${m[2]?'<span class="kpi-unit">EGP</span> ':''}${e(short)}</span><span class="sr-only">${e(text)}</span>`}
+function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}${labelHTML}</div><strong title="${e(value)}" data-exact="${e(value)}">${kpiValueHTML(value)}</strong>${body}</div>`}
 function kpiCandidates(ctx){
  // V72 R-02: single-year cards use the focus year's recorded months (2023 Full year = Jan–Sep) and compare the months
  // both years record (ctx.compareMonths), the same months the Monthly chart and the bridge use.
@@ -668,7 +671,7 @@ function buildMeetingReport(){
  const d=dashboard();if(!payload||!d)return;const ctx=viewContext(d),stamp=new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Cairo'}).format(new Date()),subtitle=selectionSubtitle(ctx);
  const header=`<header class="report-header"><img src="/logo.png?v=ui02" alt="Nerhadou International"><div><p class="eyebrow">NERHADOU SALES ANALYSIS</p><h1 id="report-heading">Sales performance · Meeting report</h1><p>${e(subtitle)} · Prepared ${e(stamp)} · Cairo time</p></div></header>`;
  if(d.section!=='overview')applyLayout('overview',ctx);
- const cards=[...$('kpis').querySelectorAll('.kpi')].map(k=>[k.querySelector('.label')?.textContent||'',(k.querySelector('.kpi-full')?('EGP '+k.querySelector('.kpi-full').textContent):k.querySelector('strong')?.textContent)||'',[k.querySelector('small')?.textContent,k.querySelector('.delta-chip,.status-word')?.textContent].filter(Boolean).join(' · ')]);
+ const cards=[...$('kpis').querySelectorAll('.kpi')].map(k=>[k.querySelector('.label')?.textContent||'',(k.querySelector('strong')?.dataset.exact||k.querySelector('strong')?.textContent)||'',[k.querySelector('small')?.textContent,k.querySelector('.delta-chip,.status-word')?.textContent].filter(Boolean).join(' · ')]);
  let body=`<div class="report-scope">${e(subtitle)}</div>`+reportCards(cards);
  const result=layoutFor('overview',ctx);
  for(const row of result.rows)for(const p of row.panels){const node=$('panel-'+p.id),title=node?.querySelector('h2')?.textContent||p.entry.title,caption=node?.querySelector('#monthly-context,#years-context,#movement-context,.mix-context,.chart-note')?.textContent||subtitle;

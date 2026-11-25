@@ -302,8 +302,7 @@ html{scroll-padding-top:120px}
 @media(max-width:699px){#kpis{gap:10px!important}#kpis .kpi{padding:11px 12px!important}#kpis .kpi strong{font-size:22px}#kpis .kpi small{font-size:11px}.delta-chip,.status-word{font-size:11px}}
 #kpis .kpi strong{white-space:nowrap;font-size:clamp(20px,1.95vw,30px)}
 #kpis .kpi .kpi-unit{font-size:.5em;font-weight:700;letter-spacing:.04em;vertical-align:.35em}
-#kpis .kpi-compact{display:none}
-@media(max-width:699px){#kpis .kpi strong{font-size:22px}#kpis .kpi-full{display:none}#kpis .kpi-compact{display:inline}}
+@media(max-width:699px){#kpis .kpi strong{font-size:22px}}
 /* S-13 real,sticky tabs; four labels fit at 360px */
 #sales>.section-tabs{position:sticky;top:64px;z-index:35;margin:18px 0;padding:6px;gap:6px;overflow:visible;box-shadow:0 4px 14px rgba(20,40,80,.06)}
 body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))}
@@ -564,3 +563,5 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #kpis .kpi small.kpi-compare-note{font-style:italic;opacity:.85}
 .compare-gap-note{color:#5b6b7f}
 #kpis .kpi:has(.kpi-compare-note){max-height:none}
+#kpis .kpi strong{font-size:clamp(22px,2.2vw,32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:699px){#kpis .kpi strong{font-size:22px}}
