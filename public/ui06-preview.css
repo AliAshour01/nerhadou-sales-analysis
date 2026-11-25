@@ -593,3 +593,9 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
  #sales>.filters select{width:100%}
 }
 #sales>.filters>#active-filters:empty{display:none}
+/* R-14: one primary action (Meeting report). Full screen is a secondary icon button; the data state is shown once,
+   in the status strip, so the header no longer repeats it on the Sales page. */
+.app-header #fullscreen-toggle.fullscreen-button{background:#fff!important;color:#5b6b7f!important;border:1px solid #dce5ef!important;box-shadow:none!important;padding:9px 10px;min-width:38px}
+.app-header #fullscreen-toggle.fullscreen-button:hover{background:#f2f5f9!important;color:#283d59!important}
+.app-header #fullscreen-toggle #fullscreen-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body:has(#sales:not([hidden])) #shared-data-state{display:none}
