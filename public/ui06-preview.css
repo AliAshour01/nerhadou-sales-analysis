@@ -443,10 +443,6 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales #panel-attention .attention-list,#sales #panel-productFacts .facts-list{display:flex;flex-direction:column;gap:10px;grid-template-columns:none}
 #sales #panel-attention .attention-item{width:100%}
 #sales #panel-attention .show-all,#sales .show-all{align-self:flex-start;background:none;border:1px solid #cdd7e3;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;color:#1d4ed8;cursor:pointer}
-@media(min-width:700px){
- #sales .v69-grid>#panel-attention:not(.span-12),#sales .v69-grid>#panel-productFacts:not(.span-12){contain:size;display:flex;flex-direction:column;overflow:hidden}
- #sales .v69-grid>#panel-attention:not(.span-12) .attention-list,#sales .v69-grid>#panel-productFacts:not(.span-12) .facts-list{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
-}
 /* U-07: composition row. A lone mix panel spans 12 columns and lays its legend beside the donut. */
 #sales #panel-mixDistributor .mix-context,#sales #panel-mixChannel .mix-context,#sales #panel-mixLine .mix-context{margin:-4px 0 8px}
 #sales .v69-grid>.span-12 .product-mix-donut,#sales .v69-grid>.span-6 .product-mix-donut{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);align-items:center;gap:24px}
@@ -565,3 +561,5 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #kpis .kpi:has(.kpi-compare-note){max-height:none}
 #kpis .kpi strong{font-size:clamp(22px,2.2vw,32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:699px){#kpis .kpi strong{font-size:22px}}
+/* R-07: Needs attention never scrolls inside the card; the row height follows the taller panel. */
+#sales .v69-grid>#panel-attention,#sales .v69-grid>#panel-productFacts{display:flex;flex-direction:column}
