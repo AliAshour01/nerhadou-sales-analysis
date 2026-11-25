@@ -8,7 +8,7 @@ import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryCo
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>compact(v);
-let payload=window.commercialAnalysisData||null,cache=new Map(),contextKey='',drawer=null,returnFocus=null,restorePending=null,restored=false,storageKey=null;
+let payload=window.commercialAnalysisData||null,cache=new Map(),contextKey='',restorePending=null,restored=false,storageKey=null;
 const ui={monthlyCumulative:false,monthlyCompare:null,monthlySplit:false,monthlyPY:false,distributorMode:'mix',leaderSort:'sales',signedGap:false,bridgeDimension:'product',bridgeYear:null,forecastCutoff:null};
 // V69 U-03: ui.metric is the global Measure owned by app.js (filter bar); every panel reads it.
 Object.defineProperty(ui,'metric',{get:()=>window.actualDashboard?.measure?.()||'units',set:v=>window.actualDashboard?.setMeasure?.(v),enumerable:true});
@@ -55,18 +55,14 @@ function mount(){
 
  $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-forecast" hidden><article class="panel"><div class="panel-title"><div><h2>Year-end forecast scenarios</h2><p>Scenario estimates · not reported actuals · entire YTD in selected year</p></div><label>Forecast as of<select id="forecast-cutoff"></select></label></div><div class="chart-grid forecast-grid"><article><h3>YTD Average Forecast</h3><div id="run-rate"></div><div id="run-rate-vs" class="forecast-vs"></div></article><article><h3>Historical Seasonality Forecast</h3><div id="target-forecast"></div><div id="seasonal-vs" class="forecast-vs"></div></article><article><h3>Required to hit target</h3><div id="forecast-required"></div></article></div><div class="forecast-chart-wrap"><h3>Cumulative path, Jan–Dec</h3><p class="chart-note">Scenario estimates, not reported actuals. Solid = actual through the cutoff; dashed = scenarios; navy = cumulative target.</p><div id="forecast-chart" class="wide-chart"></div></div></article></section>`);
  for(const [id,tab]of [['view-overview','tab-overview'],['view-portfolio','tab-portfolio'],['view-forecast','tab-forecast']]){const view=$(id);if(view){view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby',tab)}}
- document.body.insertAdjacentHTML('beforeend',`<dialog id="product-drawer" class="product-drawer" aria-labelledby="drawer-title">${productDetailTemplate('drawer')}</dialog><dialog id="report-dialog" class="report-dialog" aria-labelledby="report-heading"><div class="report-controls"><button id="report-print">Print / Save PDF</button><button id="report-close">Close ×</button></div><div id="meeting-report"></div></dialog>`);
+ document.body.insertAdjacentHTML('beforeend',`<dialog id="report-dialog" class="report-dialog" aria-labelledby="report-heading"><div class="report-controls"><button id="report-print">Print / Save PDF</button><button id="report-close">Close ×</button></div><div id="meeting-report"></div></dialog>`);
  $('panel-singleProduct').innerHTML=productDetailTemplate('single');for(const id of ['single-close','single-focus'])$(id)?.remove();$('sales').querySelector('.heading').insertAdjacentHTML('beforeend','<div id="product-scope-chip" hidden></div>');
  $('focus-content').querySelector('.focus-table-panel').insertAdjacentHTML('beforebegin',panel('Contribution to change',`<div class="analysis-toolbar"><label>From year<select id="historical-from"></select></label><label>To year<select id="historical-to"></select></label></div><p id="historical-context" class="analysis-context"></p><div id="historical-bridge" class="wide-chart"></div><p id="historical-note" class="chart-note"></p>`,'historical-movement-panel'));
  // Controls are delegated once; no duplicate handlers accumulate on shared refresh.
  document.addEventListener('click',onClick);document.addEventListener('change',onChange);
- $('product-drawer').addEventListener('close',()=>{drawer=null;returnFocus?.focus?.()});
- $('product-drawer').addEventListener('click',ev=>{if(ev.target===$('product-drawer'))$('product-drawer').close()});
  $('save-view').onclick=saveView;$('delete-view').onclick=deleteView;$('share-view').onclick=shareView;$('meeting-open').onclick=openReport;
  $('report-close').onclick=()=>$('report-dialog').close();$('report-print').onclick=()=>{document.body.classList.add('printing-report');window.print()};window.addEventListener('afterprint',()=>document.body.classList.remove('printing-report'));
- $('drawer-close').onclick=()=>$('product-drawer').close();$('drawer-focus').onclick=async()=>{if(!drawer)return;const cfg=capture();cfg.selection.product=[...new Set(records().filter(r=>r.year===dashboard().snapshot.year&&productName(r)===drawer.product).map(r=>r.product))];$('product-drawer').close();await window.actualDashboard.apply(cfg)};
  $('single-export').onclick=()=>{const state={product:dashboard().selection.product[0],month:null,metric:ui.metric};exportTable('Product detail',drawerRows(state),drawerColumns(state),periodLabel())};
- $('drawer-export').onclick=()=>exportTable('Product detail',drawerRows(),drawerColumns(),`Product: ${drawer.product} · ${periodLabel()} · ${scopeText()}`);
  $('saved-view').onchange=async()=>{const item=savedViews().find(r=>r.id===$('saved-view').value);$('delete-view').disabled=!item;if(item)await restore(item.config)};
  const actions=document.querySelector('.manager-actions');placeActions('sales');document.querySelector('main').insertBefore($('manager-status'),$('sales'));
  // V68 S-10: no duplicate eyebrow (the logo already names the company); source bar and period paragraph merge into the data-health strip.
@@ -86,7 +82,7 @@ function render(){
  viewCtx=viewContext(d);
  renderSingleScope();syncTabs(viewContext(d));renderHealth();renderSummary();renderSection();
 
- if(drawer)renderDrawer();window.updateWorkspaceVisibility?.();window.actualDashboard.wire();wireDrilldowns();
+ window.updateWorkspaceVisibility?.();window.actualDashboard.wire();wireDrilldowns();
  if(!restored&&storageKey){restored=true;readLink()}
  applyChartTables();syncUrl();
 }
@@ -253,7 +249,7 @@ function pairedChart(rows,metric,currentYear,previousYear,targets=false,chartWid
 function rankedHTML(items,metric,click=true,chartId=null){
  if(!items.length)return '<p class="empty-chart">No comparable detail for this selection.</p>';
  const W=plotWidth(chartId,640),mobile=W<520,axis=niceAxis(items.map(r=>r.value),3),lo=axis.min,hi=axis.max,range=hi-lo||1,L=mobile?24:Math.round(W*.34),R=W-145,rowH=mobile?85:52,H=65+items.length*rowH,X=v=>L+(v-lo)/range*(R-L),zero=X(0);let svg=svgPlot(W,H,'Ranked signed '+metric,'comparison-svg');
- items.forEach((r,i)=>{const y=35+i*rowH,barY=y+(mobile?22:-9),tip=`${r.name} · ${amt(r.value,metric)}${r.note?' · '+r.note:''}`,maxChars=Math.max(15,Math.floor((mobile?W-40:L-50)/6.8));svg+=`<g tabindex="0" ${click?`role="button" data-product-detail="${e(r.name)}"`:'role="img"'} data-tip="${e(tip)}" aria-label="${e(tip)}"><text x="5" y="${y+4}" font-size="12" fill="#789">${i+1}</text><text x="30" y="${y+4}" font-size="12" fill="#284362">${e(r.name.length>maxChars?r.name.slice(0,maxChars-1)+'…':r.name)}</text><rect x="${Math.min(zero,X(r.value))}" y="${barY}" width="${Math.max(.5,Math.abs(X(r.value)-zero))}" height="18" fill="${r.value<0?'#bc665b':'#245fa7'}"/><text x="${W-8}" y="${mobile?y+35:y+4}" text-anchor="end" font-size="12" fill="#284362">${n(r.value)}</text>${r.note?`<text x="${W-8}" y="${mobile?y+58:y+22}" text-anchor="end" font-size="12" fill="#5b6b7f">${e(r.note)}</text>`:''}</g>`});
+ items.forEach((r,i)=>{const y=35+i*rowH,barY=y+(mobile?22:-9),tip=`${r.name} · ${amt(r.value,metric)}${r.note?' · '+r.note:''}`,maxChars=Math.max(15,Math.floor((mobile?W-40:L-50)/6.8));svg+=`<g tabindex="0" ${click?`role="button" data-select-product="${e(r.name)}"`:'role="img"'} data-tip="${e(tip)}" aria-label="${e(tip)}"><text x="5" y="${y+4}" font-size="12" fill="#789">${i+1}</text><text x="30" y="${y+4}" font-size="12" fill="#284362">${e(r.name.length>maxChars?r.name.slice(0,maxChars-1)+'…':r.name)}</text><rect x="${Math.min(zero,X(r.value))}" y="${barY}" width="${Math.max(.5,Math.abs(X(r.value)-zero))}" height="18" fill="${r.value<0?'#bc665b':'#245fa7'}"/><text x="${W-8}" y="${mobile?y+35:y+4}" text-anchor="end" font-size="12" fill="#284362">${n(r.value)}</text>${r.note?`<text x="${W-8}" y="${mobile?y+58:y+22}" text-anchor="end" font-size="12" fill="#5b6b7f">${e(r.note)}</text>`:''}</g>`});
  for(const v of axisTicks(axis)){svg+=`<text class="axis-tick" data-tick="${v}" x="${X(v)}" y="${H-8}" text-anchor="middle" font-size="12" fill="#789">${tickLabel(v,axis)}</text>`}return svg+'</svg>';
 }
 // V69 U-07: the composition row (Distributor mix · Sales-type mix · Sales by line) for one year, in the global measure.
@@ -400,10 +396,10 @@ function monthlyTableHTML(){
 }
 function exportMonthlyTable(){const ctx=viewContext(),{headers,kinds,rows}=monthlyTableData(ctx);const bytes=tableWorkbook({title:'Nerhadou · Monthly sales',subtitle:[periodLabel(),scopeText(),ui.metric==='value'?'EGP value':'Units'].join(' · '),columns:headers.map((label,i)=>({label,width:i?18:14,kind:kinds[i]})),rows:rows.map(r=>r.map((v,i)=>kinds[i]==='percent'&&v!=null?v/100:v)),notes:['Exported '+new Date().toISOString()+' · Data revision '+payload?.revision+'. Unknown values stay blank, never zero.','PPG % = (current ÷ previous − 1) × 100 for the same month. Growth involving 2023 is withheld.']});const url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),a=document.createElement('a');a.href=url;a.download='nerhadou-monthly-sales-'+ctx.years.join('-')+'-'+ui.metric+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function statesMetric(){return ui.metric}
-function buttonProduct(p){return `<button class="product-link" data-product-detail="${e(p)}">${e(p)}</button>`}
+function buttonProduct(p){return `<button class="product-link" data-select-product="${e(p)}">${e(p)}</button>`}
 // ── V69 U-09: Products tab (plan 4.8) ──
 let ptCache={ctx:null,key:'',data:null},ptSearchTimer=null;
-function selectProduct(name){if(!window.actualDashboard.selectProduct?.(name))window.actualDashboard.focusFilter('product',name)}
+function selectProduct(name){$('tooltip')&&($('tooltip').style.display='none');window.actualDashboard.selectProduct?.(name)}
 function productMeasures(ctx){return window.actualDashboard.bothMeasures?.()?[ctx.measure,ctx.other]:[ctx.measure]}
 function productsData(ctx){const d=dashboard(),measures=productMeasures(ctx),basis=d.targetBasis==='annual'?'annual':'period',key=measures.join()+basis;if(ptCache.ctx!==ctx||ptCache.key!==key)ptCache={ctx,key,data:productsTableData(ctx,{measures,targetBasis:basis,period:periodLabel(d,ctx.months)})};return {data:ptCache.data,measures,basis}}
 function renderProductsTable(ctx){
@@ -424,17 +420,18 @@ function exportProductsTable(){const ctx=viewContext(),d=dashboard(),{data,measu
  const bytes=tableWorkbook({title:'Nerhadou · Products',subtitle:[periodLabel(d,ctx.months),scopeText()].join(' · '),columns:cols,rows:[line(data.total),...rows.map(line)],notes:['Exported '+new Date().toISOString()+' · Revision '+(payload?.revision||''),'Shares use total company sales for the same period, before product, line, distributor and sales-type filters. Missing values stay blank.'+(ctx.hasTargets&&ctx.yearMode==='single'?' Target basis: '+(basis==='annual'?'full year.':'selected period.'):'')]}),url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),a=document.createElement('a');
  a.href=url;a.download=`nerhadou-products-${ctx.yearMode==='multi'?ctx.years[0]+'-'+ctx.focusYear:ctx.focusYear}-${measures.join('-')}.xlsx`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function wireDrilldowns(){
- document.querySelectorAll('[data-focus="product"]').forEach(b=>{b.onclick=()=>openProduct(b.dataset.key,null,b);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
+ document.querySelectorAll('[data-focus="product"]').forEach(b=>{b.onclick=()=>selectProduct(b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('#lines-chart [data-focus="line"]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter('line',b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('[data-mix-focus]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter(b.dataset.mixFocus,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
- document.querySelectorAll('[data-product-detail]').forEach(b=>b.onkeydown=ev=>{if(b.tagName.toLowerCase()==='g'&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();openProduct(b.dataset.productDetail,Number(b.dataset.detailMonth)||null,b)}});
+ document.querySelectorAll('g[data-bridge-dim]').forEach(b=>{b.onclick=()=>b.dataset.bridgeDim==='product'?selectProduct(b.dataset.key):window.actualDashboard.focusFilter(b.dataset.bridgeDim,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
+ document.querySelectorAll('g[data-select-product]').forEach(b=>b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectProduct(b.dataset.selectProduct)}});
 }
 // V69 U-02: attention items are computed once per context; the layout engine hides the panel when no rule fires.
 let attentionCache={key:null,items:[]};
 function attentionCount(ctx){return attentionItems(ctx).length}
 function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return attentionCache.items;attentionCache={key:ctx,items:computeAttention()};return attentionCache.items}
 // V69 U-05: one column, impact order, top 4 (3 on phones) then 'Show all (n)' expands in place; the panel never sets the row height.
-function renderAttention(){const all=attentionItems(),limit=isMobile()?3:4,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}" data-impact="${r.impact}" ${r.p?`data-product-detail="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>Open detail →</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
+function renderAttention(){const all=attentionItems(),limit=isMobile()?3:4,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}" data-impact="${r.impact}" ${r.p?`data-select-product="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>Open detail →</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
 function computeAttention(){
  // V68 S-35: balanced rules (positive and negative), a magnitude chip, sorted by absolute impact in the selected measure.
  const d=dashboard(),items=[],metric=ui.metric,unitWord=metric==='value'?'':' units',signed=v=>(v>0?'+':v<0?'−':'')+(metric==='value'?'EGP ':'')+n(Math.abs(v))+unitWord;
@@ -452,12 +449,10 @@ function computeAttention(){
  const total=summary(d.snapshot.year,d.months,metric).value;if(total>0){const groups=[...new Set(scopeRecords(records(),d.selection).filter(r=>r.year===d.snapshot.year&&r.dataset==='actual').map(r=>r.distributor))].filter(name=>name&&String(name).trim().toUpperCase()!=='NOT PROVIDED').map(name=>({name,value:summary(d.snapshot.year,d.months,metric,{...d.selection,distributor:[name]}).value})).filter(x=>x.value!=null).sort((a,b)=>b.value-a.value);if(groups[0]?.value/total>=.6)items.push({tone:'neutral',impact:-1,chip:`${(groups[0].value/total*100).toFixed(1)}% share`,title:'Distributor concentration ≥60%',text:`${groups[0].name}: ${(groups[0].value/total*100).toFixed(1)}% of selected ${metric}. Check concentration and source coverage.`})}
  items.sort((a,b)=>b.impact-a.impact);return items;
 }
-function openProduct(product,month=null,trigger=null){$('tooltip').style.display='none';drawer={product,month,metric:ui.metric};returnFocus=trigger||document.activeElement;renderDrawer();if(!$('product-drawer').open)$('product-drawer').showModal();scheduleChartReflow()}
 function drawerFilters(state=drawer){return {...dashboard().selection,product:[state.product]}}
 function drawerRows(state=drawer){const d=dashboard(),f=drawerFilters(state),metric=state.metric,chosen=state.month?[state.month]:d.months;const row=(label,months)=>{const cur=summary(d.snapshot.year,months,metric,f),prev=summary(d.snapshot.year-1,months,metric,f),t=target([state.product],metric,months,false,f);return [label,prev.value,cur.value,growth(cur,prev,d.snapshot.year-1,d.snapshot.year).ppg,t,cur.value!=null&&t>0?cur.value/t*100:null]};return [...chosen.map(m=>row(ms[m-1],[m])),row('Total',chosen)]}
 function drawerColumns(state=drawer){return ['Month',state.metric+' '+(dashboard().snapshot.year-1),state.metric+' '+dashboard().snapshot.year,'Growth (PPG%)','Monthly target '+dashboard().snapshot.year,'Achievement%']}
 
-function renderDrawer(){renderProductView(drawer,'drawer')}
 function renderProductView(state,prefix){
  const $=id=>document.getElementById(id.replace(/^drawer-/,prefix+'-'));
  const d=dashboard(),f=drawerFilters(state),chosen=state.month?[state.month]:d.months,metric=state.metric,s=summary(d.snapshot.year,chosen,metric,f),p=summary(d.snapshot.year-1,chosen,metric,f),change=changeBetween(s,p),t=target([state.product],metric,chosen,false,f),value=summary(d.snapshot.year,chosen,'value',f),company=summary(d.snapshot.year,chosen,'value',{}),gap=s.value!=null&&t!=null?s.value-t:null;
@@ -507,7 +502,6 @@ function renderForecastContext(d,input,cutoff,r,seasonal){
 }
 function onClick(ev){
  const b=ev.target.closest('button,[role="button"]');if(!b)return;if(b.dataset.page==='comparison'&&dashboard()?.selection.product.length===1){const name=comparisonProduct(records().find(r=>r.dataset==='actual'&&r.year===dashboard().snapshot.year&&r.product===dashboard().selection.product[0])||{product:dashboard().selection.product[0]});window.comparisonDashboard?.restore({scope:'product',product:name})}if(b.dataset.page){placeActions(b.dataset.page);document.querySelector('.manager-actions').hidden=!['sales','comparison'].includes(b.dataset.page);$('manager-status').hidden=!['sales','comparison'].includes(b.dataset.page);}
- if(b.dataset.productDetail){openProduct(b.dataset.productDetail,Number(b.dataset.detailMonth)||null,b);return}
  if(b.dataset.selectProduct){selectProduct(b.dataset.selectProduct);return}
  if(b.dataset.ptSort){const k=b.dataset.ptSort;ui.ptDesc=ui.ptSort===k?!ui.ptDesc:true;ui.ptSort=k;renderProductsTable(viewContext());$('detail-head').querySelector(`[data-pt-sort="${k}"]`)?.focus();return}
  if(b.dataset.ptAll){ui.ptAll=b.dataset.ptAll==='on';renderProductsTable(viewContext());return}
@@ -515,15 +509,14 @@ function onClick(ev){
  if(b.id==='export'&&dashboard()){exportProductsTable();return}
  let changed=true;
  if(b.dataset.managerMetric)ui.metric=b.dataset.managerMetric;
- else if(b.dataset.distributorMetric){ui.distributorMetric=b.dataset.distributorMetric;if(drawer)renderDrawer()}
- else if(b.dataset.channelMetric){ui.channelMetric=b.dataset.channelMetric;if(drawer)renderDrawer()}
+ else if(b.dataset.distributorMetric)ui.distributorMetric=b.dataset.distributorMetric;
+ else if(b.dataset.channelMetric)ui.channelMetric=b.dataset.channelMetric;
 
  else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';else if(b.dataset.attentionAll)ui.attentionAll=b.dataset.attentionAll==='on';else if(b.dataset.monthlyCompare)ui.monthlyCompare=b.dataset.monthlyCompare;else if(b.dataset.monthlySplit)ui.monthlySplit=b.dataset.monthlySplit==='on';else if(b.dataset.measureSwitch)ui.metric=b.dataset.measureSwitch;else if(b.dataset.monthlyExport){exportMonthlyTable();return}
  else if(b.dataset.monthlyView)ui.monthlyCumulative=b.dataset.monthlyView==='cumulative';
  else if(b.dataset.distributorView)ui.distributorMode=b.dataset.distributorView;
  else if(b.dataset.leaderSort)ui.leaderSort=b.dataset.leaderSort;
  else if(b.dataset.gapMode)ui.signedGap=b.dataset.gapMode==='signed';
- else if(b.dataset.drawerMetric){if(drawer){drawer.metric=b.dataset.drawerMetric;renderDrawer()}return}
  else if(b.dataset.attentionDistributors){window.actualDashboard.showSection('overview');ui.distributorMode='compare'}
  else changed=false;
  if(changed)window.actualDashboard.render();
