@@ -96,7 +96,7 @@ function inspect({ id, mobile }) {
 
 (async () => {
   const { srv, base } = await server();
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({executablePath: process.env.NERHADOU_CHROMIUM || undefined});
   const failures = [], report = [], times = [];
   try {
     for (const [vw, vh, mobile] of [[1440, 900, false], [390, 844, true], [360, 800, true]]) {
@@ -131,6 +131,20 @@ function inspect({ id, mobile }) {
           if (shotsDir && vw !== 360) { fs.mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: path.join(shotsDir, `${id}-${section}-${vw}.png`), fullPage: true }); }
         }
         await page.evaluate(() => window.actualDashboard.showSection('overview'));
+        if (id === 'A1' || id === 'A8') {
+          const filters = page.locator('#sales > .filters');
+          if (await filters.evaluate(node => node.classList.contains('collapsed'))) await filters.locator('.filters-toggle').click();
+          const more = filters.locator('#more-filters');
+          await more.locator(':scope > summary').click();
+          await more.locator('#growth-basis').waitFor({state:'visible'});
+          const within = await more.locator('.advanced-body').evaluate(node => {
+            const panel = node.getBoundingClientRect();
+            const card = node.closest('.filters').getBoundingClientRect();
+            return panel.width > 0 && panel.left >= card.left && panel.right <= card.right && panel.bottom <= card.bottom;
+          });
+          if (!within) failures.push(`${vw} ${id} advanced filters extend outside the filter card`);
+          await more.locator(':scope > summary').click();
+        }
         if (id === 'A7') {
           const cells = await page.evaluate(() => window.__a7 || []);
           const zeros = cells.filter((row) => row.slice(1).some((c) => c === '0'));

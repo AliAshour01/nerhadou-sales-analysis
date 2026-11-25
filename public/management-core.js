@@ -37,8 +37,8 @@ export function comparableSummary(records,year,months,metric='units',filters={})
 // V68 S-02: one source of truth for provisional years. Any growth, PPG, delta, bridge or
 // seasonality that uses a provisional year as either side is withheld, never shown.
 export const PROVISIONAL_YEARS=new Set([2023]);
-export const PROVISIONAL_REASON='Growth withheld: 2023 data is provisional.';
-export function growthAllowed(a,b){const bad=[a,b].find(y=>PROVISIONAL_YEARS.has(Number(y)));return bad==null?{ok:true,reason:null}:{ok:false,year:Number(bad),reason:`Growth withheld: ${bad} data is provisional.`}}
+export const PROVISIONAL_REASON='2023 data is provisional.';
+export function growthAllowed(a,b){const bad=[a,b].find(y=>PROVISIONAL_YEARS.has(Number(y)));return bad==null?{ok:true,reason:null}:{ok:false,year:Number(bad),reason:`${bad} data is provisional.`}}
 export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
@@ -76,7 +76,7 @@ export function runRateProjection(records,year,metric='units',filters={}){
  const end=sums.findLastIndex(s=>s.value!=null)+1;
  if(end<1||end===12||sums.slice(0,end).some(s=>s.value==null))return {value:null,reason:'Needs complete consecutive months from January and a remaining year period.'};
  const observed=sums.slice(0,end).reduce((n,s)=>n+s.value,0),last=sums.slice(0,end);
- if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; projection withheld.'};
+ if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; the projection is unavailable.'};
  const monthly=observed/end;
  return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of all complete months from January through the selected cutoff × remaining months. No seasonality adjustment; scenario, not a commitment.'};
 }

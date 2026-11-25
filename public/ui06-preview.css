@@ -531,3 +531,31 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 /* V69 U-19: report lists for side panels */
 .report-list{margin:6px 0 0;padding-left:18px;display:grid;gap:6px;font-size:13px}
 .report-list span{color:#4b5a6d}
+
+/* Keep advanced controls inside the filter card at every sidebar width. */
+#sales > .filters > #more-filters[open] {
+ flex: 1 0 100%;
+ grid-column: 1 / -1;
+ min-width: 0;
+ align-self: stretch;
+}
+#sales > .filters > #more-filters > summary {
+ width: fit-content;
+}
+#sales > .filters #more-filters > .advanced-body {
+ position: static;
+ width: 100%;
+ min-width: 0;
+ margin-top: 10px;
+ padding: 12px;
+ grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+ align-items: start;
+ box-shadow: none;
+}
+#sales > .filters #more-filters .multi-menu {
+ position: static;
+ width: 100%;
+ min-width: 0;
+ margin-top: 4px;
+ box-shadow: none;
+}
