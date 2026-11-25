@@ -1,6 +1,6 @@
 // V69 U-01: one selection context for the whole Sales page. Pure module (no DOM).
 // Every renderer reads this frozen object instead of re-deriving year / product / target / dimension conditions.
-import { comparableSummary, commonAvailableMonths, growthAllowed, scopeRecords, targetSum, productName, productKey, PROVISIONAL_YEARS } from './management-core.js?v=sales-comparison-v71';
+import { comparableSummary, commonAvailableMonths, growthAllowed, scopeRecords, targetSum, productName, productKey, PROVISIONAL_YEARS, dimensionGap } from './management-core.js?v=sales-comparison-v71';
 import { comparisonProduct } from './compare-core.js?v=sales-comparison-v71';
 
 export const DIMENSIONS = ['distributor', 'channel', 'line'];
@@ -108,6 +108,9 @@ export function resolveViewContext(rawRecords, state) {
   if (yearMode === 'single')
     for (const metric of ['units', 'value'])
       for (const m of months) if (comparableSummary(records, focusYear, [m], metric, selection).value == null) unknownMonths[metric].push(m);
+  // V72 R-01: a distributor / line / sales-type filter cannot be compared with a year that does not record that dimension.
+  const compareGap = compareYear != null && months.length ? dimensionGap(records, compareYear, months, selection) : null,
+    filterCompareGap = compareGap ? { ...compareGap, year: compareYear, short: `${compareYear} has no ${compareGap.word} data`, sentence: `${compareYear} does not record ${compareGap.word}, so the change for ${selection[compareGap.key].length === 1 ? selection[compareGap.key][0] : 'the selected ' + compareGap.word + 's'} can’t be measured.` } : null;
   const provisionalYears = years.filter((y) => PROVISIONAL_YEARS.has(y)),
     hasData = focusRows.length > 0;
   const ctx = {
@@ -120,6 +123,7 @@ export function resolveViewContext(rawRecords, state) {
     growthBasis: basis,
     growthOk: allowed.ok,
     growthReason: allowed.ok ? null : allowed.reason,
+    filterCompareGap,
     requestedMonths: requested,
     months,
     droppedMonths,

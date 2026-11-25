@@ -1,6 +1,6 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords } from './management-core.js?v=sales-comparison-v71';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap } from './management-core.js?v=sales-comparison-v71';
 import { knownCategory } from './view-context.js?v=sales-comparison-v71';
 
 const finite = Number.isFinite;
@@ -12,7 +12,7 @@ export const MAX_YEARS = 6;
 // Sort options that apply to this selection (plan 4.8: "only options that apply").
 export function sortOptions(ctx) {
   const opts = [['sales', 'Sales']];
-  if (ctx.compareYear != null && ctx.growthOk) opts.push(['growth', 'Growth'], ['increase', 'Largest increase'], ['decline', 'Largest decline']);
+  if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) opts.push(['growth', 'Growth'], ['increase', 'Largest increase'], ['decline', 'Largest decline']);
   if (ctx.yearMode === 'single' && ctx.hasTargets) opts.push(['shortfall', 'Target shortfall'], ['ach', 'Achievement']);
   opts.push(['name', 'Name']);
   return opts;
@@ -29,7 +29,7 @@ export function tableColumns(ctx, measures, period = '') {
       add('sales', 'Sales', `Sales ${unit} · ${period || ctx.focusYear}`);
       add('share', 'Share', `Share of company ${unit} (%)`);
       if (ctx.compareYear != null) add('py', String(ctx.compareYear), `Sales ${unit} · ${ctx.compareYear}`);
-      if (ctx.compareYear != null && ctx.growthOk) add('ppg', 'PPG', `Growth vs ${ctx.compareYear} (%)`);
+      if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) add('ppg', 'PPG', `Growth vs ${ctx.compareYear} (%)`);
       if (ctx.hasTargets) {
         add('target', 'Target', `Target ${unit}`);
         add('ach', 'Ach.', 'Achievement (%)');
@@ -37,7 +37,7 @@ export function tableColumns(ctx, measures, period = '') {
       }
     } else {
       for (const y of years) add('year', String(y), `Sales ${unit} · ${y}`, { year: y });
-      if (ctx.compareYear != null && ctx.growthOk) {
+      if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) {
         add('change', 'Change', `Change ${ctx.compareYear} → ${ctx.focusYear} · ${unit}`);
         add('growth', 'Growth', `Growth ${ctx.compareYear} → ${ctx.focusYear} (%)`);
       }
@@ -70,7 +70,12 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
       if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.months, m, filters));
       return memo.get(k);
     },
-    salesReason = (s, year) => (!s.rows?.length ? (total ? 'No sales in this selection.' : `Not sold in ${year}`) : s.reason || 'Sales unavailable.');
+    // V72 R-01: a year that does not record the filtered dimension is unknown, not "not sold".
+    gapFor = (year) => (s) => (!s.rows?.length ? dimensionGap(ctx.records, year, ctx.months, ctx.selection) : null),
+    salesReason = (s, year) => {
+      const gap = gapFor(year)(s);
+      return gap ? `${year} has no ${gap.word} data.` : !s.rows?.length ? (total ? 'No sales in this selection.' : `Not sold in ${year}`) : s.reason || 'Sales unavailable.';
+    };
   for (const c of cols) {
     const m = c.metric,
       fy = ctx.focusYear,

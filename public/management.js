@@ -1,5 +1,5 @@
 import {comparisonProduct} from './compare-core.js?v=sales-comparison-v71';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-comparison-v71';
+import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-comparison-v71';
 import {tableWorkbook} from './comparison-xlsx.js?v=sales-comparison-v71';
 import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts} from './view-context.js?v=sales-comparison-v71';
 import {PANELS,layout} from './panel-registry.js?v=sales-comparison-v71';
@@ -107,7 +107,7 @@ const RENDERERS={
  mixLine:ctx=>renderLineMix(ctx),
  productFacts:ctx=>renderProductFacts(ctx)
 };
-const layoutApi={renderers:RENDERERS,attentionCount,factCount:ctx=>productFacts(ctx).length,shareYears,bridgeOptions};
+const layoutApi={renderers:RENDERERS,attentionCount,factCount:ctx=>productFacts(ctx).length,shareYears,bridgeOptions,bridgeGap};
 function mountOverviewGrid(){
  const overview=$('view-overview'),old=overview.querySelector('.chart-grid'),monthly=$('trend').closest('article');
  overview.insertAdjacentHTML('afterbegin','<div id="overview-grid" class="v69-grid"></div><details id="overview-not-shown" class="not-shown" hidden><summary></summary><ul></ul></details>');
@@ -172,7 +172,7 @@ function selectionSubtitle(ctx){const c=ctx.months,end=c.length?Math.max(...c):0
 function renderSummary(){const d=dashboard(),ctx=viewContext(d);if(!$('sales').hidden)$('chrome-page-label').textContent='Sales performance';const nav=document.querySelector('[data-page="sales"] span');if(nav)nav.textContent='Sales performance';$('sales').querySelector('h1').textContent='Sales performance';if($('page-subtitle'))$('page-subtitle').textContent=selectionSubtitle(ctx);if($('filters-toggle')){const count=(ctx.years.length!==1||ctx.focusYear!==ctx.latestYear?1:0)+(d.periodMode!=='ytd'?1:0)+Object.values(ctx.selection).filter(v=>v.length).length+(ctx.measure!=='units'?1:0);$('filters-toggle').textContent=count?`Filters (${count})`:'Filters';$('filters-summary').textContent=selectionSubtitle(ctx)}renderProvisionalBadge(d);$('summary-context').textContent=periodLabel()+' · '+scopeText()+' · '+ui.metric;
  const empty=!ctx.hasData&&ctx.monthCount>0;$('kpis').hidden=empty;let none=$('no-sales');if(!none){$('kpis').insertAdjacentHTML('afterend','<div id="no-sales" class="no-sales" hidden><p></p><button type="button" id="no-sales-reset">Reset filters</button></div>');none=$('no-sales');$('no-sales-reset').onclick=()=>$('reset').click()}none.hidden=!empty;none.querySelector('p').textContent='No sales recorded for '+selectionSubtitle(ctx).replace(/ · (Units|Value)$/,'')+'.';if(empty)return;
  $('kpis').innerHTML=kpiCards(ctx);}
-function deltaChip(change,year){if(change.unavailable)return `<span class="delta-chip neutral" title="${e(change.unavailable)}">Growth unavailable · ${e(change.unavailable)}</span>`;if(change.ppg==null)return '<span class="delta-chip neutral">— no comparison</span>';if(Math.abs(change.ppg)<0.05)return `<span class="delta-chip neutral">Flat <span class="sr-only">vs ${year}</span></span>`;const up=change.ppg>=0;return `<span class="delta-chip ${up?'up':'down'}"><span aria-hidden="true">${up?'▲':'▼'}</span> ${up?'Up':'Down'} ${Math.abs(change.ppg).toFixed(1)}% <span class="sr-only">vs ${year}</span></span>`}
+function deltaChip(change,year){if(change.unavailable)return `<span class="delta-chip neutral" title="${e(change.unavailable)}">Growth unavailable · ${e(change.unavailable)}</span>`;if(change.ppg==null)return change.gap?`<span class="delta-chip neutral" title="${e(change.gap)}">— no comparison · ${e(change.gap)}</span>`:'<span class="delta-chip neutral">— no comparison</span>';if(Math.abs(change.ppg)<0.05)return `<span class="delta-chip neutral">Flat <span class="sr-only">vs ${year}</span></span>`;const up=change.ppg>=0;return `<span class="delta-chip ${up?'up':'down'}"><span aria-hidden="true">${up?'▲':'▼'}</span> ${up?'Up':'Down'} ${Math.abs(change.ppg).toFixed(1)}% <span class="sr-only">vs ${year}</span></span>`}
 function progressBar(pct,status,marker=null){const width=pct==null?0:Math.max(0,Math.min(100,pct));return `<div class="kpi-progress ${status}" aria-hidden="true"><span style="width:${width}%"></span>${marker==null?'':`<i class="pace-marker" style="left:${Math.max(0,Math.min(100,marker))}%"></i>`}</div>`}
 function statusWord(status){return {good:'On or above target',warn:'Within 10% of target',bad:'More than 10% below target',unknown:'Status unavailable'}[status]}
 
@@ -180,7 +180,7 @@ function statusWord(status){return {good:'On or above target',warn:'Within 10% o
 function kpiCard(key,label,value,body,extra=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}</div><strong title="${e(value)}">${String(value).startsWith('EGP ')&&/^[\d,.]+$/.test(String(value).slice(4))?'<span class="kpi-unit">EGP</span> <span class="kpi-full">'+e(value.slice(4))+'</span><span class="kpi-compact">'+e(compact(Number(value.slice(4).replace(/,/g,'')),2))+'</span>':e(value)}</strong>${body}</div>`}
 function kpiCandidates(ctx){
  const m=ctx.measure,o=ctx.other,fy=ctx.focusYear,cy=ctx.compareYear,f=ctx.selection,chosen=ctx.months,unit=v=>v==='value'?'EGP':'units',S=(year,metric,months=chosen,filters=f)=>year==null?null:ctxSummary(ctx,year,months,metric,filters).value,estimateLabel=(year,metric)=>year===2023&&ctxSummary(ctx,year,chosen,metric).estimated?' (includes estimates)':'',cyLabel=estimateLabel(cy,m);
- const chg=(cur,prev)=>cy==null?{ppg:null,unavailable:null}:ctx.growthOk?{...changeBetween({value:cur},{value:prev}),unavailable:null}:{delta:null,ppg:null,unavailable:ctx.growthReason};
+ const chg=(cur,prev)=>cy==null?{ppg:null,unavailable:null}:ctx.filterCompareGap?{delta:null,ppg:null,unavailable:null,gap:ctx.filterCompareGap.short}:ctx.growthOk?{...changeBetween({value:cur},{value:prev}),unavailable:null}:{delta:null,ppg:null,unavailable:ctx.growthReason};
  const cur=S(fy,m),prev=S(cy,m),oCur=S(fy,o),oPrev=S(cy,o),label=periodLabel(dashboard(),chosen),one=ctx.productMode==='one';
  const C={};
  C.sales=cur==null?null:()=>kpiCard('sales','Sales · '+unit(m),amt(cur,m),`<small>${e(prev!=null?`vs ${cy}: ${amt(prev,m)}${cyLabel}`:label)}${one&&oCur!=null&&ctx.slot4Price?' · '+e(amt(oCur,o)):''}</small>${deltaChip(chg(cur,prev),cy)}`,' style="--kpi-accent:1"');
@@ -258,6 +258,13 @@ function bridgePair(ctx){
  const ok=ctx.years;let b=ok.includes(ui.bridgeTo)?ui.bridgeTo:ok.includes(ctx.focusYear)?ctx.focusYear:ok.at(-1);let a=ok.includes(ui.bridgeFrom)&&ui.bridgeFrom<b?ui.bridgeFrom:ctx.compareYear!=null&&ok.includes(ctx.compareYear)&&ctx.compareYear<b?ctx.compareYear:ok.filter(y=>y<b).at(-1);
  return a!=null&&b!=null&&growthAllowed(a,b).ok?[a,b]:null;
 }
+// V72 R-01 / R-02: the bridge is drawn only when both period totals are measurable; otherwise the reason goes to "Not shown".
+function bridgeGap(ctx){
+ const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return null;const [a,b]=pair,key=JSON.stringify(['bridgeGap',ctx.yearMode,a,b,ui.metric,ctx.months,ctx.selection]);
+ if(!cache.has(key)){const t=movementTotals(ctx.records,{a,b,months:ctx.months,metric:ui.metric,filters:ctx.selection}),gap=t.previous.dimensionGap?{...t.previous.dimensionGap,year:a}:t.current.dimensionGap?{...t.current.dimensionGap,year:b}:null,picked=gap&&ctx.selection[gap.key];
+  cache.set(key,t.delta!=null?null:gap?`${gap.year} does not record ${gap.word}, so the change for ${picked.length===1?picked[0]:'the selected '+gap.word+'s'} can’t be measured.`:`${a} → ${b} can’t be compared for this selection (${t.reason}).`)}
+ return cache.get(key);
+}
 function bridgeOptions(ctx){
  const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return [];
  const opts=[];
@@ -334,11 +341,13 @@ function productMixDonut(items,metric,total,chartId=null,focusKey=null){
 // ── V69 U-04: the one Monthly chart (replaces Monthly performance, Sales trend, the PPG panel and the value timeline) ──
 function tgt(ctx,products,metric,chosen,annual=false,filters=ctx.selection){return targetSum(records(),{year:ctx.focusYear},products,chosen,metric,filters,annual)}
 function ctxSummary(ctx,year,chosen,metric=ui.metric,filters=ctx.selection){const key=JSON.stringify(['v69',ctx.yearMode,year,chosen,metric,filters]);if(!cache.has(key))cache.set(key,comparableSummary(ctx.records,year,chosen,metric,filters));return cache.get(key)}
+// V72 R-01: previous-year bars only when the previous year records every filtered dimension.
+const pyOk=ctx=>ctx.compareYear!=null&&ctx.growthOk&&!ctx.filterCompareGap;
 function monthlyRows(ctx,metric=ui.metric){
- const py=ctx.compareYear!=null&&ctx.growthOk;
+ const py=pyOk(ctx);
  return ctx.months.map(m=>{const actual=ctxSummary(ctx,ctx.focusYear,[m],metric).value,target=ctx.hasTargets?tgt(ctx,ctx.products,metric,[m]):null,previous=py?ctxSummary(ctx,ctx.compareYear,[m],metric).value:null,ch=py?changeBetween({value:actual},{value:previous}):{ppg:null};return {month:m,actual,target,previous,pct:actual!=null&&target>0?actual/target*100:null,ppg:ch.ppg}});
 }
-function monthlyCompareOptions(ctx){return [ctx.hasTargets&&['target','Target'],ctx.compareYear!=null&&ctx.growthOk&&['py','Previous year'],['none','None']].filter(Boolean)}
+function monthlyCompareOptions(ctx){return [ctx.hasTargets&&['target','Target'],pyOk(ctx)&&['py','Previous year'],['none','None']].filter(Boolean)}
 function monthlyCompare(ctx){const opts=monthlyCompareOptions(ctx).map(o=>o[0]);return opts.includes(ui.monthlyCompare)?ui.monthlyCompare:opts[0]}
 function legendHTML(mode,ctx){
  const sw=(cls,text)=>`<span class="lg-item"><i class="lg-swatch ${cls}"></i>${e(text)}</span>`,line=(text,dash='')=>`<span class="lg-item"><svg class="lg-line" width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="#1f3555" stroke-width="2" ${dash?`stroke-dasharray="${dash}"`:''}/></svg>${e(text)}</span>`;
@@ -372,8 +381,8 @@ function linesChart(series,monthsList,metric,id,label){
 function seriesLegend(series,attr=null,hidden=new Set()){return '<div class="series-legend">'+series.map((s,k)=>{const color=s.color||SERIES_COLORS[k%SERIES_COLORS.length],dash=s.dash??SERIES_DASH[k%SERIES_DASH.length],sw=`<svg width="30" height="12" aria-hidden="true"><line x1="1" x2="29" y1="6" y2="6" stroke="${color}" stroke-width="2.6" stroke-dasharray="${dash}"/></svg>`;return attr?`<button type="button" ${attr}="${e(s.key??s.name)}" aria-pressed="${!hidden.has(s.key??s.name)}">${sw}${e(s.name)}</button>`:`<span>${sw}${e(s.name)}</span>`}).join('')+'</div>'}
 // One-month selection: a comparison card (Actual / Target / Previous year), never a lonely full-width bar (E-rule 3).
 function monthCardHTML(row,ctx,metric){
- const items=[['Actual '+ctx.focusYear,row.actual,'#245fa7'],ctx.hasTargets&&['Target',row.target,'#1f3555'],ctx.compareYear!=null&&ctx.growthOk&&['Previous year · '+ctx.compareYear,row.previous,'#b8cadd']].filter(Boolean),max=Math.max(1,...items.map(i=>Math.abs(i[1]||0)));
- const chips=[row.pct!=null&&`<span class="delta-chip ${achStatus(row.pct)==='good'?'up':achStatus(row.pct)==='bad'?'down':'neutral'}">${n(row.pct)}% of target</span>`,row.ppg!=null&&`<span class="delta-chip ${row.ppg>=0?'up':'down'}">${row.ppg>=0?'▲ +':'▼ '}${row.ppg.toFixed(1)}% vs ${ctx.compareYear}</span>`,!ctx.growthOk&&ctx.growthReason&&`<span class="delta-chip neutral">${e(ctx.growthReason)}</span>`].filter(Boolean).join('');
+ const items=[['Actual '+ctx.focusYear,row.actual,'#245fa7'],ctx.hasTargets&&['Target',row.target,'#1f3555'],pyOk(ctx)&&['Previous year · '+ctx.compareYear,row.previous,'#b8cadd']].filter(Boolean),max=Math.max(1,...items.map(i=>Math.abs(i[1]||0)));
+ const chips=[row.pct!=null&&`<span class="delta-chip ${achStatus(row.pct)==='good'?'up':achStatus(row.pct)==='bad'?'down':'neutral'}">${n(row.pct)}% of target</span>`,row.ppg!=null&&`<span class="delta-chip ${row.ppg>=0?'up':'down'}">${row.ppg>=0?'▲ +':'▼ '}${row.ppg.toFixed(1)}% vs ${ctx.compareYear}</span>`,!ctx.growthOk&&ctx.growthReason&&`<span class="delta-chip neutral">${e(ctx.growthReason)}</span>`,ctx.filterCompareGap&&`<span class="delta-chip neutral">${e(ctx.filterCompareGap.sentence)}</span>`].filter(Boolean).join('');
  return `<div class="month-card"><p class="month-card-title">${ms[row.month-1]} ${ctx.focusYear}</p>${items.map(([label,v,color])=>{const tip=`${label} · ${v==null?'unknown':amt(v,metric)}`;return `<div class="month-card-row" data-tip="${e(tip)}" tabindex="0"><span class="mc-label">${e(label)}</span><span class="mc-track"><i style="width:${v==null?0:Math.abs(v)/max*100}%;background:${color}"></i></span><b>${v==null?'unknown':e(amt(v,metric))}</b></div>`}).join('')}<div class="month-card-chips">${chips}</div></div>`;
 }
 function renderMonthlyPanel(ctx){
@@ -390,6 +399,7 @@ function renderMonthlyPanel(ctx){
  let note='';
  if(unknown*2>rows.length&&!otherUnknown)note=`<p class="chart-note unknown-note">${unknown} of ${rows.length} months have unknown ${metric}. <button type="button" class="link-button" data-measure-switch="${ctx.other}">Switch to ${ctx.other==='value'?'Value':'Units'} (complete)</button></p>`;
  else if(unknown)note=`<p class="chart-note unknown-note">Unknown ${metric} in ${e(rows.filter(r=>r.actual==null).map(r=>ms[r.month-1]).join(', '))}: shown as gaps, not zero.</p>`;
+ if(ctx.filterCompareGap)note+=`<p class="chart-note compare-gap-note">No previous-year bars: ${e(ctx.filterCompareGap.sentence)}</p>`;
  if(ctx.monthCount===1){legend.hidden=true;node.innerHTML=monthCardHTML(rows[0],ctx,metric);$('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'}`;return}
  if(splitable&&ui.monthlySplit){
   const series=ctx.selection.product.map(p=>({name:p,values:ctx.months.map(m=>ctxSummary(ctx,ctx.focusYear,[m],metric,{...ctx.selection,product:[p]}).value)}));
@@ -436,7 +446,7 @@ function renderShareByYear(ctx){
 // S-32 table for the Monthly chart: Month, PY, CY, PPG %, Target, Ach. % (columns that apply), Total row, Export Excel.
 function monthlyTableData(ctx,metric=ui.metric){
  if(ctx.yearMode==='multi'){const years=ctx.years,rows=ctx.months.map(m=>[ms[m-1],...years.map(y=>ctxSummary(ctx,y,[m],metric).value)]);rows.push(['Total',...years.map(y=>ctxSummary(ctx,y,ctx.months,metric).value)]);return {headers:['Month',...years.map(String)],kinds:['text',...years.map(()=>'number')],rows}}
- const py=ctx.compareYear!=null&&ctx.growthOk,t=ctx.hasTargets,data=monthlyRows(ctx,metric),tot=ctxSummary(ctx,ctx.focusYear,ctx.months,metric).value,totPrev=py?ctxSummary(ctx,ctx.compareYear,ctx.months,metric).value:null,totT=t?tgt(ctx,ctx.products,metric,ctx.months):null,totPpg=py?changeBetween({value:tot},{value:totPrev}).ppg:null;
+ const py=pyOk(ctx),t=ctx.hasTargets,data=monthlyRows(ctx,metric),tot=ctxSummary(ctx,ctx.focusYear,ctx.months,metric).value,totPrev=py?ctxSummary(ctx,ctx.compareYear,ctx.months,metric).value:null,totT=t?tgt(ctx,ctx.products,metric,ctx.months):null,totPpg=py?changeBetween({value:tot},{value:totPrev}).ppg:null;
  const headers=['Month',...(py?[String(ctx.compareYear)]:[]),String(ctx.focusYear),...(py?['PPG %']:[]),...(t?['Target','Ach. %']:[])],kinds=['text',...(py?['number']:[]),'number',...(py?['percent']:[]),...(t?['number','percent']:[])];
  const line=(label,cy,prev,ppg,target,ach)=>[label,...(py?[prev]:[]),cy,...(py?[ppg]:[]),...(t?[target,ach]:[])];
  const rows=data.map(r=>line(ms[r.month-1],r.actual,r.previous,r.ppg,r.target,r.pct));rows.push(line('Total',tot,totPrev,totPpg,totT,tot!=null&&totT>0?tot/totT*100:null));
