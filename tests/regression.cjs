@@ -75,7 +75,7 @@ async function main() {
  equal(run('view[0].units'),10074,'March single month');
  equal(run('monthlyData().length'),1,'One selected month only');
  equal((nodes.timeline.innerHTML.match(/<polyline/g)||[]).length,0,'No trend fabricated from one point');
- equal((nodes.timeline.innerHTML.match(/<circle/g)||[]).length,2,'One point per metric');
+ equal((nodes.timeline.innerHTML.match(/<circle data-series="(units|value)"/g)||[]).length,2,'One point per metric');
  buttons[2].onclick();
  near(run('view[0].targetUnits'),100000/12,'Monthly denominator');
  assert(nodes.trend.innerHTML.includes('#d6a15e'),'Overachievement drawn beyond monthly target');passed++;
@@ -85,7 +85,7 @@ async function main() {
  equal(run('tableColumns().map(a=>a[0]).join(",")'),'product,units,shareUnits,targetUnits,achUnits,gapUnits,value,shareValue,targetValue,achValue,gapValue','Mix column grouping');
  run("states.portfolio.metric='value';render()");equal(run('tableColumns().length'),6,'Value-only columns');
  reset();
- equal((nodes.timeline.innerHTML.match(/<polyline/g)||[]).length,2,'Two aligned actual trends');
+ equal((nodes.timeline.innerHTML.match(/<polyline data-series="(units|value)"/g)||[]).length,2,'Two aligned actual trends');
  assert(!nodes.timeline.innerHTML.includes('RIGHT AXIS'),'No misleading overlaid dual axis');passed++;
  assert(nodes.distributors.innerHTML.includes('conic-gradient'),'Four positive distributors use donut');passed++;
  nodes.distributor.value='IBN SINA';run('render()');equal(run('view[0].targetUnits'),null,'No invented distributor targets');
