@@ -661,11 +661,15 @@ function validConfig(config){
 }
 async function restore(config){
  try{if(!payload||!dashboard()){restorePending=config;return}config=validConfig(config);
- if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if(['trends','movement','analysis','breakdown'].includes(config.section))config={...config,section:'overview'};if(config.section==='products')config={...config,section:'portfolio'};const available=dashboard().snapshot.availableYears,wanted=(Array.isArray(config.years)?config.years:[config.year]).filter(y=>available.includes(y));if(!wanted.length){status(`Year ${(config.years||[config.year]).join(', ')} is no longer available. View was not applied.`);return}config={...config,years:wanted};
+ if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if(['trends','movement','analysis','breakdown'].includes(config.section))config={...config,section:'overview'};if(config.section==='products')config={...config,section:'portfolio'};const available=dashboard().snapshot.availableYears,asked=Array.isArray(config.years)?config.years:[config.year],wanted=(Array.isArray(config.years)?config.years:[config.year]).filter(y=>available.includes(y));if(!wanted.length){status(`Year ${(config.years||[config.year]).join(', ')} is no longer available. View was not applied.`);return}config={...config,years:wanted};
  if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],bridgeDimension:['product','line','distributor','channel','month'],monthlyCompare:['target','py','none']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyCumulative','monthlySplit'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
  if(config.years.length>1&&config.selection?.product?.length){const known=new Set(multiOptions('product',config.years));if(!config.selection.product.every(p=>known.has(p)))config={...config,selection:{...config.selection,product:translateProducts(records(),config.selection.product,'multi')}}}
+ const requested=Object.fromEntries(['product','line','distributor','channel'].map(k=>[k,[...(config.selection?.[k]||[])]])),droppedYears=(Array.isArray(config.years)?config.years:[]).length<asked.length?asked.filter(y=>!config.years.includes(y)):[];
  await window.actualDashboard.apply(config);
- if($('sales').hidden)document.querySelector('[data-page="sales"]')?.click();status('View restored. Only available filters were applied; sales data was not changed.');
+ // V72 R-12: say something only when part of the view could not be applied, and name what was removed.
+ const applied=dashboard().selection,word={product:'Product',line:'Line',distributor:'Distributor',channel:'Sales type'},span=yearSpan(dashboard().years),dropped=Object.entries(requested).flatMap(([k,list])=>list.filter(v=>!applied[k].includes(v)).map(v=>`${word[k]} ${v} is not in ${span}, so it was removed.`));
+ if(droppedYears.length)dropped.unshift(`Year ${droppedYears.join(', ')} is no longer available, so it was removed.`);
+ if($('sales').hidden)document.querySelector('[data-page="sales"]')?.click();status(dropped.join(' '));
  }catch(err){status(err.message)}
 }
 function savedViews(){try{const data=JSON.parse(localStorage.getItem(storageKey)||'[]');return Array.isArray(data)?data.filter(r=>typeof r.id==='string'&&typeof r.name==='string'&&r.config).slice(0,30):[]}catch{return []}}
