@@ -16,9 +16,7 @@ const mixShown = (ctx, key) => ctx.hasData && ctx.dims[key].categories >= 2 && c
 export const PANELS = [
   // ── Overview ──
   { id: 'salesByYear', tab: 'overview', row: 2, title: 'Sales by year', span: () => 4, show: (ctx) => ctx.yearMode === 'multi' && ctx.hasData, reason: () => null },
-  // INTERIM (removed in U-11): V68 single-product block.
-  { id: 'singleProduct', tab: 'overview', row: 1, title: 'Product detail', span: () => 12, show: (ctx) => ctx.productMode === 'one' && ctx.hasData, reason: () => null },
-  { id: 'monthly', tab: 'overview', row: 2, title: 'Monthly sales', span: (ctx) => (ctx.yearMode === 'single' && ctx.monthCount === 1 ? 6 : 8), show: (ctx) => ctx.hasData && ctx.monthCount > 0 && ctx.productMode !== 'one', reason: (ctx) => (ctx.monthCount ? null : 'Select at least one month.') },
+  { id: 'monthly', tab: 'overview', row: 2, title: 'Monthly sales', span: (ctx) => (ctx.yearMode === 'single' && ctx.monthCount === 1 ? 6 : 8), show: (ctx) => ctx.hasData && ctx.monthCount > 0, reason: (ctx) => (ctx.monthCount ? null : 'Select at least one month.') },
   { id: 'attention', tab: 'overview', row: 2, title: 'Needs attention', span: () => 4, show: (ctx, api) => ctx.yearMode === 'single' && ctx.productMode !== 'one' && ctx.hasData && api.attentionCount(ctx) > 0, reason: (ctx) => (ctx.yearMode === 'single' && ctx.productMode !== 'one' && ctx.hasData ? 'No items need attention for this selection.' : null) },
   { id: 'productFacts', tab: 'overview', row: 2, title: 'Product facts', span: () => 4, show: (ctx, api) => ctx.yearMode === 'single' && ctx.productMode === 'one' && ctx.hasData && api.factCount(ctx) > 0, reason: () => null },
   { id: 'shareByYear', tab: 'overview', row: 3, title: 'Share of company by year', span: () => 4, show: (ctx, api) => ctx.yearMode === 'multi' && ctx.productMode === 'one' && ctx.hasData && api.shareYears(ctx) >= 2, reason: (ctx) => (ctx.yearMode === 'multi' && ctx.productMode === 'one' ? 'Company share needs complete product and company sales in at least two selected years.' : null) },
