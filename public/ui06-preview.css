@@ -518,3 +518,7 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .v69-grid>.span-4 .product-mix-donut{display:flex;flex-direction:column;align-items:stretch;gap:12px}
 #sales .v69-grid>.span-4 .product-mix-donut>svg{width:180px;height:180px;align-self:center}
 @media(max-width:699px){#sales .v69-grid>[class*="span-"] .product-mix-donut{display:flex;flex-direction:column}#sales .v69-grid>[class*="span-"] .product-mix-donut>svg{width:180px;height:180px;align-self:center}}
+/* V69 U-08: a lone tab reads as a plain section title */
+.section-tabs.single-tab{border-bottom:0}
+.section-tabs.single-tab .section-tab{pointer-events:none;background:none;border-color:transparent;box-shadow:none;padding-left:0;font-weight:600}
+.section-tabs.single-tab .section-tab::after{display:none}

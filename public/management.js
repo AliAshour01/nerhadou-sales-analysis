@@ -59,7 +59,7 @@ function mount(){
 
 
  $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-forecast" hidden><article class="panel"><div class="panel-title"><div><h2>Year-end forecast scenarios</h2><p>Scenario estimates · not reported actuals · entire YTD in selected year</p></div><label>Forecast as of<select id="forecast-cutoff"></select></label></div><div class="chart-grid forecast-grid"><article><h3>YTD Average Forecast</h3><div id="run-rate"></div><div id="run-rate-vs" class="forecast-vs"></div></article><article><h3>Historical Seasonality Forecast</h3><div id="target-forecast"></div><div id="seasonal-vs" class="forecast-vs"></div></article><article><h3>Required to hit target</h3><div id="forecast-required"></div></article></div><div class="forecast-chart-wrap"><h3>Cumulative path, Jan–Dec</h3><p class="chart-note">Scenario estimates, not reported actuals. Solid = actual through the cutoff; dashed = scenarios; navy = cumulative target.</p><div id="forecast-chart" class="wide-chart"></div></div></article></section>`);
- for(const [id,tab]of [['view-overview','tab-overview'],['view-trends','tab-analysis'],['view-breakdown','tab-analysis'],['view-portfolio','tab-portfolio'],['view-forecast','tab-forecast']]){const view=$(id);if(view){view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby',tab)}}
+ for(const [id,tab]of [['view-overview','tab-overview'],['view-portfolio','tab-portfolio'],['view-forecast','tab-forecast']]){const view=$(id);if(view){view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby',tab)}}
  document.body.insertAdjacentHTML('beforeend',`<dialog id="product-drawer" class="product-drawer" aria-labelledby="drawer-title">${productDetailTemplate('drawer')}</dialog><dialog id="report-dialog" class="report-dialog" aria-labelledby="report-heading"><div class="report-controls"><button id="report-print">Print / Save PDF</button><button id="report-close">Close ×</button></div><div id="meeting-report"></div></dialog>`);
  $('panel-singleProduct').innerHTML=productDetailTemplate('single');for(const id of ['single-close','single-focus'])$(id)?.remove();$('sales').querySelector('.heading').insertAdjacentHTML('beforeend','<div id="product-scope-chip" hidden></div>');
  $('focus-content').querySelector('.focus-table-panel').insertAdjacentHTML('beforebegin',panel('Contribution to change',`<div class="analysis-toolbar"><label>From year<select id="historical-from"></select></label><label>To year<select id="historical-to"></select></label></div><p id="historical-context" class="analysis-context"></p><div id="historical-bridge" class="wide-chart"></div><p id="historical-note" class="chart-note"></p>`,'historical-movement-panel'));
@@ -89,7 +89,7 @@ function render(){
  const key=JSON.stringify([payload.revision,d.snapshot.year,d.months,d.selection]);if(key!==contextKey){cache.clear();contextKey=key}
  // V69 U-01: one context object; every renderer reads it instead of re-deriving conditions.
  viewCtx=viewContext(d);
- renderSingleScope();renderHealth();renderSummary();renderSection();
+ renderSingleScope();syncTabs(viewContext(d));renderHealth();renderSummary();renderSection();
 
  if(drawer)renderDrawer();window.updateWorkspaceVisibility?.();window.actualDashboard.wire();wireDrilldowns();
  if(!restored&&storageKey){restored=true;readLink()}
@@ -135,15 +135,24 @@ function applyLayout(tab,ctx){
  const strip=$(tab+'-not-shown');if(strip){strip.hidden=!result.hidden.length;strip.querySelector('summary').textContent=`Not shown for this selection (${result.hidden.length})`;strip.querySelector('ul').innerHTML=result.hidden.map(h=>`<li><b>${e(h.title)}</b> ${e(h.reason)}</li>`).join('')}
  return result;
 }
+// V69 U-08: tabs appear only when they have content (plan 2.3). A hidden active tab falls back to Overview with a toast;
+// a lone Overview tab renders as a plain section title.
+function tabVisible(tab,ctx){if(tab==='overview')return true;if(tab==='portfolio')return layout('products',ctx,{renderers:null,attentionCount,factCount:()=>1,shareYears:()=>0,bridgeOptions}).visible.includes('productsTable');if(tab==='forecast')return window.nerhadouSecurity?.me?.user?.status==='active'&&layout('forecast',ctx,{renderers:null}).visible.length>0;return false}
+function syncTabs(ctx){
+ const bar=$('sales').querySelector('.section-tabs');let shown=0;
+ for(const b of bar.querySelectorAll('[data-section]')){const on=tabVisible(b.dataset.section,ctx);b.hidden=!on;if(on)shown++}
+ bar.classList.toggle('single-tab',shown===1);
+ const d=dashboard();if(d.section!=='overview'&&bar.querySelector(`[data-section="${d.section}"]`)?.hidden){window.actualDashboard.showSection('overview');window.actualDashboard.toast?.(ctx.productMode==='one'?'Showing '+ctx.product+' on Overview':'Showing Overview for this selection')}
+}
 // V69 U-01: the selection context (public/view-context.js), cached per state key.
 let viewCtx=null,viewCtxKey='';
 function viewContext(d=dashboard()){const state={years:d.years||[d.snapshot.year],focusYear:d.focusYear,months:d.months,periodMode:d.periodMode,selection:d.selection,measure:ui.metric,growthBasis:d.growthBasis,commonMonths:d.commonMonths},key=JSON.stringify([payload?.revision,state]);if(key!==viewCtxKey||!viewCtx){viewCtx=resolveViewContext(records(),state);viewCtxKey=key}return viewCtx}
 function renderSection(){
  const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;
- if(d.section==='analysis'){if(d.selection.product.length!==1)breakdown?.render()}else if(d.section==='forecast'||d.section==='trends')renderPlanning();
- scheduleChartReflow();$('analysis-target-control').hidden=true;if(d.section==='breakdown')breakdown?.render();if(d.section==='overview')applyLayout('overview',viewContext(d));window.actualDashboard.wire();wireDrilldowns();
+ if(d.section==='forecast')renderPlanning();
+ scheduleChartReflow();$('analysis-target-control').hidden=true;if(d.section==='overview')applyLayout('overview',viewContext(d));window.actualDashboard.wire();wireDrilldowns();
 }
-function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;document.querySelector('[data-section="portfolio"]').hidden=!!single;document.querySelector('[data-section="analysis"]').hidden=false;$('view-breakdown').classList.toggle('in-sales-analysis',!single);$('view-portfolio').classList.toggle('in-sales-analysis',!!single);if(d.section==='analysis')window.actualDashboard.showSection('analysis');if(single&&d.section==='breakdown'){window.actualDashboard.showSection('overview');status('Showing product overview for '+single)}$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single)$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)}}
+function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single)$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)}}
 // V68 S-10: month ranges read "Jan–Aug" and "Jan–Mar, May".
 function monthRange(list){const out=[];for(let i=0;i<list.length;){let j=i;while(j+1<list.length&&list[j+1]===list[j]+1)j++;out.push(j>i?ms[list[i]-1]+'–'+ms[list[j]-1]:ms[list[i]-1]);i=j+1}return out.join(', ')}
 function renderHealth(){
@@ -517,7 +526,7 @@ function validConfig(config){
 }
 async function restore(config){
  try{validConfig(config);if(!payload||!dashboard()){restorePending=config;return}
- if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if(['trends','movement'].includes(config.section)||(config.selection?.product?.length||0)!==1&&config.section==='breakdown'||config.selection?.product?.length===1&&config.section==='portfolio')config={...config,section:'analysis'};const available=dashboard().snapshot.availableYears;if(!available.includes(config.year)){status(`Year ${config.year} is no longer available. View was not applied.`);return}
+ if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if(['trends','movement','analysis','breakdown'].includes(config.section))config={...config,section:'overview'};if(config.section==='products')config={...config,section:'portfolio'};const available=dashboard().snapshot.availableYears;if(!available.includes(config.year)){status(`Year ${config.year} is no longer available. View was not applied.`);return}
  if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],distributorMetric:['units','value'],channelMetric:['units','value'],leaderSort:['sales','increase','decline'],bridgeDimension:['product','line','distributor'],distributorMode:['mix','compare']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyPY','signedGap','monthlyCumulative'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
  await window.actualDashboard.apply(config);if(config.breakdown)breakdown?.restore(config.breakdown);if(config.comparison)window.comparisonDashboard?.restore(config.comparison);
  document.querySelector(`[data-page="${config.page==='comparison'?'comparison':'sales'}"]`)?.click();status('View restored. Only available filters were applied; sales data was not changed.');
