@@ -486,3 +486,6 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .not-shown{margin:4px 0 18px;padding:10px 14px;border:1px dashed #cdd7e3;border-radius:12px;background:#f8fafc;color:var(--text-muted,#5b6b7f);font-size:13px}
 #sales .not-shown summary{cursor:pointer;font-weight:600;color:#38516f}
 #sales .not-shown ul{margin:8px 0 0;padding-left:18px}#sales .not-shown li{margin:4px 0}#sales .not-shown li b{color:#284362;margin-right:4px}
+#sales .measure-field{display:flex;flex-direction:column;gap:6px;align-self:end}
+#sales .measure-field .measure-label{font-size:12px;font-weight:600;color:var(--text-muted,#5b6b7f)}
+#sales .measure-field .control-group{display:inline-flex}

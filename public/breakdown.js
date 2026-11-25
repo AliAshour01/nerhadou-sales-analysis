@@ -11,7 +11,7 @@ export function createBreakdown({read,changed}){
  const measure=(m=metric)=>m==='value'?'EGP':'Units';
  const tip=(r,isGap=false,m=metric)=>`${r.name} · ${isGap?'Shortfall: ':''}${n(isGap?r.gap:r.actual)} ${measure(m)} · ${p(isGap?r.gapShare:r.share)} of selected ${isGap?'positive shortfall':'sales'}${r.estimated?' · Includes estimated value':''}`;
  function render(){
-  const s=read();if(!s?.dashboard||!s.records)return;context=s;
+  const s=read();if(!s?.dashboard||!s.records)return;context=s;metric=lineMetric=s.dashboard.measure==='value'?'value':'units';
   models.product=breakdownModel(s.records,s.dashboard,{metric});models.line=breakdownModel(s.records,s.dashboard,{metric:lineMetric,dimension:'line'});
   $('breakdown-measure').querySelectorAll('button').forEach(b=>{b.classList.toggle('chosen',b.dataset.bdMetric===metric);b.setAttribute('aria-pressed',String(b.dataset.bdMetric===metric))});
   $('breakdown-lines-measure').querySelectorAll('button').forEach(b=>{b.classList.toggle('chosen',b.dataset.bdLineMetric===lineMetric);b.setAttribute('aria-pressed',String(b.dataset.bdLineMetric===lineMetric))});
