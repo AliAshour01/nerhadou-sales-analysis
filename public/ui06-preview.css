@@ -578,3 +578,16 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .series-legend button[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
 #sales #sales-by-year g[role="button"],#sales #share-by-year g{cursor:pointer;outline:none}
 #sales #sales-by-year g[role="button"]:focus-visible rect{stroke:#1f3555;stroke-width:2}
+/* V69 U-18: mobile pass: collapsible filter card, full-width Years row */
+.filters-toggle,.filters-summary{display:none}
+@media(max-width:699px){
+ #sales>.filters>.filter-bar-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+ #sales>.filters>.filter-bar-title>span:first-child{display:none}
+ .filters-toggle{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid #cdd7e3;border-radius:10px;background:#fff;color:#1d4ed8;font:inherit;font-weight:700;cursor:pointer}
+ .filters-summary{display:block;flex:1 1 160px;min-width:0;font-size:12px;color:#4b5a6d}
+ #sales>.filters.collapsed>:not(.filter-bar-title){display:none!important}
+ #sales>.filters:not(.collapsed) .filters-summary{display:none}
+ #sales>.filters>#years-field,#sales>.filters>#period-mode-field{grid-column:1/-1}
+ #sales .years-row{flex-direction:column;align-items:stretch}
+ #sales .year-presets button{white-space:nowrap}
+}
