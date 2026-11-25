@@ -194,9 +194,11 @@ export function cellHTML(row, c, maxSales) {
     return `<td><span class="ach ach-${k}">${v.toFixed(0)}%</span><span class="ach-bar ach-${k}" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, v))}%"></i></span></td>`;
   }
   if (c.kind === 'gap' || c.kind === 'change') return `<td class="variance ${v < 0 ? 'negative' : 'positive'}">${v < 0 ? '−' : '+'}${num(Math.abs(v))}</td>`;
-  if (c.bar && !row.total && !row.subtotal && maxSales > 0) {
-    const w = Math.max(0, Math.min(100, (v / maxSales) * 100));
-    return `<td class="sales-bar-cell"><span class="sales-bar" aria-hidden="true"><i style="width:${w.toFixed(1)}%"></i></span><span class="sales-num">${num(v)}</span></td>`;
+  // V72 R-18: the share bar sits under the number (full cell width, 4 px, right-aligned); total and subtotal rows keep an
+  // empty track so every row has the same rhythm.
+  if (c.bar && maxSales > 0) {
+    const w = row.total || row.subtotal ? 0 : Math.max(0, Math.min(100, (v / maxSales) * 100));
+    return `<td class="sales-bar-cell"><span class="sales-num">${num(v)}</span><span class="sales-bar${row.total || row.subtotal ? ' empty' : ''}" aria-hidden="true"><i style="width:${w.toFixed(1)}%"></i></span></td>`;
   }
   return `<td>${num(v)}</td>`;
 }

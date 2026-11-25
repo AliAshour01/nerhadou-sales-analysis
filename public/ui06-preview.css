@@ -441,7 +441,8 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 .products-toolbar .check-field{font-weight:500}
 .products-toolbar .check-field input{width:16px;height:16px;margin:0}
 #view-portfolio td.sales-bar-cell{position:relative;min-width:130px}
-#view-portfolio .sales-bar{display:block;height:6px;border-radius:3px;background:#e6edf7;margin:0 0 4px auto;width:100%;overflow:hidden}
+#view-portfolio .sales-bar{display:block;height:4px;border-radius:2px;background:#e6edf7;margin:4px 0 0 auto;width:100%;overflow:hidden}
+#view-portfolio .sales-bar.empty{background:transparent}
 #view-portfolio .sales-bar i{display:block;height:100%;background:#2f6db5;border-radius:3px;margin-left:auto}
 #view-portfolio .sales-num{display:block}
 #view-portfolio tr.subtotal-row th,#view-portfolio tr.subtotal-row td{background:#f4f7fb;font-weight:700;color:#1f3555}
