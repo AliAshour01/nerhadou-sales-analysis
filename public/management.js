@@ -3,6 +3,7 @@ import {comparisonProduct} from './compare-core.js?v=sales-ux-v68';
 import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-ux-v68';
 import {tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v68';
 import {resolveViewContext} from './view-context.js?v=sales-ux-v68';
+import {PANELS,layout} from './panel-registry.js?v=sales-ux-v68';
 import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate} from './chart-utils.js?v=sales-ux-v68';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -51,14 +52,14 @@ function mount(){
  $('portfolio-controls').insertAdjacentHTML('afterend',basis('portfolio'));$('breakdown-target-note').insertAdjacentHTML('afterend',basis('breakdown'));
  const tabs=$('sales').querySelector('.section-tabs');
  tabs.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>window.actualDashboard.showSection(b.dataset.section));
- $('view-overview').insertAdjacentHTML('beforeend',panel('Needs attention','<p class="chart-note">Rules describe the selected data. They do not establish the cause.</p><div id="attention-list" class="attention-list"></div>'));
+ mountOverviewGrid();
  const movementHTML=`<div class="analysis-toolbar"><label>Break down change by<select id="movement-dimension"><option value="product">Products</option><option value="line">Lines</option><option value="distributor">Distributors</option></select></label><label>Compare from<select id="movement-year"></select></label><span id="movement-measure"></span></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`;
  $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-movement" hidden>${panel('What drove the change',movementHTML)}</section>`);
  $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-forecast" hidden><article class="panel"><div class="panel-title"><div><h2>Year-end forecast scenarios</h2><p>Scenario estimates · not reported actuals · entire YTD in selected year</p></div><label>Forecast as of<select id="forecast-cutoff"></select></label><div id="forecast-measure"></div></div><div class="chart-grid forecast-grid"><article><h3>YTD Average Forecast</h3><div id="run-rate"></div><div id="run-rate-vs" class="forecast-vs"></div></article><article><h3>Historical Seasonality Forecast</h3><div id="target-forecast"></div><div id="seasonal-vs" class="forecast-vs"></div></article><article><h3>Required to hit target</h3><div id="forecast-required"></div></article></div><div class="forecast-chart-wrap"><h3>Cumulative path, Jan–Dec</h3><p class="chart-note">Scenario estimates, not reported actuals. Solid = actual through the cutoff; dashed = scenarios; navy = cumulative target.</p><div id="forecast-chart" class="wide-chart"></div></div></article></section>`);
  $('view-breakdown').insertAdjacentElement('beforebegin',$('view-movement'));
  for(const [id,tab]of [['view-overview','tab-overview'],['view-trends','tab-analysis'],['view-movement','tab-analysis'],['view-breakdown','tab-analysis'],['view-portfolio','tab-portfolio'],['view-forecast','tab-forecast']]){const view=$(id);if(view){view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby',tab)}}
  document.body.insertAdjacentHTML('beforeend',`<dialog id="product-drawer" class="product-drawer" aria-labelledby="drawer-title">${productDetailTemplate('drawer')}</dialog><dialog id="report-dialog" class="report-dialog" aria-labelledby="report-heading"><div class="report-controls"><button id="report-print">Print / Save PDF</button><button id="report-close">Close ×</button></div><div id="meeting-report"></div></dialog>`);
- const overview=$('view-overview');overview.insertAdjacentHTML('beforeend','<article id="single-product-overview" class="panel" hidden></article>');$('single-product-overview').innerHTML=productDetailTemplate('single');for(const id of ['single-close','single-focus'])$(id)?.remove();$('sales').querySelector('.heading').insertAdjacentHTML('beforeend','<div id="product-scope-chip" hidden></div>');
+ $('panel-singleProduct').innerHTML=productDetailTemplate('single');for(const id of ['single-close','single-focus'])$(id)?.remove();$('sales').querySelector('.heading').insertAdjacentHTML('beforeend','<div id="product-scope-chip" hidden></div>');
  $('focus-content').querySelector('.focus-table-panel').insertAdjacentHTML('beforebegin',panel('Contribution to change',`<div class="analysis-toolbar"><label>From year<select id="historical-from"></select></label><label>To year<select id="historical-to"></select></label></div><p id="historical-context" class="analysis-context"></p><div id="historical-bridge" class="wide-chart"></div><p id="historical-note" class="chart-note"></p>`,'historical-movement-panel'));
  // Controls are delegated once; no duplicate handlers accumulate on shared refresh.
  document.addEventListener('click',onClick);document.addEventListener('change',onChange);
@@ -86,11 +87,50 @@ function render(){
  const key=JSON.stringify([payload.revision,d.snapshot.year,d.months,d.selection]);if(key!==contextKey){cache.clear();contextKey=key}
  // V69 U-01: one context object; every renderer reads it instead of re-deriving conditions.
  viewCtx=viewContext(d);
- renderSingleScope();renderHealth();renderSummary();renderAttention();renderExisting();renderSection();
+ renderSingleScope();renderHealth();renderSummary();renderExisting();renderSection();
  $('summary-measure').innerHTML=buttons('Summary measure',[['units','Units'],['value','Value']],ui.metric,'data-manager-metric');
  if(drawer)renderDrawer();window.updateWorkspaceVisibility?.();window.actualDashboard.wire();wireDrilldowns();
  if(!restored&&storageKey){restored=true;readLink()}
  applyChartTables();syncUrl();
+}
+// V69 U-02: Overview panels live in one 12-column grid; the registry (public/panel-registry.js) decides visibility and spans.
+const PANEL_BODIES={
+ attention:()=>panel('Needs attention','<p class="chart-note">Rules describe the selected data. They do not establish the cause.</p><div id="attention-list" class="attention-list"></div>'),
+ ppg:()=>panel('Monthly growth (PPG%)','<div id="company-ppg-chart"></div>'),
+ mixDistributor:()=>panel('Distributor mix','<div id="distributors-measure" class="mix-measure"></div><div id="distributors"></div>'),
+ mixChannel:()=>panel('Sales-type mix','<div id="company-channels-measure" class="mix-measure"></div><div id="company-channels"></div>'),
+ singleProduct:()=>'<article class="panel"></article>'
+};
+const RENDERERS={
+ monthly:()=>{},
+ attention:()=>renderAttention(),
+ ppg:ctx=>renderRateCharts(ctx.selection,ctx.months,ui.metric,'company'),
+ mixDistributor:ctx=>renderMixChart('distributors','distributor',ctx.selection,ctx.months),
+ mixChannel:ctx=>renderMixChart('company-channels','channel',ctx.selection,ctx.months),
+ singleProduct:ctx=>renderProductView({product:ctx.product,month:null,metric:ui.metric},'single')
+};
+const layoutApi={renderers:RENDERERS,attentionCount,factCount:()=>1,shareYears:()=>0,bridgeOptions:()=>[]};
+function mountOverviewGrid(){
+ const overview=$('view-overview'),old=overview.querySelector('.chart-grid'),monthly=$('trend').closest('article'),distributors=$('distributors').closest('article');
+ overview.insertAdjacentHTML('afterbegin','<div id="overview-grid" class="v69-grid"></div><details id="overview-not-shown" class="not-shown" hidden><summary></summary><ul></ul></details>');
+ const grid=$('overview-grid'),legacy=document.createElement('div');legacy.hidden=true;legacy.className='legacy-holder';for(const id of ['distributors-context','distributors-controls'])legacy.append($(id));overview.append(legacy);
+ distributors.remove();
+ for(const entry of PANELS.filter(p=>p.tab==='overview'&&RENDERERS[p.id])){
+  let node;
+  if(entry.id==='monthly')node=monthly;
+  else{const holder=document.createElement('div');holder.innerHTML=PANEL_BODIES[entry.id]();node=holder.firstElementChild}
+  node.id='panel-'+entry.id;node.dataset.panel=entry.id;node.classList.add('v69-panel');node.hidden=true;grid.append(node);
+ }
+ if(old&&!old.children.length)old.remove();
+}
+function isMobile(){return (window.innerWidth||1280)<700}
+function applyLayout(tab,ctx){
+ const grid=$(tab+'-grid');if(!grid)return;
+ const result=layout(tab,ctx,layoutApi,{mobile:isMobile()});
+ for(const entry of PANELS.filter(p=>p.tab===tab&&RENDERERS[p.id])){const node=$('panel-'+entry.id);if(node)node.hidden=!result.visible.includes(entry.id)}
+ for(const row of result.rows)for(const p of row.panels){const node=$('panel-'+p.id);node.classList.remove('span-4','span-6','span-8','span-12','span-3','span-5','span-7');node.classList.add('span-'+p.span);node.dataset.row=row.row;grid.append(node);RENDERERS[p.id](ctx,node)}
+ const strip=$(tab+'-not-shown');if(strip){strip.hidden=!result.hidden.length;strip.querySelector('summary').textContent=`Not shown for this selection (${result.hidden.length})`;strip.querySelector('ul').innerHTML=result.hidden.map(h=>`<li><b>${e(h.title)}</b> ${e(h.reason)}</li>`).join('')}
+ return result;
 }
 // V69 U-01: the selection context (public/view-context.js), cached per state key.
 let viewCtx=null,viewCtxKey='';
@@ -98,9 +138,9 @@ function viewContext(d=dashboard()){const state={years:d.years||[d.snapshot.year
 function renderSection(){
  const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;
  if(d.section==='analysis'){renderMovement();if(d.selection.product.length!==1)breakdown?.render()}else if(d.section==='movement')renderMovement();else if(d.section==='forecast'||d.section==='trends')renderPlanning();
- scheduleChartReflow();$('analysis-target-control').hidden=true;if(d.section==='breakdown')breakdown?.render();if(d.section==='overview'){if(d.selection.product.length===1)renderProductView({product:d.selection.product[0],month:null,metric:ui.metric},'single');else renderRatePanels();}window.actualDashboard.wire();wireDrilldowns();
+ scheduleChartReflow();$('analysis-target-control').hidden=true;if(d.section==='breakdown')breakdown?.render();if(d.section==='overview')applyLayout('overview',viewContext(d));window.actualDashboard.wire();wireDrilldowns();
 }
-function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;const box=$('single-product-overview');box.hidden=!single;for(const node of $('view-overview').children)if(node!==box)node.hidden=!!single;document.querySelector('[data-section="portfolio"]').hidden=!!single;document.querySelector('[data-section="analysis"]').hidden=false;for(const id of ['view-trends','view-movement'])$(id).classList.add('in-sales-analysis');$('view-breakdown').classList.toggle('in-sales-analysis',!single);$('view-portfolio').classList.toggle('in-sales-analysis',!!single);if(d.section==='analysis')window.actualDashboard.showSection('analysis');if(single&&d.section==='breakdown'){window.actualDashboard.showSection('overview');status('Showing product overview for '+single)}$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single){$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)};if(d.section==='overview')renderProductView({product:single,month:null,metric:ui.metric},'single');}}
+function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;document.querySelector('[data-section="portfolio"]').hidden=!!single;document.querySelector('[data-section="analysis"]').hidden=false;for(const id of ['view-trends','view-movement'])$(id).classList.add('in-sales-analysis');$('view-breakdown').classList.toggle('in-sales-analysis',!single);$('view-portfolio').classList.toggle('in-sales-analysis',!!single);if(d.section==='analysis')window.actualDashboard.showSection('analysis');if(single&&d.section==='breakdown'){window.actualDashboard.showSection('overview');status('Showing product overview for '+single)}$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single)$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)}}
 // V68 S-10: month ranges read "Jan–Aug" and "Jan–Mar, May".
 function monthRange(list){const out=[];for(let i=0;i<list.length;){let j=i;while(j+1<list.length&&list[j+1]===list[j]+1)j++;out.push(j>i?ms[list[i]-1]+'–'+ms[list[j]-1]:ms[list[i]-1]);i=j+1}return out.join(', ')}
 function renderHealth(){
@@ -221,16 +261,12 @@ function rateChart(rows,achievement,id){
  return W>viewport?'<p class="chart-note rate-chart-scroll-hint">Scroll horizontally to see every month.</p><div class="rate-chart-scroll" tabindex="0" role="region" aria-label="'+title+'">'+svg+'</div>':svg;
 }
 function renderRateCharts(f,chosen,metric,prefix){const d=dashboard(),products=selectedProducts(d,f),rows=chosen.map(m=>{const cur=summary(d.snapshot.year,[m],metric,f),prior=summary(d.snapshot.year-1,[m],metric,f),t=target(products,metric,[m],false,f);return {name:ms[m-1],ach:cur.value!=null&&t>0?cur.value/t*100:null,ppg:growth(cur,prior,d.snapshot.year-1,d.snapshot.year).ppg}}),allowed=growthAllowed(d.snapshot.year-1,d.snapshot.year);for(const [id,key]of [['achievement','ach'],['ppg','ppg']]){const node=$(prefix+'-'+id+'-chart');if(!node)continue;node.innerHTML=key==='ppg'&&!allowed.ok?`<p class="empty-chart withheld-note">${e(allowed.reason)}</p>`:rateChart(rows.map(r=>({name:r.name,value:r[key]})),key==='ach',prefix+'-'+id+'-chart')}}
-function renderRatePanels(){const d=dashboard();if(d.selection.product.length===1)return;arrangeOverview();$('company-rate-panels').hidden=false;renderRateCharts(d.selection,d.months,ui.metric,'company');}
-// V68 S-14: Row 1 Monthly performance (full width) · Row 2 PPG | Needs attention · Row 3 Distributor | Sales-type mix.
-function arrangeOverview(){const overview=$('view-overview'),monthly=$('trend').closest('article');if(!$('company-rate-panels')){const node=document.createElement('div');node.id='company-rate-panels';node.className='chart-grid overview-row2';node.innerHTML=panel('Monthly growth (PPG%)','<div id="company-ppg-chart"></div>');overview.prepend(node)}const row2=$('company-rate-panels'),attention=$('attention-list')?.closest('article'),mix=$('company-mix-panels'),first=monthly.parentElement;
- if(first!==overview){overview.prepend(monthly);if(!first.children.length)first.remove()}else overview.prepend(monthly);monthly.classList.add('overview-monthly');monthly.after(row2);if(attention&&attention.parentElement!==row2)row2.append(attention);if(mix)row2.after(mix);const single=$('single-product-overview');if(single)overview.append(single);for(const g of [...overview.children])if(g.classList.contains('chart-grid')&&!g.children.length)g.remove()}
 function renderExisting(){
  const d=dashboard(),legend=$('trend').closest('article').querySelector('.progress-legend');if(!legend.dataset.v68){legend.innerHTML=MONTHLY_LEGEND;legend.dataset.v68='1'}legend.hidden=ui.monthlyPY||ui.monthlyCumulative;$('monthly-controls').insertAdjacentHTML('beforeend',buttons('Prior year',[['off','Actual + target'],['on','Add previous year']],ui.monthlyPY?'on':'off','data-monthly-py')+buttons('Monthly or cumulative',[['monthly','Monthly'],['cumulative','Cumulative']],ui.monthlyCumulative?'cumulative':'monthly','data-monthly-view'));
  if(ui.monthlyCumulative){const metric=window.actualDashboard.monthlyMetric();$('trend').innerHTML=cumulativeChart(window.actualDashboard.monthlyData(),metric);$('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'} · Cumulative actual vs cumulative monthly target`}
  else if(ui.monthlyPY&&provisional(d.snapshot.year-1)){$('trend').insertAdjacentHTML('afterbegin',`<p class="chart-note withheld-note">Previous-year bars withheld: ${d.snapshot.year-1} data is provisional.</p>`)}
  else if(ui.monthlyPY){$('trend').innerHTML=pairedChart(monthPairs(statesMetric('monthly')),statesMetric('monthly'),d.snapshot.year,d.snapshot.year-1,true);$('monthly-context').textContent=`${periodLabel()} · ${statesMetric('monthly')} · Monthly targets; independent of global target basis`}
- if(!$('company-mix-panels')){const old=$('distributors').closest('article'),holder=document.createElement('div');holder.id='company-mix-panels';holder.innerHTML=mixPanelsTemplate('distributors','company-channels');const grid=holder.firstElementChild;grid.id='company-mix-panels';const legacy=document.createElement('div');legacy.hidden=true;for(const id of ['distributors-context','distributors-controls'])legacy.append($(id));grid.firstElementChild.append(legacy);old.replaceWith(grid)}for(const [key,id]of [['distributor','distributors'],['channel','company-channels']])renderMixChart(id,key,d.selection,d.months);
+ 
  $('distributors-controls').insertAdjacentHTML('beforeend',buttons('Distributor view',[['mix','Mix'],['compare','Previous year']],ui.distributorMode,'data-distributor-view'));
  if(ui.distributorMode==='compare'){const f=d.selection,names=[...new Set(scopeRecords(records(),f).filter(r=>r.dataset==='actual'&&[d.snapshot.year,d.snapshot.year-1].includes(r.year)&&d.months.includes(r.month)).map(r=>r.distributor))].sort(),metric=statesMetric('distributors');$('distributors').innerHTML=pairedRankedChart(names.map(name=>({name,current:summary(d.snapshot.year,d.months,metric,{...f,distributor:[name]}).value,previous:summary(d.snapshot.year-1,d.months,metric,{...f,distributor:[name]}).value})),metric,d.snapshot.year,d.snapshot.year-1)}
  $('leaders-controls').insertAdjacentHTML('beforeend',buttons('Rank by',[['sales','Sales'],['increase','Largest increase'],['decline','Largest decline']],ui.leaderSort,'data-leader-sort'));
@@ -258,7 +294,12 @@ function wireDrilldowns(){
  document.querySelectorAll('[data-mix-focus]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter(b.dataset.mixFocus,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('[data-product-detail]').forEach(b=>b.onkeydown=ev=>{if(b.tagName.toLowerCase()==='g'&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();openProduct(b.dataset.productDetail,Number(b.dataset.detailMonth)||null,b)}});
 }
-function renderAttention(){
+// V69 U-02: attention items are computed once per context; the layout engine hides the panel when no rule fires.
+let attentionCache={key:null,items:[]};
+function attentionCount(ctx){return attentionItems(ctx).length}
+function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return attentionCache.items;attentionCache={key:ctx,items:computeAttention()};return attentionCache.items}
+function renderAttention(){const items=attentionItems();$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}" data-impact="${r.impact}" ${r.p?`data-product-detail="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>Open detail →</small></button>`).join('')}
+function computeAttention(){
  // V68 S-35: balanced rules (positive and negative), a magnitude chip, sorted by absolute impact in the selected measure.
  const d=dashboard(),items=[],metric=ui.metric,unitWord=metric==='value'?'':' units',signed=v=>(v>0?'+':v<0?'−':'')+(metric==='value'?'EGP ':'')+n(Math.abs(v))+unitWord;
  const changes=selectedProducts().map(p=>({product:p,...pairs(metric,{...d.selection,product:[p]})})).filter(x=>Number.isFinite(x.delta));
@@ -273,8 +314,7 @@ function renderAttention(){
  const end=Math.max(0,...d.months);if(end>=3&&[end-2,end-1,end].every(m=>d.months.includes(m))){const found=selectedProducts().map(p=>({p,vals:[end-2,end-1,end].map(m=>summary(d.snapshot.year,[m],metric,{...d.selection,product:[p]}).value)})).filter(x=>x.vals.every(Number.isFinite)&&x.vals[0]>x.vals[1]&&x.vals[1]>x.vals[2]).sort((a,b)=>(b.vals[0]-b.vals[2])-(a.vals[0]-a.vals[2]))[0];if(found)items.push({p:found.p,tone:'negative',impact:found.vals[0]-found.vals[2],chip:signed(found.vals[2]-found.vals[0]),title:'Three-month downward trend',text:`${found.p}: declining ${metric} in ${ms[end-3]}, ${ms[end-2]} and ${ms[end-1]}.`})}
  // Concentration is structural, not an impact amount: it ranks after the impact rules. NOT PROVIDED is a data gap, not a distributor.
  const total=summary(d.snapshot.year,d.months,metric).value;if(total>0){const groups=[...new Set(scopeRecords(records(),d.selection).filter(r=>r.year===d.snapshot.year&&r.dataset==='actual').map(r=>r.distributor))].filter(name=>name&&String(name).trim().toUpperCase()!=='NOT PROVIDED').map(name=>({name,value:summary(d.snapshot.year,d.months,metric,{...d.selection,distributor:[name]}).value})).filter(x=>x.value!=null).sort((a,b)=>b.value-a.value);if(groups[0]?.value/total>=.6)items.push({tone:'neutral',impact:-1,chip:`${(groups[0].value/total*100).toFixed(1)}% share`,title:'Distributor concentration ≥60%',text:`${groups[0].name}: ${(groups[0].value/total*100).toFixed(1)}% of selected ${metric}. Check concentration and source coverage.`})}
- items.sort((a,b)=>b.impact-a.impact);
- $('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}" data-impact="${r.impact}" ${r.p?`data-product-detail="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>Open detail →</small></button>`).join('')||'<p class="chart-note">No rule triggered in the comparable selected data. Incomplete data can prevent a rule being evaluated.</p>';
+ items.sort((a,b)=>b.impact-a.impact);return items;
 }
 function openProduct(product,month=null,trigger=null){$('tooltip').style.display='none';drawer={product,month,metric:ui.metric};returnFocus=trigger||document.activeElement;renderDrawer();if(!$('product-drawer').open)$('product-drawer').showModal();scheduleChartReflow()}
 function drawerFilters(state=drawer){return {...dashboard().selection,product:[state.product]}}
