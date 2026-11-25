@@ -189,7 +189,7 @@ window.refreshSalesSnapshot=async()=>loadSalesSnapshot();
 
 function missingMetric(panel,metric){return missingReportingMonths().length>0||panelRows(panel).some(r=>r[metric]==null)}
 for(const [name,panel,id,original] of [['renderMonthly','monthly','trend',renderMonthly],['renderDistributor','distributors','distributors',renderDistributor],['renderGroups','lines','lines-chart',renderGroups]]){
-const wrapped=function(){if(missingMetric(panel,states[panel].metric)){$(id).innerHTML='<p class="empty-chart">Missing '+states[panel].metric+' data in this selection. Complete it in Data management.</p>';return}return original()};
+const wrapped=function(){if(missingMetric(panel,states[panel].metric)){const ctx=document.querySelector?.('#'+panel+'-context');if(ctx)try{ctx.textContent=context(panel).caption}catch{}$(id).innerHTML='<p class="empty-chart">Missing '+states[panel].metric+' data in this selection. Complete it in Data management.</p>';return}return original()};
  if(name==='renderMonthly')renderMonthly=wrapped;else if(name==='renderDistributor')renderDistributor=wrapped;else renderGroups=wrapped;
 }
 const originalRankings=renderRankings;renderRankings=function(){for(const [panel,id] of [['leaders','leaders'],['achievements','achievements']]){if(missingMetric(panel,states[panel].metric))$(id).innerHTML='<p class="empty-chart">Missing '+states[panel].metric+' data in this selection.</p>';else comparisonChart(panel,id,'product')}};
@@ -203,6 +203,6 @@ window.actualDashboard={focusFilter:(key,value)=>focusFilter(key,value),read:()=
  apply:async config=>{if(!config||typeof config!=='object')return;const y=Number(config.year);if(Number.isInteger(y)&&D?.availableYears.includes(y)&&D.year!==y){actualYearChoice=String(y);await loadSalesSnapshot(true)}
  for(const k of Object.keys(selection))selection[k]=new Set((Array.isArray(config.selection?.[k])?config.selection[k]:[]).filter(v=>filterOptions(k).includes(v)));
  periodMode=config.periodMode==='selected'?'selected':'ytd';targetBasis=config.targetBasis==='annual'?'annual':'period';
- const ms=(Array.isArray(config.months)?config.months:[]).filter(m=>Number.isInteger(m)&&m>=1&&m<=12);if(periodMode==='selected')selectedMonths=new Set(ms);else if(ms.length)$('period').value=String(Math.max(...ms));followLatestPeriod=false;render();
+ const ms=(Array.isArray(config.months)?config.months:[]).filter(m=>Number.isInteger(m)&&m>=1&&m<=12);if(periodMode==='selected')selectedMonths=new Set(ms);else if(ms.length){const avail=filterOptions('months').filter(m=>m<=Math.max(...ms));if(avail.length)$('period').value=String(Math.max(...avail))}followLatestPeriod=false;render();
  const section=['overview','analysis','trends','breakdown','portfolio','movement','forecast'].includes(config.section)?config.section:'overview';showSection(section);}
 };
