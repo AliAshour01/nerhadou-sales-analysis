@@ -31,14 +31,20 @@ export function comparableSummary(records,year,months,metric='units',filters={})
  }
  const cell=buildFocusComparison(scoped,{years:[year],scope:'company',mode:'month',selected,metric,includeEstimates:true}).cells[0];
  const s=cell.sales,hasSubset=Object.values(filters).some(v=>v?.length),allYearProducts=new Set(records.filter(r=>r.dataset==='actual'&&r.year===year&&r.month>0).map(productName)),approved=!!s.approvedKnownTotal&&!hasSubset&&allYearProducts.size>1;
- const value=(!s.partial||approved)&&!s.review?s.total:null;
- return {...s,value,approximate:approved,reason:value!=null?null:!selected.length?'Select months':s.review?'Source period is not verified':!s.rows.length?'No matching records':`Incomplete ${metric} or period coverage`};
+ // Use recorded 2023 amounts for the chosen months, including known subtotals.
+ // A month with no numeric amounts or an excluded reporting scope cannot support a comparison.
+ const recordedMonths=new Set(s.rows.filter(r=>finite(r[metric])).map(r=>r.month));
+ const recorded2023=year===2023&&s.total!=null&&selected.every(m=>recordedMonths.has(m))&&
+  !s.rows.some(r=>r.reportingIncomplete||r.reportingProductIncomplete);
+ const value=recorded2023||((!s.partial||approved)&&!s.review)?s.total:null;
+ return {...s,value,review:s.review&&!recorded2023,approximate:approved||(recorded2023&&(s.partial||s.review)),reason:value!=null?null:!selected.length?'Select months':s.review?'Source period is not verified':!s.rows.length?'No matching records':`Incomplete ${metric} or period coverage`};
 }
-// V68 S-02: one source of truth for provisional years. Any growth, PPG, delta, bridge or
-// seasonality that uses a provisional year as either side is withheld, never shown.
+// Historical source provenance is displayed separately from comparison eligibility.
 export const PROVISIONAL_YEARS=new Set([2023]);
-export const PROVISIONAL_REASON='2023 data is provisional.';
-export function growthAllowed(a,b){const bad=[a,b].find(y=>PROVISIONAL_YEARS.has(Number(y)));return bad==null?{ok:true,reason:null}:{ok:false,year:Number(bad),reason:`${bad} data is provisional.`}}
+export function growthAllowed(a,b){
+ const ok=Number.isInteger(a)&&Number.isInteger(b)&&a!==b;
+ return {ok,reason:ok?null:'Select two different years to compare.'};
+}
 export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
@@ -48,7 +54,7 @@ export function changeBetween(current,previous){
 function movementSummary(records,year,months,metric,filters){
  const s=comparableSummary(records,year,months,metric,filters);if(s.value!=null||!months.length)return s;
  const company=comparableSummary(records,year,months,metric,{}),report=records.filter(r=>r.dataset==='actual'&&r.year===year&&months.includes(r.month));
- if(company.value==null||months.some(m=>!report.some(r=>r.month===m))||report.some(r=>r.reportingIncomplete))return s;
+ if(company.value==null||(year===2023&&company.approximate)||months.some(m=>!report.some(r=>r.month===m))||report.some(r=>r.reportingIncomplete))return s;
  const rows=scopeRecords(report,filters);if(rows.some(r=>!finite(r[metric])))return s;
  return {...s,rows,value:rows.reduce((n,r)=>n+r[metric],0),partial:false,reason:null,absentIsZero:true};
 }
@@ -76,7 +82,7 @@ export function runRateProjection(records,year,metric='units',filters={}){
  const end=sums.findLastIndex(s=>s.value!=null)+1;
  if(end<1||end===12||sums.slice(0,end).some(s=>s.value==null))return {value:null,reason:'Needs complete consecutive months from January and a remaining year period.'};
  const observed=sums.slice(0,end).reduce((n,s)=>n+s.value,0),last=sums.slice(0,end);
- if(last.some(s=>s.value<0||s.estimated))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; the projection is unavailable.'};
+ if(last.some(s=>s.value<0||s.estimated||s.approximate))return {value:null,reason:'Selected YTD months contain negative net sales or estimated amounts; the projection is unavailable.'};
  const monthly=observed/end;
  return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of all complete months from January through the selected cutoff × remaining months. No seasonality adjustment; scenario, not a commitment.'};
 }

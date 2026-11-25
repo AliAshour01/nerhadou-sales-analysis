@@ -11,7 +11,7 @@ function setOptions(id,options){const before=$(id).value;$(id).innerHTML=options
 async function load(){
  const data=await api(),previousRevision=state?.revision;state=data;if(previousRevision!=null&&previousRevision!==state.revision){invalidate();invalidateCutoff();if(!busy)status('Shared data changed. Preview edits again before saving.')} showUpdated();records=effectiveRecords(state.seed,state.overrides);$('admin-nav').hidden=!state.isAdmin;$('data-revision').textContent='Shared revision '+state.revision;
  setOptions('table-year',[['','All years'],...[...new Set(records.map(r=>r.year).filter(y=>y>0))].sort((a,b)=>b-a).map(y=>[y,String(y)])]);
- $('data-notes').innerHTML=state.seed.notes.map(n=>`<p>${html(n)}</p>`).join('');renderTable();renderAudit();renderComparison();renderRefreshTools();editors.refresh();
+ $('data-notes').innerHTML=state.seed.notes.map(n=>`<p>${html(n.replace('Growth involving 2023 remains withheld as requested; observed monthly units and annual source figures are still displayed.', 'Dashboard comparisons include recorded same-month 2023 figures when available.'))}</p>`).join('');renderTable();renderAudit();renderComparison();renderRefreshTools();editors.refresh();
 }
 function filtered(){return records.filter(r=>r.dataset!=='catalog'&&r.dataset!=='retired'&&(!$('table-year').value||r.year===Number($('table-year').value))&&(!$('table-month').value||r.month===Number($('table-month').value))&&(!$('table-dataset').value||r.dataset===$('table-dataset').value)&&[r.product,r.product_id,r.id,r.channel,r.distributor,r.line].join(' ').toLowerCase().includes($('table-search').value.toLowerCase()))}
 function cell(r,m){return editors.cell(r,m)}

@@ -34,9 +34,9 @@ assert.equal(c.monthCount, 1);
 c = ctx({ years: [2025], months: ytd(12) });
 assert.equal(c.compareYear, 2024); assert.equal(c.growthOk, true); assert.equal(c.hasTargets, false); assert.equal(c.isOpenYear, false);
 assert.equal(c.dims.line.comparable, false); assert(c.dims.line.categories >= 2); assert.equal(c.dims.distributor.categories, 0);
-// A7 2023 provisional: growth withheld, closed year, unknown unit months detected from data
+// A7 2023 comparables: growth allowed, closed year, unknown unit months detected from data
 c = ctx({ years: [2023], months: ytd(9) });
-assert.equal(c.growthOk, false); assert.match(c.growthReason, /2023 data is provisional/); assert.deepEqual(c.provisionalYears, [2023]);
+assert.equal(c.growthOk, true); assert.equal(c.growthReason, null); assert.deepEqual(c.provisionalYears, [2023]);
 assert.equal(c.isOpenYear, false); assert.equal(c.hasTargets, false); assert.equal(c.dims.distributor.categories, 0);
 // A8 2021–2026: multi-year, compare 2025 → 2026 allowed, distributor not recorded before 2026
 c = ctx({ years: [2021, 2022, 2023, 2024, 2025, 2026] });
@@ -49,9 +49,9 @@ assert.equal(c.productMode, 'one'); assert.equal(c.productCount, 1);
 // A10 2025+2026 with a line filter: previous selected year is the comparison
 c = ctx({ years: [2025, 2026], selection: { ...none, line: ['Gyn line'] } });
 assert.equal(c.growthBasis, 'selected'); assert.equal(c.compareYear, 2025);
-// A11 2022+2023 full year: the pair involves 2023, so growth is withheld
+// A11 2022+2023 full year: the pair uses the same months with available data
 c = ctx({ years: [2022, 2023], months: ytd(12) });
-assert.equal(c.compareYear, 2022); assert.equal(c.growthOk, false); assert.match(c.growthReason, /2023/);
+assert.equal(c.compareYear, 2022); assert.equal(c.growthOk, true); assert.deepEqual(c.droppedMonths, [10, 11, 12]);
 // U-15 product identity: a source name maps to its comparison key and back
 const multi = translateProducts(records, ['ONDALENZ 8MG'], 'multi');
 assert(multi.length >= 1);

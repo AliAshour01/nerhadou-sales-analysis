@@ -1,24 +1,42 @@
-// V68 S-02 / V69: growth that uses provisional 2023 as either year is withheld everywhere on the Sales page.
 import './management-ui.mjs';
 import assert from 'node:assert/strict';
-import {growthAllowed,seasonalProjection,PROVISIONAL_YEARS} from '../public/management-core.js';
-const $=id=>document.getElementById(id),payload=window.commercialAnalysisData;
-const cfg=(years,months,section='overview')=>({years,months,periodMode:'ytd',targetBasis:'period',selection:{product:[],line:[],distributor:[],channel:[]},section});
-const visible=()=>[...$('overview-grid').querySelectorAll('.v69-panel:not([hidden])')].map(p=>p.dataset.panel);
-assert(PROVISIONAL_YEARS.has(2023));assert.equal(growthAllowed(2022,2023).ok,false);assert.equal(growthAllowed(2023,2024).ok,false);assert.equal(growthAllowed(2024,2025).ok,true);
-const kpiText=()=>$('kpis').textContent;
-window.nerhadouSecurity.me={user:{role:'viewer',status:'active'}};
-for(const [year,months] of [[2023,[1,2,3,4,5,6,7,8,9]],[2024,[1,2,3,4,5,6]],[2024,[1,2,3,4,5,6,7,8,9,10,11,12]]]){
- await window.actualDashboard.apply(cfg([year],months));
- assert(kpiText().includes('Growth unavailable'),year+' KPI availability label');assert(kpiText().includes('2023 data is provisional'),year+' KPI subline');assert(!/▲|▼/.test(kpiText()),year+' no growth arrows');
- assert(!visible().includes('bridge'),year+' bridge hidden');assert($('overview-not-shown').textContent.includes('2023 data is provisional'),year+' Not shown reason');
- assert(!/vs same months 2023/.test($('attention-list')?.textContent||''),year+' no vs 2023 attention');assert(!/Value up, units down/.test($('attention-list')?.textContent||''),year+' no divergence vs 2023');
- assert.equal($('provisional-badge').hidden,year!==2023,year+' badge');
- const s=seasonalProjection(payload.records,year,6,'units',{});assert.equal(s.value,null);assert(s.reason.includes('provisional'),year+' seasonal withheld');
+import {changeBetween, comparableSummary, movement, seasonalProjection} from '../public/management-core.js';
+const $=id=>document.getElementById(id), {records}=window.commercialAnalysisData;
+const months=Array.from({length:9},(_,i)=>i+1);
+const selection={product:[],line:[],distributor:[],channel:[]};
+const cfg=(years,chosen=months)=>({years,months:chosen,periodMode:'selected',selection,section:'overview'});
+
+for(const metric of ['units','value']){
+ const current=comparableSummary(records,2023,months,metric);
+ const expected=records.filter(r=>r.year===2023&&r.dataset==='actual'&&months.includes(r.month)&&Number.isFinite(r[metric])).reduce((sum,r)=>sum+r[metric],0);
+ assert.equal(current.value,expected);
+ assert.equal(comparableSummary(records,2023,[9,10],metric).value,null);
+ assert.equal(comparableSummary(records,2023,[10],metric).value,null);
+ assert.equal(comparableSummary(records,2023,months,metric,{product:['missing product']}).value,null);
+ if(metric==='value')assert(current.estimated>0&&current.approximate);
+ for(const [a,b] of [[2022,2023],[2023,2024]]){
+  const start=comparableSummary(records,a,months,metric);
+  const end=comparableSummary(records,b,months,metric);
+  const change=changeBetween(end,start);
+  assert.equal(change.delta,end.value-start.value);
+  assert(change.ppg!=null);
+  const bridge=movement(records,{a,b,months,metric});
+  assert.equal(bridge.delta,change.delta);
+  assert(Math.abs(bridge.items.reduce((sum,row)=>sum+row.delta,0)-bridge.delta)<1e-5);
+ }
 }
-// Multi-year: a pair touching 2023 is withheld; 2024 → 2025 is allowed.
-await window.actualDashboard.apply(cfg([2022,2023],[1,2,3,4,5,6,7,8,9,10,11,12]));assert(kpiText().includes('2023 data is provisional'));assert(!visible().includes('bridge'));assert.equal($('provisional-badge').hidden,false);
-await window.actualDashboard.apply(cfg([2024,2025],[1,2,3,4,5,6]));assert(!kpiText().includes('2023 data is provisional'));assert(visible().includes('bridge'),'2024 → 2025 bridge allowed');
-await window.actualDashboard.apply(cfg([2026],[1,2,3,4,5,6,7,8]));assert(kpiText().includes('39.6%'),'2026 YTD Aug unchanged');assert.equal($('provisional-badge').hidden,true);assert(visible().includes('bridge'));
-window.nerhadouSecurity.me={user:{role:'owner',status:'active'}};
-console.log('Provisional 2023 passed: KPI, bridge, Not shown reason, attention, badge, seasonality for 2023 and 2024; multi-year pairs; 2026 unchanged.');
+assert.equal(seasonalProjection(records,2024,6,'units').value,null,'Missing prior months cannot produce seasonality');
+
+for(const year of [2023,2024]){
+ await window.actualDashboard.apply(cfg([year]));
+ assert.equal($('provisional-badge').hidden,false);
+ assert($('kpis').querySelector('.delta-chip.up, .delta-chip.down'));
+ assert(!$('panel-bridge').hidden);
+ assert(!/\bwithheld\b/i.test($('sales').textContent));
+}
+await window.actualDashboard.apply({...cfg([2023,2024],[9,10]),commonMonths:false});
+assert.equal(window.actualDashboard.context().months.length,2);
+const absent=$('sales-by-year').querySelector('[data-focus-year="2023"]');
+assert.match(absent.getAttribute('data-tip'), /unknown/);
+assert(!absent.textContent.includes('%'));
+console.log('2023 comparisons use recorded units and EGP, reconcile movement, and keep unavailable months blank.');

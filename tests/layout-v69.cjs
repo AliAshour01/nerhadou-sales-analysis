@@ -79,14 +79,8 @@ function inspect({ id, mobile }) {
     if (arcs.length === 1) out.push('4 100% donut in ' + (svg.closest('[id]')?.id || 'svg'));
   }
   if (document.documentElement.scrollWidth > innerWidth + 1) out.push(`6 horizontal scroll ${document.documentElement.scrollWidth} > ${innerWidth}`);
-  // 7 growth rule: no percentage beside 2023 unless it says withheld / provisional.
-  const pairs23 = /2023\s*(?:→|->|vs)|(?:→|->|vs)\s*2023|same months 2023/;
-  for (const el of document.querySelectorAll('#sales *')) {
-    if (!vis(el) || el.children.length > 3) continue;
-    const t = el.textContent.replace(/\s+/g, ' ');
-    if (t.length > 160) continue;
-    if ((pairs23.test(t) || /\b2023\b/.test(t)) && /[+−-]?\d+(?:\.\d+)?%/.test(t) && /[▲▼]|Up |Down |growth|Growth|PPG|vs /.test(t) && !/withheld|provisional|share|of company|of selected|achiev|pace|progress/i.test(t)) out.push('7 growth next to 2023: ' + t.slice(0, 90));
-  }
+  // 7 The obsolete comparison label must stay out of the Sales page.
+  if (/\bwithheld\b/i.test(document.querySelector('#sales').innerText)) out.push('7 obsolete comparison label');
   if (id === 'A7') {
     const btn = document.querySelector('[data-chart-table="trend"]');
     if (btn) { btn.click(); const cells = [...document.querySelectorAll('#trend-table tbody tr')].map((r) => [...r.cells].map((c) => c.textContent.trim())); btn.click(); window.__a7 = cells; }
