@@ -9,7 +9,7 @@ const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>compact(v);
 let payload=window.commercialAnalysisData||null,cache=new Map(),contextKey='',drawer=null,returnFocus=null,restorePending=null,restored=false,storageKey=null;
-const ui={monthlyCumulative:false,monthlyPY:false,distributorMode:'mix',leaderSort:'sales',signedGap:false,bridgeDimension:'product',bridgeYear:null,forecastCutoff:null};
+const ui={monthlyCumulative:false,monthlyCompare:null,monthlySplit:false,monthlyPY:false,distributorMode:'mix',leaderSort:'sales',signedGap:false,bridgeDimension:'product',bridgeYear:null,forecastCutoff:null};
 // V69 U-03: ui.metric is the global Measure owned by app.js (filter bar); every panel reads it.
 Object.defineProperty(ui,'metric',{get:()=>window.actualDashboard?.measure?.()||'units',set:v=>window.actualDashboard?.setMeasure?.(v),enumerable:true});
 Object.defineProperty(ui,'distributorMetric',{get:()=>ui.metric,set:()=>{},enumerable:false});Object.defineProperty(ui,'channelMetric',{get:()=>ui.metric,set:()=>{},enumerable:false});
@@ -33,8 +33,8 @@ function provisionalNote(){return records().length&&payload?.seed?.notes?.find?.
 function badge(s){return [s.estimated?'Estimated value included':'',s.approximate?'Available totals · approved scope':'',s.value==null?s.reason:''].filter(Boolean).join(' · ')}
 function buttons(id,items,chosen,attr){return `<div class="control-group" role="group" aria-label="${e(id)}">${items.map(([v,label])=>`<button class="choice ${chosen===v?'chosen':''}" aria-pressed="${chosen===v}" ${attr}="${e(v)}">${e(label)}</button>`).join('')}</div>`}
 // V68 S-32: every chart has a Table view built from the chart's own tooltips, so the values are identical.
-const CHART_TABLES=[['trend','Monthly performance'],['company-ppg-chart','Monthly growth (PPG%)'],['distributors','Distributor mix'],['company-channels','Sales-type mix'],['timeline','Sales trend'],['movement-chart','What drove the change'],['breakdown-products-chart','Breakdown by product'],['breakdown-lines-chart','Breakdown by line'],['forecast-chart','Cumulative path, Jan–Dec']],tableViews=new Set();
-function chartTableHTML(id,caption){const host=$(id),tips=[...new Set([...host.querySelectorAll('[data-tip]')].map(el=>el.dataset.tip))],rows=tips.map(t=>t.split(' · ')),cols=Math.max(1,...rows.map(r=>r.length));if(!rows.length)return `<p class="chart-note">No plotted values to tabulate.</p>`;return `<div class="table-wrap chart-table-wrap"><table class="chart-table"><caption>${e(caption)} · plotted values</caption><thead><tr><th scope="col">Item</th>${Array.from({length:cols-1},(_,i)=>`<th scope="col">${i===0?'Value':'Detail '+i}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><th scope="row">${e(r[0])}</th>${Array.from({length:cols-1},(_,i)=>`<td>${e(r[i+1]??'—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+const CHART_TABLES=[['trend','Monthly performance'],['distributors','Distributor mix'],['company-channels','Sales-type mix'],['movement-chart','What drove the change'],['breakdown-products-chart','Breakdown by product'],['breakdown-lines-chart','Breakdown by line'],['forecast-chart','Cumulative path, Jan–Dec']],tableViews=new Set();
+function chartTableHTML(id,caption){if(id==='trend')return monthlyTableHTML();const host=$(id),tips=[...new Set([...host.querySelectorAll('[data-tip]')].map(el=>el.dataset.tip))],rows=tips.map(t=>t.split(' · ')),cols=Math.max(1,...rows.map(r=>r.length));if(!rows.length)return `<p class="chart-note">No plotted values to tabulate.</p>`;return `<div class="table-wrap chart-table-wrap"><table class="chart-table"><caption>${e(caption)} · plotted values</caption><thead><tr><th scope="col">Item</th>${Array.from({length:cols-1},(_,i)=>`<th scope="col">${i===0?'Value':'Detail '+i}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><th scope="row">${e(r[0])}</th>${Array.from({length:cols-1},(_,i)=>`<td>${e(r[i+1]??'—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
 function applyChartTables(){for(const [id,caption]of CHART_TABLES){const host=$(id);if(!host)continue;const card=host.closest('.forecast-chart-wrap,article,.panel,.bd-card')||host.parentElement;let btn=card.querySelector(`[data-chart-table="${id}"]`);if(!btn){const head=card.querySelector(':scope > .panel-title, :scope > .bd-card-head, :scope > .bd-card-title')||null;const html=`<button type="button" class="chart-table-toggle" data-chart-table="${id}" aria-pressed="false" aria-controls="${id}-table">Table</button>`;if(head)head.insertAdjacentHTML('beforeend',html);else host.insertAdjacentHTML('beforebegin',html);btn=card.querySelector(`[data-chart-table="${id}"]`);btn.onclick=()=>{tableViews.has(id)?tableViews.delete(id):tableViews.add(id);applyChartTables()}}
   const on=tableViews.has(id);btn.setAttribute('aria-pressed',String(on));btn.textContent=on?'Chart':'Table';let table=$(id+'-table');if(!table){host.insertAdjacentHTML('afterend',`<div id="${id}-table" class="chart-table-host" hidden></div>`);table=$(id+'-table')}host.hidden=on;table.hidden=!on;if(on)table.innerHTML=chartTableHTML(id,caption)}}
 function panel(title,content,id=''){return `<article class="panel"${id?` id="${id}"`:''}><div class="panel-title"><div><h2>${title}</h2></div></div>${content}</article>`}
@@ -99,15 +99,13 @@ function render(){
 // V69 U-02: Overview panels live in one 12-column grid; the registry (public/panel-registry.js) decides visibility and spans.
 const PANEL_BODIES={
  attention:()=>panel('Needs attention','<p class="chart-note">Rules describe the selected data. They do not establish the cause.</p><div id="attention-list" class="attention-list"></div>'),
- ppg:()=>panel('Monthly growth (PPG%)','<div id="company-ppg-chart"></div>'),
  mixDistributor:()=>panel('Distributor mix','<div id="distributors-measure" class="mix-measure"></div><div id="distributors"></div>'),
  mixChannel:()=>panel('Sales-type mix','<div id="company-channels-measure" class="mix-measure"></div><div id="company-channels"></div>'),
  singleProduct:()=>'<article class="panel"></article>'
 };
 const RENDERERS={
- monthly:()=>{},
+ monthly:ctx=>renderMonthlyPanel(ctx),
  attention:()=>renderAttention(),
- ppg:ctx=>renderRateCharts(ctx.selection,ctx.months,ui.metric,'company'),
  mixDistributor:ctx=>renderMixChart('distributors','distributor',ctx.selection,ctx.months),
  mixChannel:ctx=>renderMixChart('company-channels','channel',ctx.selection,ctx.months),
  singleProduct:ctx=>renderProductView({product:ctx.product,month:null,metric:ui.metric},'single')
@@ -265,10 +263,7 @@ function rateChart(rows,achievement,id){
 }
 function renderRateCharts(f,chosen,metric,prefix){const d=dashboard(),products=selectedProducts(d,f),rows=chosen.map(m=>{const cur=summary(d.snapshot.year,[m],metric,f),prior=summary(d.snapshot.year-1,[m],metric,f),t=target(products,metric,[m],false,f);return {name:ms[m-1],ach:cur.value!=null&&t>0?cur.value/t*100:null,ppg:growth(cur,prior,d.snapshot.year-1,d.snapshot.year).ppg}}),allowed=growthAllowed(d.snapshot.year-1,d.snapshot.year);for(const [id,key]of [['achievement','ach'],['ppg','ppg']]){const node=$(prefix+'-'+id+'-chart');if(!node)continue;node.innerHTML=key==='ppg'&&!allowed.ok?`<p class="empty-chart withheld-note">${e(allowed.reason)}</p>`:rateChart(rows.map(r=>({name:r.name,value:r[key]})),key==='ach',prefix+'-'+id+'-chart')}}
 function renderExisting(){
- const d=dashboard(),legend=$('trend').closest('article').querySelector('.progress-legend');if(!legend.dataset.v68){legend.innerHTML=MONTHLY_LEGEND;legend.dataset.v68='1'}legend.hidden=ui.monthlyPY||ui.monthlyCumulative;$('monthly-controls').innerHTML='';$('monthly-controls').insertAdjacentHTML('beforeend',buttons('Prior year',[['off','Actual + target'],['on','Add previous year']],ui.monthlyPY?'on':'off','data-monthly-py')+buttons('Monthly or cumulative',[['monthly','Monthly'],['cumulative','Cumulative']],ui.monthlyCumulative?'cumulative':'monthly','data-monthly-view'));
- if(ui.monthlyCumulative){const metric=window.actualDashboard.monthlyMetric();$('trend').innerHTML=cumulativeChart(window.actualDashboard.monthlyData(),metric);$('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'} · Cumulative actual vs cumulative monthly target`}
- else if(ui.monthlyPY&&provisional(d.snapshot.year-1)){$('trend').insertAdjacentHTML('afterbegin',`<p class="chart-note withheld-note">Previous-year bars withheld: ${d.snapshot.year-1} data is provisional.</p>`)}
- else if(ui.monthlyPY){$('trend').innerHTML=pairedChart(monthPairs(statesMetric('monthly')),statesMetric('monthly'),d.snapshot.year,d.snapshot.year-1,true);$('monthly-context').textContent=`${periodLabel()} · ${statesMetric('monthly')} · Monthly targets; independent of global target basis`}
+ const d=dashboard();
  
  $('distributors-controls').innerHTML='';$('distributors-controls').insertAdjacentHTML('beforeend',buttons('Distributor view',[['mix','Mix'],['compare','Previous year']],ui.distributorMode,'data-distributor-view'));
  if(ui.distributorMode==='compare'){const f=d.selection,names=[...new Set(scopeRecords(records(),f).filter(r=>r.dataset==='actual'&&[d.snapshot.year,d.snapshot.year-1].includes(r.year)&&d.months.includes(r.month)).map(r=>r.distributor))].sort(),metric=statesMetric('distributors');$('distributors').innerHTML=pairedRankedChart(names.map(name=>({name,current:summary(d.snapshot.year,d.months,metric,{...f,distributor:[name]}).value,previous:summary(d.snapshot.year-1,d.months,metric,{...f,distributor:[name]}).value})),metric,d.snapshot.year,d.snapshot.year-1)}
@@ -281,14 +276,90 @@ function renderExisting(){
  $('achievements').closest('article').querySelector('.chart-note').textContent=ui.signedGap?'Signed variance, in the selected measure; no contribution percentages.':'Percentages show each product’s share of the selected total target gap.';
  // Company denominators in Portfolio remain explicit. Detail opens without destroying filters.
 }
-// V68 S-14: cumulative actual bars against the cumulative monthly target line; unknown months stop the running sum.
-function cumulativeChart(data,metric){if(!data.length)return '<p class="empty-chart">Select at least one month.</p>';let a=0,t=0,aOk=true,tOk=true;const rows=data.map(d=>{aOk=aOk&&Number.isFinite(d.actual);tOk=tOk&&Number.isFinite(d.target);a+=aOk?d.actual:0;t+=tOk?d.target:0;return {month:d.month,actual:aOk?a:null,target:tOk?t:null}});
- const W=plotWidth('trend'),L=62,R=W-24,T=34,B=222,axis=niceAxis(rows.flatMap(r=>[r.actual,r.target]),4),Y=v=>B-(v-axis.min)/(axis.max-axis.min)*(B-T),step=(R-L)/rows.length,bw=Math.min(38,step*.52),stride=labelStride(rows.length,R-L),last=rows.at(-1),ytd=last.actual!=null&&last.target>0?last.actual/last.target*100:null;
- let svg=svgPlot(W,270,'Cumulative actual and cumulative monthly target');for(const v of axisTicks(axis))svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e9eff2"/><text class="axis-tick" data-tick="${v}" x="${L-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`;
- rows.forEach((r,i)=>{const x=L+step*(i+.5),tip=`${ms[r.month-1]} cumulative · actual ${amt(r.actual,metric)} · target ${amt(r.target,metric)}`;svg+=`<g role="img" tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}" data-cumulative="${r.actual??''}">${r.actual==null?`<text x="${x}" y="${Y(0)-8}" text-anchor="middle" font-size="12" fill="#5b6b7f">—</text>`:`<rect x="${x-bw/2}" y="${Math.min(Y(r.actual),Y(0))}" width="${bw}" height="${Math.max(.5,Math.abs(Y(r.actual)-Y(0)))}" rx="3" fill="#245fa7"/>`}</g>${i%stride===0||i===rows.length-1?`<text x="${x}" y="250" text-anchor="middle" font-size="12" fill="#5b6b7f">${ms[r.month-1]}</text>`:''}`});
+// ── V69 U-04: the one Monthly chart (replaces Monthly performance, Sales trend, the PPG panel and the value timeline) ──
+function tgt(ctx,products,metric,chosen,annual=false,filters=ctx.selection){return targetSum(records(),{year:ctx.focusYear},products,chosen,metric,filters,annual)}
+function ctxSummary(ctx,year,chosen,metric=ui.metric,filters=ctx.selection){const key=JSON.stringify(['v69',ctx.yearMode,year,chosen,metric,filters]);if(!cache.has(key))cache.set(key,comparableSummary(ctx.records,year,chosen,metric,filters));return cache.get(key)}
+function monthlyRows(ctx,metric=ui.metric){
+ const py=ctx.compareYear!=null&&ctx.growthOk;
+ return ctx.months.map(m=>{const actual=ctxSummary(ctx,ctx.focusYear,[m],metric).value,target=ctx.hasTargets?tgt(ctx,ctx.products,metric,[m]):null,previous=py?ctxSummary(ctx,ctx.compareYear,[m],metric).value:null,ch=py?changeBetween({value:actual},{value:previous}):{ppg:null};return {month:m,actual,target,previous,pct:actual!=null&&target>0?actual/target*100:null,ppg:ch.ppg}});
+}
+function monthlyCompareOptions(ctx){return [ctx.hasTargets&&['target','Target'],ctx.compareYear!=null&&ctx.growthOk&&['py','Previous year'],['none','None']].filter(Boolean)}
+function monthlyCompare(ctx){const opts=monthlyCompareOptions(ctx).map(o=>o[0]);return opts.includes(ui.monthlyCompare)?ui.monthlyCompare:opts[0]}
+function legendHTML(mode,ctx){
+ const sw=(cls,text)=>`<span class="lg-item"><i class="lg-swatch ${cls}"></i>${e(text)}</span>`,line=(text,dash='')=>`<span class="lg-item"><svg class="lg-line" width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="#1f3555" stroke-width="2" ${dash?`stroke-dasharray="${dash}"`:''}/></svg>${e(text)}</span>`;
+ if(ui.monthlyCumulative)return sw('toward','Cumulative '+ctx.focusYear)+(mode==='target'?line('Cumulative target','6 4'):mode==='py'?line('Cumulative '+ctx.compareYear,'6 4'):'');
+ if(mode==='target')return sw('toward','Toward target')+sw('over','Above target')+line('Monthly target');
+ if(mode==='py')return sw('previous',String(ctx.compareYear))+sw('toward',String(ctx.focusYear))+'<span class="lg-item lg-note">% = growth vs '+ctx.compareYear+'</span>';
+ return sw('toward',String(ctx.focusYear));
+}
+function cumulativeChart(data,metric,compare='target',ctx=null){
+ if(!data.length)return '<p class="empty-chart">Select at least one month.</p>';
+ let a=0,t=0,aOk=true,tOk=true;const key=compare==='py'?'previous':'target';
+ const rows=data.map(d=>{aOk=aOk&&Number.isFinite(d.actual);tOk=tOk&&Number.isFinite(d[key]);a+=aOk?d.actual:0;t+=tOk?d[key]:0;return {month:d.month,actual:aOk?a:null,target:compare!=='none'&&tOk?t:null}});
+ const W=plotWidth('trend'),L=62,R=W-24,T=34,B=222,axis=niceAxis(rows.flatMap(r=>[r.actual,r.target]),4),Y=v=>B-(v-axis.min)/(axis.max-axis.min)*(B-T),step=(R-L)/rows.length,bw=Math.min(38,step*.52),stride=labelStride(rows.length,R-L),last=rows.at(-1),ratio=last.actual!=null&&last.target>0?last.actual/last.target*100:null,word=compare==='py'?'cumulative '+(ctx?.compareYear??'previous year'):'cumulative target';
+ let svg=svgPlot(W,270,'Cumulative actual and '+word);for(const v of axisTicks(axis))svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e9eff2"/><text class="axis-tick" data-tick="${v}" x="${L-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`;
+ rows.forEach((r,i)=>{const x=L+step*(i+.5),tip=`${ms[r.month-1]} cumulative · actual ${r.actual==null?'unknown':amt(r.actual,metric)}${compare==='none'?'':' · '+word+' '+amt(r.target,metric)}`;svg+=`<g role="img" tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}" data-cumulative="${r.actual??''}">${r.actual==null?`<rect class="unknown-slot" x="${x-bw/2}" y="${T+(B-T)*.45}" width="${bw}" height="${(B-T)*.55}" rx="3" fill="none" stroke="#9aa5b4" stroke-dasharray="4 3"/><text class="unknown-label" x="${x}" y="${T+(B-T)*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">unknown</text>`:`<rect x="${x-bw/2}" y="${Math.min(Y(r.actual),Y(0))}" width="${bw}" height="${Math.max(.5,Math.abs(Y(r.actual)-Y(0)))}" rx="3" fill="#245fa7"/>`}</g>${i%stride===0||i===rows.length-1?`<text x="${x}" y="250" text-anchor="middle" font-size="12" fill="#5b6b7f">${ms[r.month-1]}</text>`:''}`});
  const pts=rows.map((r,i)=>r.target==null?null:`${L+step*(i+.5)},${Y(r.target)}`).filter(Boolean);if(pts.length>1)svg+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#1f3555" stroke-width="2" stroke-dasharray="6 4"/>`;else if(pts.length)svg+=`<circle cx="${pts[0].split(',')[0]}" cy="${pts[0].split(',')[1]}" r="3" fill="#1f3555"/>`;
- if(ytd!=null){const x=L+step*(rows.length-.5);svg+=`<text class="cumulative-ytd" x="${Math.min(x,R-4)}" y="${Y(Math.max(last.actual,last.target))-10}" text-anchor="end" font-size="12" font-weight="700" fill="#1f3555">${ytd.toFixed(0)}% of cumulative target</text>`}
- return `<div class="legend progress-legend"><span class="lg-item"><i class="lg-swatch toward"></i>Cumulative actual</span><span class="lg-item"><svg class="lg-line" width="22" height="10" aria-hidden="true"><line x1="1" x2="21" y1="5" y2="5" stroke="#1f3555" stroke-width="2" stroke-dasharray="6 4"/></svg>Cumulative target</span></div>`+svg+'</svg>'}
+ if(ratio!=null){const x=L+step*(rows.length-.5);svg+=`<text class="cumulative-ytd" x="${Math.min(x,R-4)}" y="${Y(Math.max(last.actual,last.target))-10}" text-anchor="end" font-size="12" font-weight="700" fill="#1f3555">${compare==='py'?(ratio-100>=0?'+':'')+(ratio-100).toFixed(0)+'% vs '+(ctx?.compareYear??'previous year'):ratio.toFixed(0)+'% of cumulative target'}</text>`}
+ return svg+'</svg>';
+}
+// Generic multi-line chart: one line per series over the selected months (split by product, multi-year lines). Gaps where unknown.
+const SERIES_COLORS=['#245fa7','#c0782f','#1f9a8a','#8a63c2','#b0533f','#5d7fa6'],SERIES_DASH=['0','7 3','2 3','10 3 2 3','5 3','12 3 3 3'];
+function linesChart(series,monthsList,metric,id,label){
+ const W=plotWidth(id,900),L=62,R=W-20,T=28,B=240,vals=series.flatMap(s=>s.values).filter(Number.isFinite),axis=niceAxis(vals,4),X=i=>monthsList.length===1?(L+R)/2:L+i*(R-L)/(monthsList.length-1),Y=v=>B-(v-axis.min)/(axis.max-axis.min)*(B-T),stride=labelStride(monthsList.length,R-L);
+ let svg=svgPlot(W,280,label);for(const v of axisTicks(axis))svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e9eff2"/><text class="axis-tick" data-tick="${v}" x="${L-10}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`;
+ monthsList.forEach((m,i)=>{if(i%stride===0||i===monthsList.length-1)svg+=`<text x="${X(i)}" y="${B+24}" text-anchor="middle" font-size="12" fill="#5b6b7f">${ms[m-1]}</text>`});
+ series.forEach((s,k)=>{const color=s.color||SERIES_COLORS[k%SERIES_COLORS.length],dash=s.dash??SERIES_DASH[k%SERIES_DASH.length];let seg=[];const flush=()=>{if(seg.length>1)svg+=`<polyline data-series="${e(s.name)}" points="${seg.join(' ')}" fill="none" stroke="${color}" stroke-width="2.6" stroke-dasharray="${dash}" stroke-linejoin="round"/>`;seg=[]};
+  s.values.forEach((v,i)=>{if(!Number.isFinite(v)){flush();return}if(i&&monthsList[i]!==monthsList[i-1]+1)flush();seg.push(X(i)+','+Y(v))});flush();
+  s.values.forEach((v,i)=>{const tip=`${s.name} · ${ms[monthsList[i]-1]} · ${Number.isFinite(v)?amt(v,metric):'unknown'}`;if(Number.isFinite(v))svg+=`<circle role="img" tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}" cx="${X(i)}" cy="${Y(v)}" r="4" fill="white" stroke="${color}" stroke-width="2"></circle>`})});
+ return svg+'</svg>';
+}
+function seriesLegend(series,attr=null,hidden=new Set()){return '<div class="series-legend">'+series.map((s,k)=>{const color=s.color||SERIES_COLORS[k%SERIES_COLORS.length],dash=s.dash??SERIES_DASH[k%SERIES_DASH.length],sw=`<svg width="30" height="12" aria-hidden="true"><line x1="1" x2="29" y1="6" y2="6" stroke="${color}" stroke-width="2.6" stroke-dasharray="${dash}"/></svg>`;return attr?`<button type="button" ${attr}="${e(s.key??s.name)}" aria-pressed="${!hidden.has(s.key??s.name)}">${sw}${e(s.name)}</button>`:`<span>${sw}${e(s.name)}</span>`}).join('')+'</div>'}
+// One-month selection: a comparison card (Actual / Target / Previous year), never a lonely full-width bar (E-rule 3).
+function monthCardHTML(row,ctx,metric){
+ const items=[['Actual '+ctx.focusYear,row.actual,'#245fa7'],ctx.hasTargets&&['Target',row.target,'#1f3555'],ctx.compareYear!=null&&ctx.growthOk&&['Previous year · '+ctx.compareYear,row.previous,'#b8cadd']].filter(Boolean),max=Math.max(1,...items.map(i=>Math.abs(i[1]||0)));
+ const chips=[row.pct!=null&&`<span class="delta-chip ${achStatus(row.pct)==='good'?'up':achStatus(row.pct)==='bad'?'down':'neutral'}">${n(row.pct)}% of target</span>`,row.ppg!=null&&`<span class="delta-chip ${row.ppg>=0?'up':'down'}">${row.ppg>=0?'▲ +':'▼ '}${row.ppg.toFixed(1)}% vs ${ctx.compareYear}</span>`,!ctx.growthOk&&ctx.growthReason&&`<span class="delta-chip neutral">${e(ctx.growthReason.replace(/^Growth withheld: /,'Growth withheld · '))}</span>`].filter(Boolean).join('');
+ return `<div class="month-card"><p class="month-card-title">${ms[row.month-1]} ${ctx.focusYear}</p>${items.map(([label,v,color])=>{const tip=`${label} · ${v==null?'unknown':amt(v,metric)}`;return `<div class="month-card-row" data-tip="${e(tip)}" tabindex="0"><span class="mc-label">${e(label)}</span><span class="mc-track"><i style="width:${v==null?0:Math.abs(v)/max*100}%;background:${color}"></i></span><b>${v==null?'unknown':e(amt(v,metric))}</b></div>`}).join('')}<div class="month-card-chips">${chips}</div></div>`;
+}
+function renderMonthlyPanel(ctx){
+ const metric=ui.metric,mode=monthlyCompare(ctx),node=$('trend'),article=$('panel-monthly');
+ article.querySelector('h2').textContent=ctx.yearMode==='multi'?'Monthly sales by year':'Monthly sales';
+ const controls=[];
+ if(ctx.yearMode==='multi'){renderMultiYearMonthly(ctx);return}
+ const opts=monthlyCompareOptions(ctx);if(opts.length>1)controls.push(buttons('Compare with',opts,mode,'data-monthly-compare'));
+ if(ctx.monthCount>1)controls.push(buttons('Monthly or cumulative',[['monthly','Monthly'],['cumulative','Cumulative']],ui.monthlyCumulative?'cumulative':'monthly','data-monthly-view'));
+ const splitable=ctx.productMode==='many'&&ctx.selection.product.length>=2&&ctx.selection.product.length<=3&&ctx.monthCount>1;
+ if(splitable)controls.push(buttons('Split by product',[['off','Total'],['on','Split by product']],ui.monthlySplit?'on':'off','data-monthly-split'));
+ $('monthly-controls').innerHTML=controls.join('');
+ const legend=article.querySelector('.progress-legend'),rows=monthlyRows(ctx,metric),unknown=rows.filter(r=>r.actual==null).length,otherUnknown=ctx.unknownMonths[ctx.other].length;
+ let note='';
+ if(unknown*2>rows.length&&!otherUnknown)note=`<p class="chart-note unknown-note">${unknown} of ${rows.length} months have unknown ${metric}. <button type="button" class="link-button" data-measure-switch="${ctx.other}">Switch to ${ctx.other==='value'?'Value':'Units'} (complete)</button></p>`;
+ else if(unknown)note=`<p class="chart-note unknown-note">Unknown ${metric} in ${e(rows.filter(r=>r.actual==null).map(r=>ms[r.month-1]).join(', '))}: shown as gaps, not zero.</p>`;
+ if(ctx.monthCount===1){legend.hidden=true;node.innerHTML=monthCardHTML(rows[0],ctx,metric);$('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'}`;return}
+ if(splitable&&ui.monthlySplit){
+  const series=ctx.selection.product.map(p=>({name:p,values:ctx.months.map(m=>ctxSummary(ctx,ctx.focusYear,[m],metric,{...ctx.selection,product:[p]}).value)}));
+  legend.hidden=false;legend.innerHTML=seriesLegend(series);node.innerHTML=linesChart(series,ctx.months,metric,'trend','Monthly sales, one line per selected product');
+  $('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'} · one line per product`;return;
+ }
+ legend.hidden=false;legend.innerHTML=legendHTML(mode,ctx);
+ node.innerHTML=note+(ui.monthlyCumulative?cumulativeChart(rows,metric,mode,ctx):window.actualDashboard.monthlyChartHTML(rows,metric,plotWidth('trend'),{compare:mode,maxBar:ctx.monthCount===2?64:38,pyYear:ctx.compareYear}));
+ $('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'}${mode==='target'?' · vs monthly target':mode==='py'?' · vs '+ctx.compareYear:''}${ui.monthlyCumulative?' · cumulative':''}`;
+}
+function renderMultiYearMonthly(){}
+// S-32 table for the Monthly chart: Month, PY, CY, PPG %, Target, Ach. % (columns that apply), Total row, Export Excel.
+function monthlyTableData(ctx,metric=ui.metric){
+ if(ctx.yearMode==='multi'){const years=ctx.years,rows=ctx.months.map(m=>[ms[m-1],...years.map(y=>ctxSummary(ctx,y,[m],metric).value)]);rows.push(['Total',...years.map(y=>ctxSummary(ctx,y,ctx.months,metric).value)]);return {headers:['Month',...years.map(String)],kinds:['text',...years.map(()=>'number')],rows}}
+ const py=ctx.compareYear!=null&&ctx.growthOk,t=ctx.hasTargets,data=monthlyRows(ctx,metric),tot=ctxSummary(ctx,ctx.focusYear,ctx.months,metric).value,totPrev=py?ctxSummary(ctx,ctx.compareYear,ctx.months,metric).value:null,totT=t?tgt(ctx,ctx.products,metric,ctx.months):null,totPpg=py?changeBetween({value:tot},{value:totPrev}).ppg:null;
+ const headers=['Month',...(py?[String(ctx.compareYear)]:[]),String(ctx.focusYear),...(py?['PPG %']:[]),...(t?['Target','Ach. %']:[])],kinds=['text',...(py?['number']:[]),'number',...(py?['percent']:[]),...(t?['number','percent']:[])];
+ const line=(label,cy,prev,ppg,target,ach)=>[label,...(py?[prev]:[]),cy,...(py?[ppg]:[]),...(t?[target,ach]:[])];
+ const rows=data.map(r=>line(ms[r.month-1],r.actual,r.previous,r.ppg,r.target,r.pct));rows.push(line('Total',tot,totPrev,totPpg,totT,tot!=null&&totT>0?tot/totT*100:null));
+ return {headers,kinds,rows,reason:!py&&ctx.compareYear!=null?ctx.growthReason:null};
+}
+function monthlyTableHTML(){
+ const ctx=viewContext(),{headers,kinds,rows}=monthlyTableData(ctx),cell=(v,k)=>v==null?`<td data-reason="Unknown, not zero" title="Unknown, not zero">—</td>`:k==='percent'?`<td>${v>0&&headers.includes('PPG %')?'':''}${v.toFixed(1)}%</td>`:k==='text'?`<th scope="row">${e(v)}</th>`:`<td>${e(n(v))}</td>`;
+ return `<div class="chart-table-actions"><button type="button" data-monthly-export>Export Excel</button></div><div class="table-wrap chart-table-wrap"><table class="chart-table monthly-table"><caption>Monthly sales · ${e(periodLabel())} · ${ui.metric==='value'?'EGP':'Units'}</caption><thead><tr>${headers.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr${r[0]==='Total'?' class="total-row"':''}>${r.map((v,i)=>cell(v,kinds[i])).join('')}</tr>`).join('')}</tbody></table></div><p class="chart-note">— = unknown, never zero.</p>`;
+}
+function exportMonthlyTable(){const ctx=viewContext(),{headers,kinds,rows}=monthlyTableData(ctx);const bytes=tableWorkbook({title:'Nerhadou · Monthly sales',subtitle:[periodLabel(),scopeText(),ui.metric==='value'?'EGP value':'Units'].join(' · '),columns:headers.map((label,i)=>({label,width:i?18:14,kind:kinds[i]})),rows:rows.map(r=>r.map((v,i)=>kinds[i]==='percent'&&v!=null?v/100:v)),notes:['Exported '+new Date().toISOString()+' · Data revision '+payload?.revision+'. Unknown values stay blank, never zero.','PPG % = (current ÷ previous − 1) × 100 for the same month. Growth involving 2023 is withheld.']});const url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),a=document.createElement('a');a.href=url;a.download='nerhadou-monthly-sales-'+ctx.years.join('-')+'-'+ui.metric+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function statesMetric(){return ui.metric}
 function buttonProduct(p){return `<button class="product-link" data-product-detail="${e(p)}">${e(p)}</button>`}
 function wireDrilldowns(){
@@ -380,7 +451,7 @@ function onClick(ev){
  else if(b.dataset.distributorMetric){ui.distributorMetric=b.dataset.distributorMetric;if(drawer)renderDrawer()}
  else if(b.dataset.channelMetric){ui.channelMetric=b.dataset.channelMetric;if(drawer)renderDrawer()}
 
- else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';
+ else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';else if(b.dataset.monthlyCompare)ui.monthlyCompare=b.dataset.monthlyCompare;else if(b.dataset.monthlySplit)ui.monthlySplit=b.dataset.monthlySplit==='on';else if(b.dataset.measureSwitch)ui.metric=b.dataset.measureSwitch;else if(b.dataset.monthlyExport){exportMonthlyTable();return}
  else if(b.dataset.monthlyView)ui.monthlyCumulative=b.dataset.monthlyView==='cumulative';
  else if(b.dataset.distributorView)ui.distributorMode=b.dataset.distributorView;
  else if(b.dataset.leaderSort)ui.leaderSort=b.dataset.leaderSort;

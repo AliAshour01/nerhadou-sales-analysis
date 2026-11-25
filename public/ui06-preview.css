@@ -489,3 +489,17 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .measure-field{display:flex;flex-direction:column;gap:6px;align-self:end}
 #sales .measure-field .measure-label{font-size:12px;font-weight:600;color:var(--text-muted,#5b6b7f)}
 #sales .measure-field .control-group{display:inline-flex}
+#sales .lg-swatch.previous{background:#b8cadd}
+#sales .lg-note{color:var(--text-muted,#5b6b7f)}
+#sales .link-button{background:none;border:0;padding:0;color:#1d4ed8;font-weight:600;text-decoration:underline;cursor:pointer;font:inherit}
+#sales .unknown-note{margin:0 0 6px}
+#sales .series-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:2px 0 6px;font-size:12px;color:#38516f}
+#sales .series-legend>span,#sales .series-legend>button{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:2px 0;font:inherit;color:inherit;cursor:default}
+#sales .series-legend>button{cursor:pointer}#sales .series-legend>button[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+#sales .month-card{display:flex;flex-direction:column;gap:12px;padding:6px 2px 4px}
+#sales .month-card-title{margin:0;font-weight:700;color:#233653}
+#sales .month-card-row{display:grid;grid-template-columns:minmax(110px,30%) 1fr auto;align-items:center;gap:12px;font-size:13px;color:#38516f}
+#sales .mc-track{height:18px;background:#eef2f7;border-radius:5px;overflow:hidden}#sales .mc-track i{display:block;height:100%;border-radius:5px}
+#sales .month-card-row b{font-variant-numeric:tabular-nums;color:#233653}
+#sales .month-card-chips{display:flex;flex-wrap:wrap;gap:8px}
+#sales .chart-table-actions{display:flex;justify-content:flex-end;margin:0 0 8px}

@@ -35,11 +35,40 @@ function monthlyData(){const c=context('monthly'),rows=panelRows('monthly');retu
 function chartWidth(id,fallback=640){const node=typeof id==='string'?$(id):id;const measured=node?.getBoundingClientRect?.().width||node?.clientWidth;return Math.max(260,Math.round(measured>0?measured:fallback))}
 function plotSVG(width,height,label,extra=''){return `<svg class="responsive-plot ${extra}" style="width:${width}px;height:${height}px;max-width:none" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label)}">`}
 function monthStride(count,width){return Math.max(1,Math.ceil(count/Math.max(1,Math.floor(width/52))))}
-function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend')){
- const c={metric};if(!data.length)return '<p class="empty-chart">Select at least one month.</p>';const axis=axisFor([...data.map(d=>d.actual),...data.map(d=>d.target||0)]),width=chartPixels,left=62,right=width-16,top=32,bottom=222,plot=bottom-top,Y=v=>bottom-(v-axis.min)/(axis.max-axis.min)*plot,zero=Y(0),step=(right-left)/data.length,bw=Math.min(38,step*0.52);
- const stride=monthStride(data.length,right-left);let svg=plotSVG(width,270,'Monthly actual columns with monthly target markers');
+// V69 U-04: one Monthly chart. compare = 'target' (bars + target marker + achievement %), 'py' (paired bars,
+// PPG % label above each pair), 'none' (bars + value). Unknown months are empty labelled slots, never 0.
+function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
+ const compare=opts.compare||(data.some(d=>d.target>0)?'target':'none'),maxBar=opts.maxBar||38,c={metric};
+ if(!data.length)return '<p class="empty-chart">Select at least one month.</p>';
+ const known=v=>v!=null&&Number.isFinite(v);
+ const axis=axisFor([...data.map(d=>known(d.actual)?d.actual:0),...data.map(d=>compare==='target'&&known(d.target)?d.target:0),...data.map(d=>compare==='py'&&known(d.previous)?d.previous:0)]),width=chartPixels,left=62,right=width-16,top=34,bottom=222,plot=bottom-top,Y=v=>bottom-(v-axis.min)/(axis.max-axis.min)*plot,zero=Y(0),step=(right-left)/data.length,pair=compare==='py',bw=Math.min(pair?maxBar*.62:maxBar,step*(pair?.3:.52));
+ const stride=monthStride(data.length,right-left);let svg=plotSVG(width,270,compare==='py'?'Monthly sales, current and previous year, with growth percentages':compare==='target'?'Monthly actual columns with monthly target markers':'Monthly sales columns');
  axisTicks(axis).forEach(v=>svg+=`<line x1="${left}" y1="${Y(v)}" x2="${right}" y2="${Y(v)}" stroke="${v===0?'#a9bcc5':'#e9eff2'}"/><text x="${left-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`);
- data.forEach((d,i)=>{const x=left+step*(i+.5),tip=months[d.month-1]+': '+amount(d.actual,c.metric)+' actual; '+(d.target===null?'target unallocated':amount(d.target,c.metric)+' monthly target')+(d.pct===null?'':' · '+d.pct.toFixed(1)+'%');const capped=d.target>0?Math.min(d.actual,d.target):d.actual;svg+=`<g role="img" tabindex="0" aria-label="${esc(tip)}" data-tip="${esc(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(capped),zero)}" width="${bw}" height="${Math.max(.5,Math.abs(Y(capped)-zero))}" rx="3" fill="${d.actual<0?'#ba685d':'#245fa7'}"/>`;if(d.target>0&&d.actual>d.target)svg+=`<rect x="${x-bw/2}" y="${Y(d.actual)}" width="${bw}" height="${Y(d.target)-Y(d.actual)}" rx="3" fill="#d6a15e"/>`;if(d.target>0)svg+=`<line class="target-marker" x1="${x-bw/2-6}" x2="${x+bw/2+6}" y1="${Y(d.target)}" y2="${Y(d.target)}" stroke="#1f3555" stroke-width="2"/>`;svg+=`</g>${i%stride===0||i===data.length-1?`<text class="bar-pct" x="${x}" y="${Y(Math.max(d.actual,d.target>0?d.target:-Infinity))-8}" text-anchor="middle" font-size="12" font-weight="600" fill="#405b78">${d.pct===null?compact(d.actual):d.pct.toFixed(0)+'%'}</text><text x="${x}" y="250" text-anchor="middle" font-size="12" fill="#5b6b7f">${months[d.month-1]}</text>`:''}`});
+ const bar=(x,v,fill,cls='')=>`<rect class="${cls}" x="${x}" y="${Math.min(Y(v),zero)}" width="${bw}" height="${Math.max(.5,Math.abs(Y(v)-zero))}" rx="3" fill="${v<0?'#ba685d':fill}"/>`;
+ const slot=(x,label='unknown')=>`<rect class="unknown-slot" x="${x}" y="${top+plot*.45}" width="${bw}" height="${plot*.55}" rx="3" fill="none" stroke="#9aa5b4" stroke-dasharray="4 3"/><text class="unknown-label" x="${x+bw/2}" y="${top+plot*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">${label}</text>`;
+ data.forEach((d,i)=>{
+  const x=left+step*(i+.5),name=months[d.month-1],a=known(d.actual);
+  const tip=name+': '+(a?amount(d.actual,c.metric):'unknown '+c.metric)+(compare==='py'?' · '+(opts.pyYear||'Previous year')+': '+(known(d.previous)?amount(d.previous,c.metric):'—')+(d.ppg==null?'':' · PPG '+(d.ppg>0?'+':'')+d.ppg.toFixed(1)+'%'):compare==='target'?(d.target==null?' · target unallocated':' · target '+amount(d.target,c.metric))+(d.pct==null?'':' · '+d.pct.toFixed(1)+'%'):'');
+  svg+=`<g role="img" tabindex="0" aria-label="${esc(tip)}" data-tip="${esc(tip)}" data-month="${d.month}">`;
+  let labelTop=zero,label='';
+  if(compare==='py'){
+   const px=x-bw-1.5,cx=x+1.5;
+   svg+=known(d.previous)?bar(px,d.previous,'#b8cadd','py-bar'):'';
+   svg+=a?bar(cx,d.actual,'#245fa7','cy-bar'):slot(cx);
+   labelTop=Math.min(known(d.previous)?Y(Math.max(0,d.previous)):zero,a?Y(Math.max(0,d.actual)):top+plot*.45-14);
+   label=d.ppg==null?'':(d.ppg>0?'+':'')+d.ppg.toFixed(0)+'%';
+  }else if(!a){svg+=slot(x-bw/2);labelTop=null}
+  else{
+   const capped=compare==='target'&&d.target>0?Math.min(d.actual,d.target):d.actual;
+   svg+=bar(x-bw/2,capped,'#245fa7');
+   if(compare==='target'&&d.target>0&&d.actual>d.target)svg+=`<rect x="${x-bw/2}" y="${Y(d.actual)}" width="${bw}" height="${Y(d.target)-Y(d.actual)}" rx="3" fill="#d6a15e"/>`;
+   if(compare==='target'&&d.target>0)svg+=`<line class="target-marker" x1="${x-bw/2-6}" x2="${x+bw/2+6}" y1="${Y(d.target)}" y2="${Y(d.target)}" stroke="#1f3555" stroke-width="2"/>`;
+   labelTop=Y(Math.max(0,d.actual,compare==='target'&&d.target>0?d.target:-Infinity));
+   label=compare==='target'&&d.pct!=null?d.pct.toFixed(0)+'%':compact(d.actual);
+  }
+  svg+='</g>';
+  if(i%stride===0||i===data.length-1)svg+=`${label&&labelTop!=null?`<text class="bar-pct${compare==='py'?' ppg-label':''}" x="${x}" y="${labelTop-8}" text-anchor="middle" font-size="12" font-weight="600" fill="${compare==='py'&&d.ppg<0?'#a4483b':'#405b78'}">${label}</text>`:''}<text x="${x}" y="250" text-anchor="middle" font-size="12" fill="#5b6b7f">${name}</text>`;
+ });
  return svg+'</svg>';
 }
 function renderMonthly(){const c=context('monthly');$('trend').innerHTML=monthlyChartHTML(monthlyData(),c.metric);$('monthly-context').textContent=c.caption+' · '+(c.metric==='value'?'EGP value':'Units')+' · always compared with monthly target.';}
@@ -72,26 +101,6 @@ function comparisonChart(panel,id,focus){
 
 function renderGroups(){comparisonChart('lines','lines-chart','line')}
 function renderRankings(){comparisonChart('leaders','leaders','product');comparisonChart('achievements','achievements','product')}
-function renderTimeline(){
- const c=context('timeline');if(!c.months.length){$('timeline').innerHTML='<p class="empty-chart">Select at least one month.</p>';$('timeline-context').textContent=c.caption;return}const rows=panelRows('timeline');
- // V68 S-34: a month is known for a metric only when it has rows and every amount is a number (missing is never 0).
- const sumKnown=(list,k)=>list.length&&list.every(r=>Number.isFinite(r[k]))?list.reduce((s,r)=>s+r[k],0):null;
- const data=c.months.map(month=>{const list=rows.filter(r=>r.month===month),units=sumKnown(list,'units'),value=sumKnown(list,'value');return {month,units,value,price:units!=null&&value!=null&&units>0?value/units:null}});
- const prior=metric=>window.actualDashboard?.priorMonthly?.(metric,c.months)||null,py={units:prior('units'),value:prior('value')};
- const width=chartWidth('timeline',960),L=68,R=width-20,stride=monthStride(c.end-c.start+1,R-L),X=m=>data.length===1?(L+R)/2:L+(m-c.start)*(R-L)/Math.max(1,c.end-c.start);let svg=plotSVG(width,608,'Aligned monthly units, value and average price line charts with separately labelled scales');
- const segmentsOf=values=>{const out=[];data.forEach((d,i)=>{if(values[i]==null)return;const last=out[out.length-1];if(last&&last[last.length-1].month===d.month-1)last.push({month:d.month,v:values[i]});else out.push([{month:d.month,v:values[i]}])});return out};
- [['units','#245fa7',32,'Sales units','#245fa7'],['value','#8c71b8',230,'Sales value (EGP)','#6b4fa0'],['price','#1f7a6c',428,'Average price (EGP/unit)','#1f6b5f']].forEach(([metric,color,top,title,ink])=>{const own=data.map(d=>d[metric]),pyVals=metric==='price'?null:py[metric]?.values||null,axis=axisFor([...own,...(pyVals||[])].filter(v=>v!=null)),bottom=top+125,Y=v=>bottom-(v-axis.min)/(axis.max-axis.min)*125;
-  svg+=`<text x="16" y="${top-12}" font-size="12" font-weight="600" fill="${ink}">${title}</text>`;
-  if(metric!=='price'){const p=py[metric];svg+=p?.withheld?`<text class="py-note" x="${R}" y="${top-12}" text-anchor="end" font-size="12" fill="#5b6b7f">Previous year withheld: ${esc(p.withheld.replace(/^Growth withheld: /,''))}</text>`:p?.values?`<text class="py-note" x="${R}" y="${top-12}" text-anchor="end" font-size="12" fill="#5b6b7f">— ${D.year} · - - ${p.year}</text>`:''}
-  else svg+=`<text x="${R}" y="${top-12}" text-anchor="end" font-size="12" fill="#5b6b7f">Value ÷ units · gaps where either is unknown</text>`;
-  axisTicks(axis).forEach(v=>svg+=`<line x1="${L}" y1="${Y(v)}" x2="${R}" y2="${Y(v)}" stroke="${v===0?'#b9c7cd':'#edf1f3'}"/><text x="${L-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`);
-  data.filter((d,i)=>i%stride===0||i===data.length-1).forEach(d=>svg+=`<text x="${X(d.month)}" y="${bottom+22}" text-anchor="middle" font-size="12" fill="#5b6b7f">${months[d.month-1]}</text>`);
-  if(pyVals)segmentsOf(pyVals).filter(seg=>seg.length>1).forEach(seg=>svg+=`<path class="py-line" data-series="${metric}-py" d="M${seg.map(p=>X(p.month)+','+Y(p.v)).join(' L')}" fill="none" stroke="${color}" stroke-opacity=".75" stroke-width="2" stroke-dasharray="6 5"/>`);
-  if(pyVals)data.forEach((d,i)=>{if(pyVals[i]!=null)svg+=`<rect class="py-point" data-series="${metric}-py" data-value="${pyVals[i]}" x="${X(d.month)-2.5}" y="${Y(pyVals[i])-2.5}" width="5" height="5" fill="${color}" fill-opacity=".75" data-tip="${esc(months[d.month-1]+' '+py[metric].year+' · '+(metric==='value'?'EGP ':'')+fmt(pyVals[i]))}"></rect>`});
-  segmentsOf(own).filter(seg=>seg.length>1).forEach(seg=>svg+=`<polyline data-series="${metric}" points="${seg.map(p=>X(p.month)+','+Y(p.v)).join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`);
-  data.forEach((d,i)=>{if(own[i]==null)return;const tip=metric==='price'?months[d.month-1]+' · average price EGP '+d.price.toFixed(2)+' per unit':months[d.month-1]+' · '+(d.units==null?'— units':fmt(d.units)+' units')+' · '+(d.value==null?'EGP —':'EGP '+fmt(d.value));svg+=`<circle role="img" data-series="${metric}" data-value="${own[i]}" tabindex="0" aria-label="${esc(tip)}" data-tip="${esc(tip)}" cx="${X(d.month)}" cy="${Y(own[i])}" r="4" fill="white" stroke="${color}" stroke-width="2"></circle>`})});
- $('timeline').innerHTML=svg+'</svg>';$('timeline-context').textContent=c.caption+(data.length===1?' · One reported month; trend requires at least two months.':' · Calendar spacing retained; excluded months are not connected.')
-}
 function tableColumns(){const c=context('portfolio'),cols=[['product','Product']];const add=metric=>{const unit=metric==='units',suffix=unit?'Units':'Value',label=unit?'units':'value (EGP)';cols.push([metric,'Sales '+label+' · '+c.salesLabel],['share'+suffix,unit?'Company units share (%)':'V% of company value'],['target'+suffix,'Target '+label+' · '+c.targetLabel],['ach'+suffix,(c.scope==='year'?'Annual progress':'Achievement')+' · '+label+' (%)'],['gap'+suffix,'Variance (sales − target) · '+label])};if(c.metric==='mix'){add('units');add('value')}else add(c.metric);return cols}
 // V68 S-18: grouped two-row header, pinned Total (selection) row, signed coloured variance, achievement badge + bar,
 // no inner 480px scroller (page scroll + sticky header / first column), card list under 700px, search clear and live count.
@@ -144,7 +153,7 @@ function syncMultiFilters(){for(const key of [...Object.keys(selection),'months'
 // an inactive tab is marked stale and rendered when it is shown.
 const staleParts=new Set();
 function shown(id){const el=$(id);return !!el&&!el.closest?.('[hidden]')}
-function renderVisible(){for(const [key,id,fn]of [['distributor','distributors-context',renderDistributor],['lines','lines-chart',renderGroups],['rankings','leaders',renderRankings],['timeline','timeline',renderTimeline],['table','details',renderTable]]){if(shown(id)){fn();staleParts.delete(key)}else staleParts.add(key)}}
+function renderVisible(){for(const [key,id,fn]of [['distributor','distributors-context',renderDistributor],['lines','lines-chart',renderGroups],['rankings','leaders',renderRankings],['table','details',renderTable]]){if(shown(id)){fn();staleParts.delete(key)}else staleParts.add(key)}}
 function showSection(section){if(section==='heatmap'||section==='lines')section='overview';if(['trends','breakdown','movement'].includes(section))section='analysis';if(!['overview','analysis','portfolio','forecast'].includes(section))section='overview';activeSection=section;hideTooltip();const merged=['view-trends','view-movement',selection.product.size===1?'view-portfolio':'view-breakdown'];document.querySelectorAll('#sales > section[id^="view-"]').forEach(node=>node.hidden=section==='analysis'?!merged.includes(node.id):node.id!=='view-'+section);document.querySelectorAll('[data-section]').forEach(button=>{const active=button.dataset.section===section;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active));button.setAttribute('tabindex',active?'0':'-1')});if(D&&staleParts.size){const before=staleParts.size;renderVisible();if(staleParts.size!==before)wire()}window.actualDashboard?.sectionChanged?.(section)}
 function hideTooltip(){$('tooltip').style.display='none';document.querySelectorAll('[data-dialog-tooltip]').forEach(t=>t.style.display='none')}
 function showTooltip(element,x,y){const tooltip=element.closest?.('dialog')?.querySelector?.('[data-dialog-tooltip]')||$('tooltip');tooltip.textContent=element.dataset.tip;tooltip.style.display='block';const rect=tooltip.getBoundingClientRect(),vw=window.innerWidth||1024,vh=window.innerHeight||768;tooltip.style.left=Math.max(8,Math.min(x+12,vw-rect.width-8))+'px';tooltip.style.top=Math.max(8,Math.min(y+12,vh-rect.height-8))+'px'}
@@ -156,7 +165,7 @@ function wire(){wireMeasure();
  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{desc=sortKey===b.dataset.sort?!desc:true;sortKey=b.dataset.sort;render()});
  document.querySelectorAll('[data-tip]').forEach(e=>{e.onmousemove=event=>showTooltip(e,event.clientX,event.clientY);e.onmouseleave=hideTooltip;e.onfocus=()=>{const r=e.getBoundingClientRect();showTooltip(e,r.left+r.width/2,r.bottom)};e.onblur=hideTooltip;e.onkeydown=event=>{if(event.key==='Escape')hideTooltip();else if((event.key==='Enter'||event.key===' ')&&e.dataset.focus){event.preventDefault();e.onclick()}}})
 }
-function render(){if(!D)return;hideTooltip();const tabBar=document.querySelector('.section-tabs');if(tabBar?.offsetHeight)document.body.style.setProperty('--tabs-h',tabBar.offsetHeight+'px');if($('source-period-label'))$('source-period-label').textContent='Actual data · '+filterOptions('months').map(m=>months[m-1]).join(', ')+' '+D.year;syncMultiFilters();const focused=document.activeElement?.dataset,restore=focused?.panel?{...focused}:null;const current=context('summary');if($('period-explanation'))$('period-explanation').textContent='Actual: '+current.salesLabel+' · Target: '+current.targetLabel+'. Target basis does not change sales.';for(const k of Object.keys(states))states[k].metric=k==='portfolio'&&bothMeasures?'mix':measure;$('selection-status').innerHTML=!panelRows('summary').length?'<p class="no-results">No source records match these filters. Clear filters to restore the portfolio.</p>':missingReportingMonths().length?'<p class="data-warning">Reporting months incomplete or unavailable: '+missingReportingMonths().map(m=>months[m-1]).join(', ')+'. Sales totals require these months; select available months or complete the data.</p>':'';renderSummary();renderMonthly();renderVisible();wire();window.actualDashboard?.notify?.();if(restore)document.querySelector(`[data-panel="${restore.panel}"][data-control="${restore.control}"][data-choice="${restore.choice}"]`)?.focus()}
+function render(){if(!D)return;hideTooltip();const tabBar=document.querySelector('.section-tabs');if(tabBar?.offsetHeight)document.body.style.setProperty('--tabs-h',tabBar.offsetHeight+'px');if($('source-period-label'))$('source-period-label').textContent='Actual data · '+filterOptions('months').map(m=>months[m-1]).join(', ')+' '+D.year;syncMultiFilters();const focused=document.activeElement?.dataset,restore=focused?.panel?{...focused}:null;const current=context('summary');if($('period-explanation'))$('period-explanation').textContent='Actual: '+current.salesLabel+' · Target: '+current.targetLabel+'. Target basis does not change sales.';for(const k of Object.keys(states))states[k].metric=k==='portfolio'&&bothMeasures?'mix':measure;$('selection-status').innerHTML=!panelRows('summary').length?'<p class="no-results">No source records match these filters. Clear filters to restore the portfolio.</p>':missingReportingMonths().length?'<p class="data-warning">Reporting months incomplete or unavailable: '+missingReportingMonths().map(m=>months[m-1]).join(', ')+'. Sales totals require these months; select available months or complete the data.</p>':'';renderSummary();renderVisible();wire();window.actualDashboard?.notify?.();if(restore)document.querySelector(`[data-panel="${restore.panel}"][data-control="${restore.control}"][data-choice="${restore.choice}"]`)?.focus()}
 async function loadSalesSnapshot(resetPeriod=false){
  const request=++snapshotRequest,previous=$('period').value,choice=actualYearChoice;
  const response=await fetch('/api/snapshot'+(choice==='latest'?'':'?year='+encodeURIComponent(choice)),{cache:'no-store'});
@@ -191,12 +200,11 @@ window.addEventListener?.('scroll',hideTooltip,{passive:true});window.addEventLi
 window.refreshSalesSnapshot=async()=>loadSalesSnapshot();
 
 function missingMetric(panel,metric){return missingReportingMonths().length>0||panelRows(panel).some(r=>r[metric]==null)}
-for(const [name,panel,id,original] of [['renderMonthly','monthly','trend',renderMonthly],['renderDistributor','distributors','distributors',renderDistributor],['renderGroups','lines','lines-chart',renderGroups]]){
+for(const [name,panel,id,original] of [['renderDistributor','distributors','distributors',renderDistributor],['renderGroups','lines','lines-chart',renderGroups]]){
 const wrapped=function(){if(missingMetric(panel,states[panel].metric)){const ctx=document.querySelector?.('#'+panel+'-context');if(ctx)try{ctx.textContent=context(panel).caption}catch{}$(id).innerHTML='<p class="empty-chart">Missing '+states[panel].metric+' data in this selection. Complete it in Data management.</p>';return}return original()};
- if(name==='renderMonthly')renderMonthly=wrapped;else if(name==='renderDistributor')renderDistributor=wrapped;else renderGroups=wrapped;
+ if(name==='renderDistributor')renderDistributor=wrapped;else renderGroups=wrapped;
 }
 const originalRankings=renderRankings;renderRankings=function(){for(const [panel,id] of [['leaders','leaders'],['achievements','achievements']]){if(missingMetric(panel,states[panel].metric))$(id).innerHTML='<p class="empty-chart">Missing '+states[panel].metric+' data in this selection.</p>';else comparisonChart(panel,id,'product')}};
-const originalTimeline=renderTimeline;renderTimeline=function(){if(missingMetric('timeline','units')||missingMetric('timeline','value')){$('timeline').innerHTML='<p class="empty-chart">Both units and value are required for this timeline. Some selected records are incomplete.</p>';return}originalTimeline()};
 const originalSummary=renderSummary;renderSummary=function(){originalSummary();const cards=$('kpis').querySelectorAll?.('.kpi');if(!cards)return;for(const [metric,indexes] of [['units',[0,3]],['value',[1]]])if(missingMetric('summary',metric))for(const i of indexes){cards[i].querySelector('strong').textContent='—';cards[i].querySelector('small').textContent='Missing '+metric+' in selected records'}};
 
 // Read-only analysis integration; existing import and authorization paths stay authoritative.
