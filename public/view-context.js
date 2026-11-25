@@ -1,7 +1,7 @@
 // V69 U-01: one selection context for the whole Sales page. Pure module (no DOM).
 // Every renderer reads this frozen object instead of re-deriving year / product / target / dimension conditions.
-import { comparableSummary, commonAvailableMonths, growthAllowed, scopeRecords, targetSum, productName, productKey, PROVISIONAL_YEARS } from './management-core.js?v=sales-ux-v68';
-import { comparisonProduct } from './compare-core.js?v=sales-ux-v68';
+import { comparableSummary, commonAvailableMonths, growthAllowed, scopeRecords, targetSum, productName, productKey, PROVISIONAL_YEARS } from './management-core.js?v=sales-ux-v69';
+import { comparisonProduct } from './compare-core.js?v=sales-ux-v69';
 
 export const DIMENSIONS = ['distributor', 'channel', 'line'];
 const UNKNOWN = new Set(['NOT PROVIDED', 'NOT RECORDED', '']);

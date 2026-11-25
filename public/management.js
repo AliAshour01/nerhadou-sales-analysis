@@ -1,10 +1,10 @@
-import {comparisonProduct} from './compare-core.js?v=sales-ux-v68';
-import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-ux-v68';
-import {tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v68';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts} from './view-context.js?v=sales-ux-v68';
-import {PANELS,layout} from './panel-registry.js?v=sales-ux-v68';
-import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-ux-v68';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate} from './chart-utils.js?v=sales-ux-v68';
+import {comparisonProduct} from './compare-core.js?v=sales-ux-v69';
+import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-ux-v69';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v69';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts} from './view-context.js?v=sales-ux-v69';
+import {PANELS,layout} from './panel-registry.js?v=sales-ux-v69';
+import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-ux-v69';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate} from './chart-utils.js?v=sales-ux-v69';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>compact(v);

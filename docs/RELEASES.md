@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V69 — One unified Sales page (branch only, not deployed)
+
+Implements the V69 unified layout plan (U-01–U-21) on branch `claude/project-thread-i3h9km`. Actual and Historical become one "Sales performance" page driven by a Years selection: one view context and panel registry decide what shows, rows always fill 12 columns, and hidden panels are listed with a reason. Sales Analysis and Portfolio give way to Overview / Products / Forecast; the product drawer and the PPG panel are removed (owner defaults). Old Historical links and saved views open the multi-year state. Missing values are never shown as 0 and growth that uses provisional 2023 stays withheld. No source data, auth, API, D1 or Cloudflare configuration changed. Not deployed; Owner testing required first. See SALES-UX-V69-HANDOFF.md.
+
 ## V68 — Actual Sales (2026) UI/UX and data-trust pass (branch only, not deployed)
 
 Implements the Sales 2026 UI/UX brief P0–P2 (S-01–S-04, S-10–S-20, S-30–S-37) on branch `claude/project-thread-u3zmv6`. Fixes the Breakdown/Movement axis ticks (shared nice-axis helper) and withholds every growth, PPG, delta, bridge, PY overlay and seasonality figure that uses provisional 2023. Forecast is visible to every active user (owner decision, overriding the brief and the V63 Owner/Admin-only rule). Adds four KPI cards, real sticky tabs, a sticky filter summary, Forecast vs FY target with the required monthly pace and a cumulative path, click-to-filter with Undo, WCAG AA text contrast, table views for every chart, URL state, loading/error states and a ~6× faster filter render. Missing values are never coerced to 0. No source data, auth, API, D1 or Cloudflare configuration changed. Not deployed to production; Owner testing required first. See SALES-UX-V68-HANDOFF.md.
