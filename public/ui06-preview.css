@@ -616,3 +616,5 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 .mix-switch button:first-child{border-left:0}
 .mix-switch button[aria-pressed="true"]{background:#1f3555;color:#fff}
 .mix-switch button:focus-visible{outline:2px solid #2456d6;outline-offset:-2px}
+/* R-23 source name under the display name */
+#view-portfolio .src-name,.portfolio-card .src-name{display:block;font-size:11px;font-weight:400;color:#5b6b7f;text-transform:none;margin-top:2px}

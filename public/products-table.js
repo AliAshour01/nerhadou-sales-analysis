@@ -244,6 +244,10 @@ export function cellHTML(row, c, maxSales) {
 }
 
 export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = false, grouped = false, combine = false, expanded = new Set() }) {
+  // V72 R-23: rows show the display name used across years; the source name stays in the tooltip. Display only.
+  const shown = (name) => (typeof ctx?.displayName === 'function' ? ctx.displayName(name) : name),
+    label = (name) => (shown(name) !== name ? `${esc(shown(name))}<small class="src-name">${esc(name)}</small>` : esc(name)),
+    tip = (name) => (shown(name) !== name ? `Source name: ${esc(name)} · ` : '') + `Show ${esc(shown(name))} on Overview`;
   const { cols, total } = data,
     primary = measures[0],
     barKey = ctx.yearMode === 'multi' ? `year:${primary}:${ctx.focusYear}` : `sales:${primary}`;
@@ -267,10 +271,10 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       : r.combined
         ? `<td class="sticky-col combined-name"><button type="button" class="pt-expand" data-pt-expand="${esc(r.key)}" aria-expanded="${expanded.has(r.key)}" title="${esc(r.members.map((m) => m.product).join(' + '))}"><span aria-hidden="true">${expanded.has(r.key) ? '▾' : '▸'}</span> ${esc(r.product)} <small>+ Tender</small></button></td>`
       : r.member
-        ? `<td class="sticky-col member-name"><button data-select-product="${esc(r.product)}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button></td>`
+        ? `<td class="sticky-col member-name"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`
       : r.subtotal
         ? `<th scope="row" class="sticky-col">${esc(r.product)} <small>subtotal</small></th>`
-        : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button></td>`;
+        : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`;
     const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ' class="subtotal-row"' : r.combined ? ' class="combined-row"' : r.member ? ' class="member-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
     return r.combined && expanded.has(r.key) ? own + r.members.map((m) => row({ ...m, member: true })).join('') : own;
   };
@@ -307,7 +311,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
         const v = r.cells[key];
         return `<span class="pc-cell"><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
       };
-    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name">${esc(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
+    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.total ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };
   const cards = card(total) + (grouped ? sorted : visible).map(card).join('') || '<p class="chart-note">No matching products.</p>';
   const more = capped ? `<button type="button" class="link-button pt-show-all" data-pt-all="on">Show all ${sorted.length}</button>` : showAll && sorted.length > TOP_ROWS + 2 && !grouped ? `<button type="button" class="link-button pt-show-all" data-pt-all="off">Show top ${TOP_ROWS}</button>` : '';
