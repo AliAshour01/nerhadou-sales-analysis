@@ -1,6 +1,6 @@
-import {buildFocusComparison} from './focus-comparison-core.js?v=rate-labels-v67';
-import {comparisonWorkbook,tableWorkbook} from './comparison-xlsx.js?v=rate-labels-v67';
-import {comparisonProduct} from './compare-core.js?v=rate-labels-v67';
+import {buildFocusComparison} from './focus-comparison-core.js?v=sales-ux-v68';
+import {comparisonWorkbook,tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v68';
+import {comparisonProduct} from './compare-core.js?v=sales-ux-v68';
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

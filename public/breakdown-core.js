@@ -1,4 +1,4 @@
-import {comparableSummary,scopeRecords,productName,productKey,targetSum} from './management-core.js?v=32';
+import {comparableSummary,scopeRecords,productName,productKey,targetSum} from './management-core.js?v=sales-ux-v68';
 export function breakdownModel(records,d,{metric='units',dimension='product'}={}){
  if(!['units','value'].includes(metric)||!['product','line'].includes(dimension))throw Error('Unsupported breakdown measure or grouping.');
  const months=[...new Set(d.months)],filters=d.selection||{},scoped=scopeRecords(records,filters).filter(r=>r.dataset==='actual'&&r.year===d.snapshot.year&&months.includes(r.month));

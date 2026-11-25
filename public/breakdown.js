@@ -1,6 +1,6 @@
-import {breakdownModel,breakdownTop} from './breakdown-core.js?v=rate-labels-v67';
-import {tableWorkbook} from './comparison-xlsx.js?v=rate-labels-v67';
-import {niceAxis,axisTicks,tickLabel,compact,truncate} from './chart-utils.js?v=rate-labels-v67';
+import {breakdownModel,breakdownTop} from './breakdown-core.js?v=sales-ux-v68';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v68';
+import {niceAxis,axisTicks,tickLabel,compact,truncate} from './chart-utils.js?v=sales-ux-v68';
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=v=>v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:0}),p=v=>v==null?'—':v.toFixed(1)+'%',short=v=>compact(v);
 const pixels=(node,fallback)=>Math.max(260,Math.round(node?.getBoundingClientRect?.().width||node?.clientWidth||fallback));
