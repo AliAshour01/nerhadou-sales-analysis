@@ -610,3 +610,9 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 .forecast-risk-table thead th:first-child{background:#f5f8fc}
 @media(max-width:600px){.forecast-risk-table{font-size:12px}.forecast-risk-table th,.forecast-risk-table td{padding:7px 8px}.forecast-risk-table thead th{white-space:normal;min-width:84px}}
 .forecast-risk-head .chart-table-toggle{white-space:nowrap;flex-shrink:0}@media(max-width:600px){.forecast-risk-table thead th{min-width:104px;overflow-wrap:normal;word-break:normal}}
+/* R-21 mobile Mix card */
+.mix-switch{display:flex;gap:0;margin:4px 0 10px;border:1px solid #d5deea;border-radius:8px;overflow:hidden}
+.mix-switch button{flex:1 1 0;min-height:36px;padding:6px 8px;border:0;border-left:1px solid #d5deea;background:#fff;color:#33475f;font-size:13px;font-weight:600;cursor:pointer}
+.mix-switch button:first-child{border-left:0}
+.mix-switch button[aria-pressed="true"]{background:#1f3555;color:#fff}
+.mix-switch button:focus-visible{outline:2px solid #2456d6;outline-offset:-2px}

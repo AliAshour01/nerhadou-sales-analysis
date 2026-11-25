@@ -137,8 +137,19 @@ function applyLayout(tab,ctx){
   for(const row of result.rows)for(const p of row.panels){const node=$('panel-'+p.id);node.classList.remove('span-4','span-6','span-8','span-12','span-3','span-5','span-7');node.classList.add('span-'+p.span);node.dataset.row=row.row;grid.append(node);const out=RENDERERS[p.id](ctx,node);if(out?.empty&&!excluded.has(p.id)){excluded.set(p.id,out.empty);again=true}}
   if(!again)break;
  }
+ if(tab==='overview')mobileMix(result.visible);
  const strip=$(tab+'-not-shown');if(strip){strip.hidden=!result.hidden.length;strip.querySelector('summary').textContent=`Not shown for this selection (${result.hidden.length})`;strip.querySelector('ul').innerHTML=result.hidden.map(h=>`<li><b>${e(h.title)}</b> ${e(h.reason)}</li>`).join('')}
  return result;
+}
+// V72 R-21: on phones the visible mix panels share one "Mix" card with a segmented switch (Distributor / Sales type / Line).
+const MIX_IDS=[['mixDistributor','Distributor'],['mixChannel','Sales type'],['mixLine','Line']];let mixVisible=[];
+function mobileMix(visible=mixVisible){
+ mixVisible=visible;const ids=MIX_IDS.filter(([id])=>visible.includes(id)),merge=isMobile()&&ids.length>=2;
+ if(merge&&!ids.some(([id])=>id===ui.mobileMix))ui.mobileMix=ids[0][0];
+ for(const [id] of MIX_IDS){const node=$('panel-'+id);if(!node)continue;node.querySelector('.mix-switch')?.remove();const h=node.querySelector('.panel-title h2');if(h&&node.dataset.title){h.textContent=node.dataset.title;delete node.dataset.title}node.classList.remove('mix-merged');if(!visible.includes(id))continue;node.hidden=merge&&id!==ui.mobileMix}
+ if(!merge)return;
+ const node=$('panel-'+ui.mobileMix),h=node.querySelector('.panel-title h2');node.classList.add('mix-merged');if(h){node.dataset.title=h.textContent;h.textContent='Mix'}
+ node.querySelector('.panel-title').insertAdjacentHTML('afterend',`<div class="mix-switch" role="group" aria-label="Show mix by">${ids.map(([id,label])=>`<button type="button" data-mix-switch="${id}" aria-pressed="${id===ui.mobileMix}">${label}</button>`).join('')}</div>`);
 }
 // V69 U-08: tabs appear only when they have content (plan 2.3). A hidden active tab falls back to Overview with a toast;
 // a lone Overview tab renders as a plain section title.
@@ -637,6 +648,7 @@ function exportForecastRisk(){const d=dashboard(),bytes=tableWorkbook({title:'Ne
 function onClick(ev){
  const b=ev.target.closest('button,[role="button"]');if(!b)return;if(b.dataset.page==='comparison'){ev.preventDefault();openHistoricalRedirect();return}if(b.dataset.page){placeActions(b.dataset.page);document.querySelector('.manager-actions').hidden=b.dataset.page!=='sales';$('manager-status').hidden=b.dataset.page!=='sales';}
  if(b.id==='forecast-risk-export'){exportForecastRisk();return}
+ if(b.dataset.mixSwitch){ui.mobileMix=b.dataset.mixSwitch;mobileMix();applyChartTables();$('panel-'+ui.mobileMix)?.querySelector(`[data-mix-switch="${ui.mobileMix}"]`)?.focus();return}
  if(b.dataset.selectProduct){selectProduct(b.dataset.selectProduct);return}
  if(b.dataset.tabFix){const tab=b.dataset.tab;$('tab-message').hidden=true;(async()=>{if(b.dataset.tabFix==='latest-year')await window.actualDashboard.setYears([viewContext().latestYear]);else{const d=dashboard();await window.actualDashboard.apply({...capture(),selection:{...d.selection,product:[]}})}window.actualDashboard.showSection(tab)})();return}
  if(b.dataset.ptSort){const k=b.dataset.ptSort;ui.ptDesc=ui.ptSort===k?!ui.ptDesc:true;ui.ptSort=k;renderProductsTable(viewContext());$('detail-head').querySelector(`[data-pt-sort="${k}"]`)?.focus();return}

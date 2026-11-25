@@ -67,5 +67,24 @@ assert(/Products at risk of missing the FY target/.test($('forecast-not-shown').
 window.actualDashboard.setMeasure('value');
 await window.actualDashboard.apply(cfg());
 
+// R-21: phones get one Mix card with a Distributor / Sales type / Line switch; desktop keeps three panels.
+{
+  const w = window.innerWidth;
+  window.innerWidth = 390;
+  await window.actualDashboard.apply(cfg());
+  const mixes = () => visible().filter((id) => id.startsWith('mix'));
+  assert.deepEqual(mixes(), ['mixDistributor']);
+  assert.equal(document.querySelectorAll('.mix-switch').length, 1);
+  assert.deepEqual([...document.querySelectorAll('[data-mix-switch]')].map((b) => b.textContent), ['Distributor', 'Sales type', 'Line']);
+  assert.equal($('panel-mixDistributor').querySelector('h2').textContent, 'Mix');
+  assert.equal($('attention-list').querySelectorAll('.attention-item').length, 2, 'attention top 2 on phones');
+  document.querySelector('[data-mix-switch="mixLine"]').click();
+  assert.deepEqual(mixes(), ['mixLine']);
+  window.innerWidth = w;
+  await window.actualDashboard.apply(cfg());
+  assert.deepEqual(mixes(), ['mixDistributor', 'mixChannel', 'mixLine']);
+  assert(!document.querySelector('.mix-switch'));
+}
+
 window.actualDashboard.setMeasure('units');
 console.log('sales-v72 UI checks passed');
