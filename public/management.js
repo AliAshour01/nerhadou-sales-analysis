@@ -2,6 +2,7 @@ import {createBreakdown} from './breakdown.js?v=sales-ux-v68';
 import {comparisonProduct} from './compare-core.js?v=sales-ux-v68';
 import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-ux-v68';
 import {tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v68';
+import {resolveViewContext} from './view-context.js?v=sales-ux-v68';
 import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate} from './chart-utils.js?v=sales-ux-v68';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -74,7 +75,7 @@ function mount(){
  $('sales').querySelector('.heading .eyebrow')?.remove();$('sales').querySelector('.source').hidden=true;$('period-explanation')?.remove();const periods=$('sales').querySelector('.global-periods');if(periods&&!periods.querySelector('button,select,input'))periods.hidden=true;
  $('actions-toggle').onclick=()=>{const open=$('actions-toggle').getAttribute('aria-expanded')!=='true';$('actions-toggle').setAttribute('aria-expanded',String(open));actions.classList.toggle('open',open)};
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&actions.classList.contains('open')){actions.classList.remove('open');$('actions-toggle').setAttribute('aria-expanded','false');$('actions-toggle').focus()}});
- window.actualDashboard.notify=render;window.actualDashboard.priorMonthly=(metric,chosen)=>{const d=dashboard();if(!d||!payload)return null;const ok=growthAllowed(d.snapshot.year-1,d.snapshot.year);if(!ok.ok)return {withheld:ok.reason};const values=chosen.map(m=>summary(d.snapshot.year-1,[m],metric,d.selection).value);return values.some(v=>v!=null)?{year:d.snapshot.year-1,values}:null};window.actualDashboard.sectionChanged=()=>{renderSection();wireDrilldowns();applyChartTables();syncUrl()};
+ window.actualDashboard.notify=render;window.actualDashboard.context=()=>payload&&dashboard()?viewContext():null;window.actualDashboard.priorMonthly=(metric,chosen)=>{const d=dashboard();if(!d||!payload)return null;const ok=growthAllowed(d.snapshot.year-1,d.snapshot.year);if(!ok.ok)return {withheld:ok.reason};const values=chosen.map(m=>summary(d.snapshot.year-1,[m],metric,d.selection).value);return values.some(v=>v!=null)?{year:d.snapshot.year-1,values}:null};window.actualDashboard.sectionChanged=()=>{renderSection();wireDrilldowns();applyChartTables();syncUrl()};
  window.addEventListener('popstate',()=>{const config=urlConfig();if(config){urlRestoring=true;restore(config).finally(()=>{urlRestoring=false;lastUrlSection=dashboard()?.section})}});
  if(payload)render();
 }
@@ -83,12 +84,17 @@ function render(){
  // Never mix an old snapshot with a newly refreshed record revision.
  if(d.snapshot.revision!==payload.revision){$('data-health').textContent='Synchronising analysis with shared data…';return}
  const key=JSON.stringify([payload.revision,d.snapshot.year,d.months,d.selection]);if(key!==contextKey){cache.clear();contextKey=key}
+ // V69 U-01: one context object; every renderer reads it instead of re-deriving conditions.
+ viewCtx=viewContext(d);
  renderSingleScope();renderHealth();renderSummary();renderAttention();renderExisting();renderSection();
  $('summary-measure').innerHTML=buttons('Summary measure',[['units','Units'],['value','Value']],ui.metric,'data-manager-metric');
  if(drawer)renderDrawer();window.updateWorkspaceVisibility?.();window.actualDashboard.wire();wireDrilldowns();
  if(!restored&&storageKey){restored=true;readLink()}
  applyChartTables();syncUrl();
 }
+// V69 U-01: the selection context (public/view-context.js), cached per state key.
+let viewCtx=null,viewCtxKey='';
+function viewContext(d=dashboard()){const state={years:d.years||[d.snapshot.year],focusYear:d.focusYear,months:d.months,periodMode:d.periodMode,selection:d.selection,measure:ui.metric,growthBasis:d.growthBasis,commonMonths:d.commonMonths},key=JSON.stringify([payload?.revision,state]);if(key!==viewCtxKey||!viewCtx){viewCtx=resolveViewContext(records(),state);viewCtxKey=key}return viewCtx}
 function renderSection(){
  const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;
  if(d.section==='analysis'){renderMovement();if(d.selection.product.length!==1)breakdown?.render()}else if(d.section==='movement')renderMovement();else if(d.section==='forecast'||d.section==='trends')renderPlanning();
