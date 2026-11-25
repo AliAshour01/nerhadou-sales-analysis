@@ -161,9 +161,9 @@ function performanceCards(f,chosen,metric){const d=dashboard(),period=periodLabe
  return [['Actual Sales',amt(cur.value,metric),curReason||(scoped?(metric==='value'?'Share of company value (V%): ':'Share of company units: ')+(share==null?'—':share.toFixed(1)+'%')+' · '+metric:period)],[label+' Target',amt(t,metric),t==null?tr:'Provisional target'],[label+' Achievement',cur.value!=null&&t>0?n(cur.value/t*100)+'%':'—',achReason||period],[gap==null?'Gap unavailable':gap>=0?'Above '+label+' Target':'Remaining to '+label+' Target',amt(gap==null?null:Math.abs(gap),metric),gap==null?(curReason||tr):period],['Previous-year Sales',amt(prior.value,metric),pyReason||previousPeriod+(provisional(d.snapshot.year-1)?' · Provisional data':'')],['Growth vs previous year (PPG%)',change.withheld?'Withheld':pct(change.ppg),change.withheld?`${provisional(d.snapshot.year)?d.snapshot.year:d.snapshot.year-1} data is provisional`:growthReason||'vs '+previousPeriod],['Full-year Target',amt(annual,metric),annual==null?tr:'Jan–Dec '+d.snapshot.year+' · provisional'],['Full-year Achievement',cur.value!=null&&annual>0?n(cur.value/annual*100)+'%':'—',annualReason||period+' actual ÷ annual target']];}
 
 function renderProvisionalBadge(d=dashboard()){const h1=$('sales').querySelector('h1');let badge=$('provisional-badge');if(!badge){h1.insertAdjacentHTML('afterend','<span id="provisional-badge" class="provisional-badge" tabindex="0" hidden>Provisional data</span>');badge=$('provisional-badge')}badge.hidden=!provisional(d.snapshot.year);badge.title=provisionalNote();badge.setAttribute('aria-label','Provisional data. '+provisionalNote())}
-function renderSummary(){const d=dashboard();if(!$('sales').hidden)$('chrome-page-label').textContent='Actual Sales · '+d.snapshot.year;document.querySelector('[data-page="sales"] span').textContent='Actual Sales · '+d.snapshot.year;$('sales').querySelector('h1').textContent='Actual Sales · '+d.snapshot.year;renderProvisionalBadge(d);$('summary-context').textContent=periodLabel()+' · '+scopeText()+' · '+ui.metric;$('kpis').innerHTML=summaryCards(d.selection,d.months,ui.metric);}
+function renderSummary(){const d=dashboard();if(!$('sales').hidden)$('chrome-page-label').textContent='Actual Sales · '+d.snapshot.year;document.querySelector('[data-page="sales"] span').textContent='Actual Sales · '+d.snapshot.year;$('sales').querySelector('h1').textContent='Actual Sales · '+d.snapshot.year;renderProvisionalBadge(d);$('summary-context').textContent=periodLabel()+' · '+scopeText()+' · '+ui.metric;$('kpis').innerHTML=kpiCards(viewContext(d));}
 // V68 S-12: four primary cards, each answering one question. Same figures as performanceCards (drawer / report keep the 8-card list).
-function deltaChip(change,year){if(change.withheld)return `<span class="delta-chip neutral" title="${e(change.withheld)}">Withheld · ${e(change.withheld.replace(/^Growth withheld: /,'').replace(/\.$/,''))}</span>`;if(change.ppg==null)return '<span class="delta-chip neutral">— no comparison</span>';const up=change.ppg>=0;return `<span class="delta-chip ${up?'up':'down'}"><span aria-hidden="true">${up?'▲':'▼'}</span> ${up?'Up':'Down'} ${Math.abs(change.ppg).toFixed(1)}% <span class="sr-only">vs ${year}</span></span>`}
+function deltaChip(change,year){if(change.withheld)return `<span class="delta-chip neutral" title="${e(change.withheld)}">Withheld · ${e(change.withheld.replace(/^Growth withheld: /,'').replace(/\.$/,''))}</span>`;if(change.ppg==null)return '<span class="delta-chip neutral">— no comparison</span>';if(Math.abs(change.ppg)<0.05)return `<span class="delta-chip neutral">Flat <span class="sr-only">vs ${year}</span></span>`;const up=change.ppg>=0;return `<span class="delta-chip ${up?'up':'down'}"><span aria-hidden="true">${up?'▲':'▼'}</span> ${up?'Up':'Down'} ${Math.abs(change.ppg).toFixed(1)}% <span class="sr-only">vs ${year}</span></span>`}
 function progressBar(pct,status,marker=null){const width=pct==null?0:Math.max(0,Math.min(100,pct));return `<div class="kpi-progress ${status}" aria-hidden="true"><span style="width:${width}%"></span>${marker==null?'':`<i class="pace-marker" style="left:${Math.max(0,Math.min(100,marker))}%"></i>`}</div>`}
 function statusWord(status){return {good:'On or above target',warn:'Within 10% of target',bad:'More than 10% below target',unknown:'Status unavailable'}[status]}
 function summaryCards(f,chosen,metric){
@@ -176,6 +176,55 @@ function summaryCards(f,chosen,metric){
   +card('other',other==='value'?'Sales value · EGP':'Sales · units',amt(oCur.value,other),`<small>${e(oCur.value==null?otherCards[0][2]:oPrior.value==null?otherCards[4][2]:`vs ${py}: ${amt(oPrior.value,other)}`)}</small>${deltaChip(oChange,py)}`);
 }
 
+// ── V69 U-12: KPI card sets (plan 4.1). Each slot has an ordered fallback list so no card is a bare "—". ──
+function kpiCard(key,label,value,body,extra=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}</div><strong title="${e(value)}">${String(value).startsWith('EGP ')&&/^[\d,.]+$/.test(String(value).slice(4))?'<span class="kpi-unit">EGP</span> <span class="kpi-full">'+e(value.slice(4))+'</span><span class="kpi-compact">'+e(compact(Number(value.slice(4).replace(/,/g,'')),2))+'</span>':e(value)}</strong>${body}</div>`}
+function kpiCandidates(ctx){
+ const m=ctx.measure,o=ctx.other,fy=ctx.focusYear,cy=ctx.compareYear,f=ctx.selection,chosen=ctx.months,unit=v=>v==='value'?'EGP':'units',S=(year,metric,months=chosen,filters=f)=>year==null?null:ctxSummary(ctx,year,months,metric,filters).value,cyLabel=cy!=null&&provisional(cy)?' (provisional)':'';
+ const chg=(cur,prev)=>cy==null?{ppg:null,withheld:null}:ctx.growthOk?{...changeBetween({value:cur},{value:prev}),withheld:null}:{delta:null,ppg:null,withheld:ctx.growthReason};
+ const cur=S(fy,m),prev=S(cy,m),oCur=S(fy,o),oPrev=S(cy,o),label=periodLabel(dashboard(),chosen),one=ctx.productMode==='one';
+ const C={};
+ C.sales=cur==null?null:()=>kpiCard('sales','Sales · '+unit(m),amt(cur,m),`<small>${e(prev!=null?`vs ${cy}: ${amt(prev,m)}${cyLabel}`:label)}${one&&oCur!=null&&ctx.slot4Price?' · '+e(amt(oCur,o)):''}</small>${deltaChip(chg(cur,prev),cy)}`,' style="--kpi-accent:1"');
+ C.other=oCur==null?null:()=>kpiCard('other',o==='value'?'Sales value · EGP':'Sales · units',amt(oCur,o),`<small>${e(oPrev!=null?`vs ${cy}: ${amt(oPrev,o)}${cyLabel}`:label)}</small>${deltaChip(chg(oCur,oPrev),cy)}`);
+ if(ctx.yearMode==='single'){
+  const t=ctx.hasTargets?tgt(ctx,ctx.products,m,chosen):null,annual=ctx.hasTargets?tgt(ctx,ctx.products,m,chosen,true):null,ach=cur!=null&&t>0?cur/t*100:null,fy100=cur!=null&&annual>0?cur/annual*100:null;
+  const end=chosen.length?Math.max(...chosen):0,ytd=chosen.length===end&&chosen.every((x,i)=>x===i+1),pace=ytd?end/12*100:null,gapPts=fy100!=null&&pace!=null?fy100-pace:null,paceWord=gapPts==null?null:Math.abs(gapPts)<=3?'On pace':gapPts>0?'Ahead':'Behind',paceStatus=paceWord==null?'unknown':paceWord==='Behind'?(gapPts<-10?'bad':'warn'):'good',achS=achStatus(ach),gap=cur!=null&&t!=null?cur-t:null,kind=periodKind(chosen);
+  C.ach=ach==null?null:()=>kpiCard('achievement',kind+' achievement',n(ach)+'%',`${progressBar(ach,achS)}<small>Target ${e(amt(t,m))} · ${gap>=0?e(amt(gap,m))+' above target':e(amt(-gap,m))+' to go'}</small><span class="status-word ${achS}">${e(statusWord(achS))}</span>`,` data-status="${achS}"`);
+  C.fy=fy100==null||!ctx.isOpenYear?null:()=>kpiCard('fy','Full-year progress',n(fy100)+'%',`${progressBar(fy100,paceStatus,pace)}<small>FY target ${e(amt(annual,m))}${pace==null?'':' · pace '+pace.toFixed(1)+'%'}</small>${paceWord?`<span class="status-word ${paceStatus}">${paceWord}${pace==null?'':' · '+(gapPts>=0?'+':'−')+Math.abs(gapPts).toFixed(1)+' pts vs pace'}</span>`:''}`,` data-status="${paceStatus}"`);
+  const avg=cur!=null&&chosen.length>=2?cur/chosen.length:null,pAvg=prev!=null?prev/chosen.length:null;
+  C.avgMonth=avg==null?null:()=>kpiCard('avg','Average per month',amt(avg,m),`<small>${e(pAvg!=null?`vs ${cy}: ${amt(pAvg,m)}${cyLabel}`:`${chosen.length} months · ${unit(m)}`)}</small>${deltaChip(chg(avg,pAvg),cy)}`);
+  const company=S(fy,m,chosen,{}),share=cur!=null&&company>0&&!ctx.companyScope?cur/company*100:null,pShare=(()=>{if(cy==null||!ctx.growthOk||share==null)return null;const a=S(cy,m),b=S(cy,m,chosen,{});return a!=null&&b>0?a/b*100:null})();
+  C.share=share==null?null:()=>kpiCard('share','Share of company',share.toFixed(1)+'%',`<small>${e(pShare!=null?`${share-pShare>=0?'+':'−'}${Math.abs(share-pShare).toFixed(1)} pts vs ${cy}`:'of company '+unit(m)+' · '+label)}</small>`);
+  const monthly=chosen.map(x=>({x,v:S(fy,m,[x])})).filter(r=>Number.isFinite(r.v)),best=monthly.length>=2?monthly.reduce((a,b)=>b.v>a.v?b:a):null;
+  C.bestMonth=best==null?null:()=>kpiCard('best','Best month',ms[best.x-1]+' '+fy,`<small>${e(amt(best.v,m))} · ${monthly.length} months with data</small>`);
+  const u=S(fy,'units'),v=S(fy,'value'),pu=S(cy,'units'),pv=S(cy,'value'),price=u>0&&v!=null?v/u:null,pPrice=pu>0&&pv!=null?pv/pu:null,fmtP=x=>'EGP '+(x>=100?n(x):x.toFixed(1));
+  C.price=!one||price==null?null:()=>kpiCard('price','Average price · EGP/unit',fmtP(price),`<small>${e(pPrice!=null?`vs ${cy}: ${fmtP(pPrice)}${cyLabel}`:label)}</small>${deltaChip(chg(price,pPrice),cy)}`);
+ }else{
+  const withheld=!ctx.growthOk?ctx.growthReason:null,delta=cur!=null&&prev!=null?cur-prev:null,ppg=delta!=null&&prev>0?delta/prev*100:null;
+  C.salesFocus=cur==null?null:()=>kpiCard('sales',`Sales ${fy} · ${unit(m)}`,amt(cur,m),`<small>${e(label.replace(yearSpan(ctx.years),String(fy)))}</small>`,' style="--kpi-accent:1"');
+  C.salesCompare=prev==null?null:()=>kpiCard('compare',`Sales ${cy} · ${unit(m)}`,amt(prev,m),`<small>${e(provisional(cy)?'Provisional year':'Same months as '+fy)}</small>`);
+  const word=x=>x.replace(/^Growth withheld: /,'').replace(/\.$/,'');
+  C.change=cy==null||(delta==null&&!withheld)?null:()=>withheld?kpiCard('change',`Change ${cy} → ${fy}`,'Withheld',`<small>${e(word(withheld))}</small>`):kpiCard('change',`Change ${cy} → ${fy}`,(delta<0?'−':'+')+amt(Math.abs(delta),m),`<small>${unit(m)} · same months</small>`);
+  C.growth=cy==null||(ppg==null&&!withheld)?null:()=>withheld?kpiCard('growth',`Growth ${cy} → ${fy}`,'Withheld',`<small>${e(word(withheld))}</small>`):kpiCard('growth',`Growth ${cy} → ${fy}`,pct(ppg),`<small>${e(DIM_YEARS_NOTE(ctx))}</small>`);
+  const shareOf=year=>{const a=S(year,m),b=S(year,m,chosen,{});return a!=null&&b>0?a/b*100:null},sF=one?shareOf(fy):null,sC=one&&cy!=null?shareOf(cy):null;
+  C.shareYears=sF==null?null:()=>kpiCard('share',`Share of company ${fy}`,sF.toFixed(1)+'%',`<small>${e(sC==null?'of company '+unit(m):withheld?`${cy}: ${sC.toFixed(1)}% · change withheld`:`${sF-sC>=0?'+':'−'}${Math.abs(sF-sC).toFixed(1)} pts vs ${cy}`)}</small>`);
+ }
+ C.products=()=>kpiCard('products','Products with sales',String(ctx.productCount),`<small>${e(label)}</small>`);
+ C.months=()=>kpiCard('months','Months selected',String(chosen.length),`<small>${e(label)}</small>`);
+ return C;
+}
+const DIM_YEARS_NOTE=ctx=>ctx.growthBasis==='selected'?'vs previous selected year':'vs previous year';
+function kpiSlots(ctx){
+ if(ctx.yearMode==='multi')return ctx.productMode==='one'?[['salesFocus','other'],['shareYears','salesCompare'],['change','salesCompare'],['growth','other']]:[['salesFocus','other'],['salesCompare','other'],['change','other'],['growth','other']];
+ const one=ctx.productMode==='one',last=one?['price','other','share']:['other','share','bestMonth'];
+ if(ctx.hasTargets)return [['sales','other'],['ach','share','avgMonth','bestMonth'],ctx.isOpenYear?['fy','avgMonth','bestMonth']:['avgMonth','bestMonth'],last];
+ return [['sales','other'],ctx.companyScope?['avgMonth','bestMonth']:['share','avgMonth','bestMonth'],['bestMonth','avgMonth'],last];
+}
+function kpiCards(ctx){
+ const slots=kpiSlots(ctx),probe={...ctx,slot4Price:false},C0=kpiCandidates(probe),used=new Set(),picks=[];
+ for(const list of slots){const k=[...list,'products','months'].find(x=>C0[x]&&!used.has(x));used.add(k);picks.push(k)}
+ const C=picks[3]==='price'?kpiCandidates({...ctx,slot4Price:true}):C0;
+ return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+picks.map(k=>C[k]()).join('');
+}
 function drawBridge(id,result,metric,dimension='product'){const cap=isMobile()?6:8;
  const node=$(id);if(result.delta==null){node.innerHTML=`<p class="empty-chart">${e(result.reason||'Comparable periods unavailable.')}</p>`;return}
  let items=result.items;
