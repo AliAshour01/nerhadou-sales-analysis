@@ -618,3 +618,5 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 .mix-switch button:focus-visible{outline:2px solid #2456d6;outline-offset:-2px}
 /* R-23 source name under the display name */
 #view-portfolio .src-name,.portfolio-card .src-name{display:block;font-size:11px;font-weight:400;color:#5b6b7f;text-transform:none;margin-top:2px}
+/* R-08 mix panels keep their own height instead of stretching to the tallest mix (no empty card bottoms) */
+#overview-grid .v69-panel[data-panel^="mix"],#overview-grid .v69-panel[data-panel="attention"]{align-self:start}
