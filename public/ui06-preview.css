@@ -466,3 +466,11 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #data-health{min-height:35px}html:not(.sales-ready) #sales .summary-toolbar{min-height:51px}html:not(.sales-ready) #monthly-controls{min-height:36px}
 @media(max-width:699px){html:not(.sales-ready) #sales .filters{min-height:330px}html:not(.sales-ready) #data-health{min-height:98px}html:not(.sales-ready) #sales .summary-toolbar{min-height:99px}html:not(.sales-ready) #monthly-controls{min-height:124px}}
 @media(max-width:699px){html:not(.sales-ready) article:has(#trend)>.panel-title{min-height:69px}html:not(.sales-ready) article:has(#trend)>.legend{min-height:42px}}
+/* S-32 chart table view */
+.chart-table-toggle{margin-left:auto;font-size:12px;font-weight:600;padding:4px 10px;border:1px solid #d5deea;border-radius:6px;background:#fff;color:#33475f;cursor:pointer}
+.chart-table-toggle[aria-pressed="true"]{background:#1f3555;color:#fff;border-color:#1f3555}
+.chart-table-toggle:focus-visible{outline:2px solid #2456d6;outline-offset:2px}
+.chart-table{width:100%;border-collapse:collapse;font-size:13px}.chart-table caption{text-align:left;font-size:12px;color:var(--text-muted);padding:0 0 6px}
+.chart-table th,.chart-table td{padding:6px 10px;border-bottom:1px solid #edf1f7;text-align:left}.chart-table td{font-variant-numeric:tabular-nums}
+.chart-table thead th{font-size:12px;color:var(--text-muted);font-weight:600}
+.chart-table th,.chart-table thead th{text-transform:none;letter-spacing:normal}.chart-table tbody th{font-size:13px;font-weight:500;color:#233653;background:none}
