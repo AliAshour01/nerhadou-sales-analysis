@@ -221,9 +221,9 @@ function kpiSlots(ctx){
 }
 function kpiCards(ctx){
  const slots=kpiSlots(ctx),probe={...ctx,slot4Price:false},C0=kpiCandidates(probe),used=new Set(),picks=[];
- for(const list of slots){const k=[...list,'products','months'].find(x=>C0[x]&&!used.has(x));used.add(k);picks.push(k)}
+ for(const list of slots){const k=[...list,'products','months'].find(x=>C0[x]&&!used.has(x));if(k){used.add(k);picks.push(k)}}
  const C=picks[3]==='price'?kpiCandidates({...ctx,slot4Price:true}):C0;
- return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+picks.map(k=>C[k]()).join('');
+ return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+picks.filter(k=>k&&C[k]).map(k=>C[k]()).join('');
 }
 function drawBridge(id,result,metric,dimension='product'){const cap=isMobile()?6:8;
  const node=$(id);if(result.delta==null){node.innerHTML=`<p class="empty-chart">${e(result.reason||'Comparable periods unavailable.')}</p>`;return}
@@ -411,7 +411,7 @@ function renderSalesByYear(ctx){
  const metric=ui.metric,rows=salesByYearRows(ctx,metric),id='sales-by-year',W=plotWidth(id,420),L=48,R=W-12,T=30,B=232,H=300,vals=rows.map(r=>r.value).filter(Number.isFinite),axis=niceAxis([0,...vals],4),Y=v=>B-(v-axis.min)/(axis.max-axis.min||1)*(B-T),step=(R-L)/rows.length,bw=Math.min(54,step*.62);
  let svg=svgPlot(W,H,`Sales by year, ${metric}, ${periodLabel()}`);for(const v of axisTicks(axis))svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e9eff2"/><text class="axis-tick" x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#5b6b7f">${tickLabel(v,axis)}</text>`;
  rows.forEach((r,i)=>{const x=L+step*(i+.5),focus=r.year===ctx.focusYear,known=Number.isFinite(r.value),y=known?Y(r.value):B,label=r.withheld?'withheld':r.ppg==null?'':pct(r.ppg),tip=`${r.year} · ${known?amt(r.value,metric):'unknown'}${r.prev?' · vs '+r.prev+': '+(r.withheld?'growth withheld (provisional year)':r.ppg==null?'no comparison':pct(r.ppg)):''}`;
-  svg+=`<g role="button" tabindex="0" data-focus-year="${r.year}" data-tip="${e(tip)}" aria-label="${e(tip+(focus?' · focus year':' · make this the focus year'))}" aria-pressed="${focus}">${known?`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${Math.max(1,B-y)}" rx="4" fill="${focus?'#1d4ed8':'#9db7dc'}"/>`:`<text x="${x}" y="${B-8}" text-anchor="middle" font-size="11" fill="#5b6b7f">unknown</text>`}<text x="${x}" y="${(known?y:B)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="#1f3555">${known?short(r.value):''}</text>${label?`<text x="${x}" y="${B+34+(step<66&&i%2?14:0)}" text-anchor="middle" font-size="${r.withheld?10:10.5}" font-weight="600" fill="${r.withheld?'#5b6b7f':r.ppg>=0?'#146c43':'#a1261b'}">${e(label)}</text>`:''}<text x="${x}" y="${B+18}" text-anchor="middle" font-size="12" font-weight="${focus?700:500}" fill="#1f3555">${r.year}</text></g>`});
+  svg+=`<g role="button" tabindex="0" data-focus-year="${r.year}" data-tip="${e(tip)}" aria-label="${e(tip+(focus?' · focus year':' · make this the focus year'))}" aria-pressed="${focus}">${known?`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${Math.max(1,B-y)}" rx="4" fill="${focus?'#1d4ed8':'#9db7dc'}"/>`:`<text x="${x}" y="${B-8}" text-anchor="middle" font-size="11" fill="#5b6b7f">unknown</text>`}<text x="${x}" y="${(known?y:B)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="#1f3555">${known?short(r.value):''}</text>${label?`<text x="${x}" y="${B+34+(step<66&&i%2?14:0)}" text-anchor="middle" font-size="11" font-weight="600" fill="${r.withheld?'#5b6b7f':r.ppg>=0?'#146c43':'#a1261b'}">${e(label)}</text>`:''}<text x="${x}" y="${B+18}" text-anchor="middle" font-size="12" font-weight="${focus?700:500}" fill="#1f3555">${r.year}</text></g>`});
  $(id).innerHTML=svg+'</svg>';$('years-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'} · growth vs previous selected year · click a year to focus it`;
 }
 // Share of company by year (one product): product sales ÷ company sales, same months, per year.
