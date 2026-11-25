@@ -36,11 +36,12 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
  if(!data.length)return '<p class="empty-chart">Select at least one month.</p>';
  const known=v=>v!=null&&Number.isFinite(v);
  const axis=axisFor([...data.map(d=>known(d.actual)?d.actual:0),...data.map(d=>compare==='target'&&known(d.target)?d.target:0),...data.map(d=>compare==='py'&&known(d.previous)?d.previous:0)]),width=chartPixels,left=62,right=width-16,top=34,bottom=222,plot=bottom-top,Y=v=>bottom-(v-axis.min)/(axis.max-axis.min)*plot,zero=Y(0),step=(right-left)/data.length,pair=compare==='py',bw=Math.min(pair?maxBar*.62:maxBar,step*(pair?.3:.52));
- const stride=monthStride(data.length,right-left);let svg=plotSVG(width,270,compare==='py'?'Monthly sales, current and previous year, with growth percentages':compare==='target'?'Monthly actual columns with monthly target markers':'Monthly sales columns');
+ // V72 R-22: up to 9 months every month keeps its label (11 px when the slots are narrow); only longer runs skip labels.
+ const stride=data.length<=9?1:monthStride(data.length,right-left),labelFont=(right-left)/Math.max(1,data.length)<52?11:12;let svg=plotSVG(width,270,compare==='py'?'Monthly sales, current and previous year, with growth percentages':compare==='target'?'Monthly actual columns with monthly target markers':'Monthly sales columns');
  axisTicks(axis).forEach(v=>svg+=`<line x1="${left}" y1="${Y(v)}" x2="${right}" y2="${Y(v)}" stroke="${v===0?'#a9bcc5':'#e9eff2'}"/><text x="${left-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`);
  const bar=(x,v,fill,cls='')=>`<rect class="${cls}" x="${x}" y="${Math.min(Y(v),zero)}" width="${bw}" height="${Math.max(.5,Math.abs(Y(v)-zero))}" rx="3" fill="${v<0?'#ba685d':fill}"/>`;
  const slot=(x,label='unknown')=>`<rect class="unknown-slot" x="${x}" y="${top+plot*.45}" width="${bw}" height="${plot*.55}" rx="3" fill="none" stroke="#9aa5b4" stroke-dasharray="4 3"/><text class="unknown-label" x="${x+bw/2}" y="${top+plot*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">${label}</text>`;
- data.forEach((d,i)=>{
+ let lastLab=null;data.forEach((d,i)=>{
   const x=left+step*(i+.5),name=months[d.month-1],a=known(d.actual);
   const tip=name+': '+(a?amount(d.actual,c.metric):'unknown '+c.metric)+(compare==='py'?' · '+(opts.pyYear||'Previous year')+': '+(known(d.previous)?amount(d.previous,c.metric):'—')+(d.ppg==null?'':' · PPG '+(d.ppg>0?'+':'')+d.ppg.toFixed(1)+'%'):compare==='target'?(d.target==null?' · target unallocated':' · target '+amount(d.target,c.metric))+(d.pct==null?'':' · '+d.pct.toFixed(1)+'%'):'');
   svg+=`<g role="img" tabindex="0" aria-label="${esc(tip)}" data-tip="${esc(tip)}" data-month="${d.month}">`;
@@ -61,7 +62,9 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
    label=compare==='target'&&d.pct!=null?d.pct.toFixed(0)+'%':compact(d.actual);
   }
   svg+='</g>';
-  if(i%stride===0||i===data.length-1)svg+=`${label&&labelTop!=null?`<text class="bar-pct${compare==='py'?' ppg-label':''}" x="${x}" y="${labelTop-8}" text-anchor="middle" font-size="12" font-weight="600" fill="${compare==='py'&&d.ppg<0?'#a4483b':'#405b78'}">${label}</text>`:''}<text x="${x}" y="250" text-anchor="middle" font-size="12" fill="#5b6b7f">${name}</text>`;
+  // V72 R-22: a label that would touch its left neighbour at the same height moves up one line.
+  let ly=labelTop==null?null:labelTop-8;if(label&&ly!=null){const w=String(label).length*labelFont*.78;if(lastLab&&x-w/2<lastLab.r+4&&Math.abs(ly-lastLab.y)<labelFont+2)ly=lastLab.y-(labelFont+2);lastLab={r:x+w/2,y:ly}}
+  if(i%stride===0||i===data.length-1)svg+=`${label&&labelTop!=null?`<text class="bar-pct${compare==='py'?' ppg-label':''}" x="${x}" y="${ly}" text-anchor="middle" font-size="${labelFont}" font-weight="600" fill="${compare==='py'&&d.ppg<0?'#a4483b':'#405b78'}">${label}</text>`:''}<text x="${x}" y="250" text-anchor="middle" font-size="${labelFont}" fill="#5b6b7f">${name}</text>`;
  });
  return svg+'</svg>';
 }

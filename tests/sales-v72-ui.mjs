@@ -86,5 +86,15 @@ await window.actualDashboard.apply(cfg());
   assert(!document.querySelector('.mix-switch'));
 }
 
+// R-22: 8 months on a phone-width chart keep all 8 month labels (11 px); more than 9 months may skip.
+{
+  const rows = (k) => Array.from({ length: k }, (_, i) => ({ month: i + 1, actual: 100 + i, previous: 90, ppg: 11.1, target: 100 }));
+  const names = (html) => (html.match(/y="250"[^>]*>[A-Z][a-z]{2}</g) || []).length;
+  const eight = window.actualDashboard.monthlyChartHTML(rows(8), 'units', 330, { compare: 'py' });
+  assert.equal(names(eight), 8);
+  assert(/class="bar-pct ppg-label"[^>]*font-size="11"/.test(eight));
+  assert(names(window.actualDashboard.monthlyChartHTML(rows(12), 'units', 330, { compare: 'py' })) < 12);
+}
+
 window.actualDashboard.setMeasure('units');
 console.log('sales-v72 UI checks passed');
