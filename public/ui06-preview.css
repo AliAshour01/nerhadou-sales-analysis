@@ -551,3 +551,25 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .facts-list .fact.positive{border-left:3px solid #1e8e5a}
 #sales .facts-list .fact.neutral{border-left:3px solid #8a9bb0}
 #sales .facts-list .fact-more{list-style:none}
+/* V69 U-13: Years chips, unified Period, page subtitle, empty selection */
+#sales .page-subtitle{margin:4px 0 0;color:#4b5a6d;font-size:14px;font-weight:500}
+#sales .years-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+#sales .years-field .field-label{font-size:12px;font-weight:600;color:#4b5a6d}
+#sales .years-row{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+#sales .years-chips{display:flex;gap:6px;min-width:0}
+#sales .year-chip,#sales .year-presets button{min-height:36px;padding:0 12px;border:1px solid #cdd7e3;border-radius:999px;background:#fff;color:#1f3555;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+#sales .year-chip.chosen{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+#sales .year-presets{display:flex;gap:4px}
+#sales .year-presets button{border-style:dashed;font-weight:500;color:#2a4466}
+#sales .year-presets button.chosen{border-style:solid;background:#eef4fd}
+#sales .multi-select.not-recorded summary{opacity:.6;pointer-events:none}
+#sales #common-months-field[hidden]{display:none}
+#sales .advanced-body .check-field{display:flex;align-items:center;gap:8px;font-size:13px}
+#sales .no-sales{margin:12px 0 18px;padding:28px 16px;text-align:center;border:1px dashed #cdd7e3;border-radius:14px;background:#fff;color:#1f3555}
+#sales .no-sales[hidden]{display:none}
+#sales .no-sales p{margin:0 0 12px;font-weight:600}
+@media(max-width:699px){#sales .years-chips{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;max-width:100%}#sales .years-row{flex-wrap:wrap}}
+#sales>.heading>div:first-child{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;row-gap:2px}
+#sales>.heading>div:first-child .page-subtitle{flex-basis:100%;order:3}
+#sales .bridge-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px}
+#sales .bridge-toolbar #bridge-years:not([hidden]){display:inline-flex;gap:10px;align-items:flex-end}
