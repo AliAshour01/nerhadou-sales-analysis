@@ -26,7 +26,9 @@ export function tableColumns(ctx, measures, period = '') {
     const unit = m === 'value' ? 'value (EGP)' : 'units',
       add = (kind, short, label, extra = {}) => cols.push({ key: kind + ':' + m + (extra.year ? ':' + extra.year : ''), kind, metric: m, short, label, ...extra });
     if (!multi) {
-      add('sales', 'Sales', `Sales ${unit} · ${period || ctx.focusYear}`);
+      // V72 R-02: a year with unrecorded months shows its recorded subtotal (e.g. Sales Jan–Sep 2023), never a blank total.
+      const rec = ctx.missingMonths?.length && ctx.dataMonths?.length ? monthSpan(ctx.dataMonths) : '';
+      add('sales', rec ? 'Sales ' + rec : 'Sales', rec ? `Sales ${unit} · ${rec} ${ctx.focusYear} (${ctx.missingNote})` : `Sales ${unit} · ${period || ctx.focusYear}`);
       add('share', 'Share', `Share of company ${unit} (%)`);
       // V72 R-02: when the two years record different months, PY and PPG use the months both record (same as the KPIs).
       const part = ctx.comparePartial ? ' ' + monthSpan(ctx.compareMonths) : '';
@@ -69,7 +71,7 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
     memo = new Map(),
     sum = (year, m) => {
       const k = year + m;
-      if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.months, m, filters));
+      if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.dataMonths || ctx.months, m, filters));
       return memo.get(k);
     },
     partial = ctx.yearMode === 'single' && ctx.comparePartial,
@@ -124,7 +126,7 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
 export function productsTableData(ctx, { measures = [ctx.measure], targetBasis = 'period', search = '', period = '' } = {}) {
   const cols = tableColumns(ctx, measures, period),
     annual = targetBasis === 'annual' && ctx.hasTargets,
-    company = Object.fromEntries(measures.map((m) => [m, comparableSummary(ctx.records, ctx.focusYear, ctx.months, m, {}).value])),
+    company = Object.fromEntries(measures.map((m) => [m, comparableSummary(ctx.records, ctx.focusYear, ctx.dataMonths || ctx.months, m, {}).value])),
     universe = productUniverse(ctx),
     names = universe.map((u) => u.product);
   const total = { product: 'Total (selection)', total: true, ...cells(ctx, cols, ctx.selection, { total: true, products: ctx.products, annual, company }) };
