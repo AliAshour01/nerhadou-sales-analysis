@@ -46,11 +46,11 @@ assert.deepEqual(tabs(),['overview','portfolio']);assert(/Average per month/.tes
 await window.actualDashboard.apply(cfg());assert(/YTD achievement/i.test($('kpis').textContent));await window.actualDashboard.apply(cfg({periodMode:'selected',months:[2,5]}));assert(/Selected-period achievement/i.test($('kpis').textContent));
 // A7 · 2023: provisional badge, gaps not zero, strip lists bridge and PY, no growth figure
 await window.actualDashboard.apply(cfg({years:[2023],year:2023,months:[1,2,3,4,5,6,7,8,9]}));
-assert.equal($('provisional-badge').hidden,false);assert(/What drove the change/.test(strip())&&/Previous-year comparison/.test(strip())&&/2023 data is provisional/.test(strip()));assert(/Withheld/.test($('kpis').textContent));assert(!/[▲▼] (Up|Down) \d/.test($('kpis').textContent));assert.deepEqual(tabs(),['overview','portfolio']);assert($('trend').querySelector('svg'),'Monthly chart is not empty');
+assert.equal($('provisional-badge').hidden,false);assert(/What drove the change/.test(strip())&&/Previous-year comparison/.test(strip())&&/2023 data is provisional/.test(strip()));assert(/Not comparable|Growth unavailable/.test($('kpis').textContent));assert(!/[▲▼] (Up|Down) \d/.test($('kpis').textContent));assert.deepEqual(tabs(),['overview','portfolio']);assert($('trend').querySelector('svg'),'Monthly chart is not empty');
 // A8 · 2021–2026: multi-year
 const ALL=base.snapshot.availableYears.slice().sort((a,b)=>a-b);
 await window.actualDashboard.apply(cfg({years:ALL}));assert.deepEqual(tabs(),['overview','portfolio']);assert(visible().includes('salesByYear')&&visible().includes('monthly')&&visible().includes('bridge'));
-{const labels=[...$('sales-by-year').querySelectorAll('g[data-focus-year]')].map(g=>g.textContent);assert(labels.find(t=>t.includes('2023')).includes('withheld'));assert(labels.find(t=>t.includes('2024')).includes('withheld'));assert(/2025 → 2026/.test($('kpis').textContent))}
+{const labels=[...$('sales-by-year').querySelectorAll('g[data-focus-year]')].map(g=>g.textContent);assert(labels.find(t=>t.includes('2023')).includes('N/A'));assert(labels.find(t=>t.includes('2024')).includes('N/A'));assert(/2025 → 2026/.test($('kpis').textContent))}
 assert($('trend').querySelectorAll('polyline').length>=ALL.length,'one line per year');
 // A9 · multi-year one product: Share by year, bridge by month, no Products tab
 {const p=window.actualDashboard.translateProducts(['ONDALENZ 8MG'],'multi',Y);await window.actualDashboard.apply(cfg({years:ALL,selection:{...none,product:p}}));assert.deepEqual(tabs(),['overview']);assert(visible().includes('shareByYear'));assert.equal($('movement-dimension').value,'month');assert(/Share of company/.test($('kpis').textContent))}
@@ -64,7 +64,7 @@ assert(/vs 2021/.test(c[1])&&c[1].startsWith('Share of company 2026'),'one produ
 // 2023 is provisional, so a range that starts at 2023 starts at the first comparable year instead (no growth involving 2023).
 await window.actualDashboard.apply(cfg({years:[2023,2024,2025,2026]}));c=cards();assert(c[1].startsWith('Sales 2024')&&/2023 provisional/.test(c[1]));assert(c[3].includes('2024 → 2026'));assert(!c.join(' ').includes('2023 → '));
 // Range works even when the previous year is withheld (focus 2024, previous 2023 provisional).
-await window.actualDashboard.apply(cfg({years:[2022,2023,2024],year:2024}));c=cards();assert(c[2].startsWith('Change 2022 → 2024')&&c[2].includes('vs 2023: withheld'));assert(/\+\d/.test(c[3]));
+await window.actualDashboard.apply(cfg({years:[2022,2023,2024],year:2024}));c=cards();assert(c[2].startsWith('Change 2022 → 2024')&&c[2].includes('vs 2023: 2023 data is provisional'));assert(/\+\d/.test(c[3]));
 // Two selected years keep the plain pair comparison; single year is unchanged.
 await window.actualDashboard.apply(cfg({years:[2025,2026]}));c=cards();assert(c[1].startsWith('Sales 2025'));assert(c[3].startsWith('Growth 2025 → 2026')&&c[3].includes('+39.6%'));assert(!/Avg yearly growth/.test(c.join(' ')));
 await window.actualDashboard.apply(cfg());assert(!/Avg yearly growth|Change 20/.test($('kpis').textContent));}
@@ -72,7 +72,7 @@ await window.actualDashboard.apply(cfg());assert(!/Avg yearly growth|Change 20/.
 await window.actualDashboard.apply(cfg({years:[2025,2026],selection:{...none,line:['Gyn line']}}));assert.deepEqual(window.actualDashboard.read().selection.line,['Gyn line']);assert(/Gyn line/.test($('page-subtitle').textContent));
 await window.actualDashboard.apply(cfg({years:[2021,2022,2023,2024]}));assert(document.querySelector('[data-multi="line"]').classList.contains('not-recorded'));assert(/Not recorded for 2021–2024/.test($('line-summary').textContent));
 // A11 · 2022+2023: bridge hidden with reason, no growth number
-await window.actualDashboard.apply(cfg({years:[2022,2023],year:2023,months:[1,2,3,4,5,6,7,8,9,10,11,12],periodMode:'full'}));assert(!visible().includes('bridge'));assert(/2023 data is provisional/.test(strip()));assert(/Withheld/.test($('kpis').textContent));
+await window.actualDashboard.apply(cfg({years:[2022,2023],year:2023,months:[1,2,3,4,5,6,7,8,9,10,11,12],periodMode:'full'}));assert(!visible().includes('bridge'));assert(/2023 data is provisional/.test(strip()));assert(/Not comparable|Growth unavailable/.test($('kpis').textContent));
 // S-11 filters: chips, reset, summary
 await window.actualDashboard.apply(cfg());assert.equal($('reset').hidden,true,'Reset hidden at defaults');
 await window.actualDashboard.apply(cfg({selection:{product:['CALCITRON','ZINCTRON','FERROTRON','ONDALENZ 8MG'],line:[],distributor:['PHARMA'],channel:[]}}));assert($('active-filters').textContent.includes('Products: CALCITRON, ZINCTRON +2'));assert($('active-filters').textContent.includes('Distributor: PHARMA'));assert.equal($('reset').hidden,false);

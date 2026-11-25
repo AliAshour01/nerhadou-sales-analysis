@@ -1,5 +1,9 @@
 # Nerhadou Commercial Hub releases
 
+## V70 · Advanced filters and comparison explanations
+
+Advanced filters expand inside the filter card. Growth comparisons involving provisional 2023 data show the reason directly in the dashboard and exports.
+
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
