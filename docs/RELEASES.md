@@ -3,6 +3,10 @@
 Use the visible Version number to identify a release. Each completed feature update receives a new saved Site version and an entry here. Deployment is separate from data revisions: publishing old application code does not restore old sales data. Sales changes remain audited and use their own Undo workflow. Do not restore a database when asked only to return to an application version.
 
 
+## V68 — Actual Sales (2026) UI/UX and data-trust pass (branch only, not deployed)
+
+Implements the Sales 2026 UI/UX brief P0–P2 (S-01–S-04, S-10–S-20, S-30–S-37) on branch `claude/project-thread-u3zmv6`. Fixes the Breakdown/Movement axis ticks (shared nice-axis helper) and withholds every growth, PPG, delta, bridge, PY overlay and seasonality figure that uses provisional 2023. Forecast is visible to every active user (owner decision, overriding the brief and the V63 Owner/Admin-only rule). Adds four KPI cards, real sticky tabs, a sticky filter summary, Forecast vs FY target with the required monthly pace and a cumulative path, click-to-filter with Undo, WCAG AA text contrast, table views for every chart, URL state, loading/error states and a ~6× faster filter render. Missing values are never coerced to 0. No source data, auth, API, D1 or Cloudflare configuration changed. Not deployed to production; Owner testing required first. See SALES-UX-V68-HANDOFF.md.
+
 ## V67 — Monthly achievement and growth labels
 
 Show the percentage and month on every bar in the company and product monthly rate charts. Separate the negative-label area from the month axis and retain exact percentages in tooltips. Narrow panels scroll horizontally rather than hide labels. No sales, target calculations or access logic changed. Previous production V66: `7ab452b4727a507e16c745e7a5dfb22976875190` / Worker `eac29977-9a55-4e38-8b86-df07ea407056`; private V66: `appgprj_6acfda6514988191b70ce8587b602beb~appgver_6fa4a9035a80819191d4816e380da9d3` / `49d14ff237a4a5c76c8adfafad7d275cb4bca75c`.
