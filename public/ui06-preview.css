@@ -591,3 +591,22 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 #view-portfolio tr.member-row td.sticky-col{padding-left:28px}
 #view-portfolio tr.member-row{background:#fafcff}
 .multi-option.tender-variant{padding-left:22px}
+/* R-20 forecast range, reason and products at risk */
+.forecast-legend .fl.range{height:10px;border:0;background:rgba(176,96,62,.18);border-radius:2px}
+.forecast-why{margin:12px 0 0;font-size:13px;color:#1f3555;line-height:1.5}
+.forecast-why[hidden],#forecast-risk-wrap[hidden]{display:none!important}
+.forecast-risk-wrap{margin-top:22px}
+.forecast-risk-head{display:flex;align-items:center;gap:12px}.forecast-risk-head h3{margin:0}
+.forecast-risk-head .chart-table-toggle[hidden]{display:none}
+.forecast-risk-table{width:100%;border-collapse:collapse;font-size:13px}
+.forecast-risk-table th,.forecast-risk-table td{padding:8px 10px;border-bottom:1px solid #e6ebf2;text-align:right;white-space:nowrap}
+.forecast-risk-table th:first-child{text-align:left;font-weight:600;white-space:normal}
+.forecast-risk-table thead th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#5b6b7f;background:#f5f8fc}
+.forecast-risk-table td.neg{color:#a1261b}
+.forecast-risk-table .ach{display:inline-block;padding:1px 8px;border-radius:999px;font-weight:600}
+.forecast-risk-table tbody th{text-transform:none;letter-spacing:0;font-size:13px;color:#1f3555;background:#fff}
+#forecast-risk .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.forecast-risk-table th:first-child{min-width:150px;position:sticky;left:0;z-index:1}
+.forecast-risk-table thead th:first-child{background:#f5f8fc}
+@media(max-width:600px){.forecast-risk-table{font-size:12px}.forecast-risk-table th,.forecast-risk-table td{padding:7px 8px}.forecast-risk-table thead th{white-space:normal;min-width:84px}}
+.forecast-risk-head .chart-table-toggle{white-space:nowrap;flex-shrink:0}@media(max-width:600px){.forecast-risk-table thead th{min-width:104px;overflow-wrap:normal;word-break:normal}}

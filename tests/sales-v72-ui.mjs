@@ -48,5 +48,24 @@ assert(!/Full-year progress/.test(kpiText()));
 await window.actualDashboard.apply(cfg());
 assert(/Full-year progress/.test(kpiText()), 'YTD keeps full-year progress');
 
+// R-20: forecast range band, why-sentence, products at risk (units, as in the plan's S1: 32.4M vs 38.6M, Sep–Dec 44%)
+window.actualDashboard.setMeasure('units');
+await window.actualDashboard.apply(cfg({ section: 'forecast' }));
+assert($('forecast-chart').querySelector('.fc-range'), 'range band between the two scenario paths');
+assert.equal($('forecast-chart').querySelectorAll('.fc-end-label').length, 2);
+assert.match($('forecast-why').textContent, /19% apart\. Seasonality is higher because Sep–Dec were 44% of 2025 sales/);
+{
+  const rows = [...$('forecast-risk').querySelectorAll('tbody tr')];
+  assert(rows.length > 0 && rows.length <= 10, 'top 10 at most');
+  const gaps = rows.map((r) => -Number(r.children[4].textContent.replace(/[^0-9]/g, '')));
+  assert.deepEqual(gaps, [...gaps].sort((a, b) => a - b), 'largest gap first');
+  assert.equal(rows[0].dataset.riskProduct, 'Methyltechno - TENDER');
+}
+await window.actualDashboard.apply(cfg({ section: 'forecast', selection: { ...none, distributor: ['PHARMA'] } }));
+assert($('forecast-risk-wrap').hidden);
+assert(/Products at risk of missing the FY target/.test($('forecast-not-shown').textContent));
+window.actualDashboard.setMeasure('value');
+await window.actualDashboard.apply(cfg());
+
 window.actualDashboard.setMeasure('units');
 console.log('sales-v72 UI checks passed');
