@@ -236,12 +236,31 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
     gk = ctx.yearMode === 'multi' ? `growth:${primary}` : `ppg:${primary}`,
     share = `share:${primary}`,
     unit = primary === 'value' ? 'EGP' : 'units';
+  // V72 R-17: phone cards show a 2×2 grid: Sales, vs PY %, Ach % (coloured pill) and Variance; when a column does not
+  // apply to the selection (no targets, multi-year) the next available figure (Share, Change) takes the cell.
+  const gapK = `gap:${primary}`,
+    chK = `change:${primary}`,
+    has = (k) => cols.some((c) => c.key === k),
+    signedPct = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%',
+    signedNum = (v) => (v < 0 ? '−' : '+') + num(Math.abs(v)),
+    cellDefs = [
+      has(gk) && [ctx.yearMode === 'multi' ? 'Growth' : `vs ${ctx.compareYear}`, gk, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedPct(v)}</b>`],
+      has(ak) && ['Ach.', ak, (v) => `<b class="ach ach-${achClass(v)}">${v.toFixed(0)}%</b>`],
+      has(gapK) && ['Variance', gapK, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedNum(v)}</b>`],
+      has(share) && ['Share', share, (v) => `<b>${v.toFixed(1)}%</b>`],
+      has(chK) && ['Change', chK, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedNum(v)}</b>`],
+    ]
+      .filter(Boolean)
+      .slice(0, 3);
   const card = (r) => {
     const s = r.cells[sk],
-      second = cols.some((c) => c.key === ak) ? ['Ach.', r.cells[ak], (v) => v.toFixed(0) + '%'] : cols.some((c) => c.key === gk) ? ['Growth', r.cells[gk], (v) => (v > 0 ? '+' : '') + v.toFixed(1) + '%'] : ['Share', r.cells[share], (v) => v.toFixed(1) + '%'];
-    const tag = r.total ? 'div' : 'button',
-      attrs = r.total ? '' : ` type="button" data-select-product="${esc(r.product)}"`;
-    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name">${esc(r.product)}</span><span class="pc-sales">${s == null ? '—' : num(s)} <small>${unit}</small></span><span class="pc-second"><small>${second[0]}</small> ${second[1] == null ? '—' : second[2](second[1])}</span></${tag}>`;
+      tag = r.total ? 'div' : 'button',
+      attrs = r.total ? '' : ` type="button" data-select-product="${esc(r.product)}"`,
+      cell = ([label, key, fmt]) => {
+        const v = r.cells[key];
+        return `<span class="pc-cell"><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
+      };
+    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name">${esc(r.product)}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };
   const cards = card(total) + (grouped ? sorted : visible).map(card).join('') || '<p class="chart-note">No matching products.</p>';
   const more = capped ? `<button type="button" class="link-button pt-show-all" data-pt-all="on">Show all ${sorted.length}</button>` : showAll && sorted.length > TOP_ROWS + 2 && !grouped ? `<button type="button" class="link-button pt-show-all" data-pt-all="off">Show top ${TOP_ROWS}</button>` : '';

@@ -340,9 +340,6 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
  .portfolio-cards{display:grid;gap:8px}
  .portfolio-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;text-align:left;padding:12px;border:1px solid #dfe7f2;border-radius:10px;background:#fff;min-height:44px;cursor:pointer}
  .portfolio-card .pc-name{font-weight:700;color:#1f3555;overflow-wrap:anywhere}
- .portfolio-card .pc-sales{grid-column:1;color:#2a4466}
- .portfolio-card .ach{grid-column:2;grid-row:1;align-self:start}
- .portfolio-card .variance{grid-column:2;grid-row:2;font-weight:600;font-size:12px}
 }
 #view-portfolio .table-wrap th,#view-portfolio .table-wrap td{padding:9px 8px}
 #view-portfolio .table-wrap .sticky-col{text-align:left;white-space:normal;min-width:150px;max-width:210px}
@@ -451,8 +448,6 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #view-portfolio tr.subtotal-row small{font-weight:500;color:#5b6b7f}
 .pt-more{display:flex;justify-content:center;margin-top:8px}
 .pt-more:empty{display:none}
-.portfolio-card .pc-second{grid-column:2;grid-row:1 / span 2;align-self:center;font-weight:700;color:#1f3555;text-align:right}
-.portfolio-card .pc-second small{display:block;font-weight:500;color:#5b6b7f}
 .products-toolbar label{white-space:nowrap;margin:0}
 .products-toolbar select{width:auto;min-width:0;padding-right:28px}
 /* V69 U-11: Product facts card */
@@ -581,3 +576,11 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 .app-header #fullscreen-toggle.fullscreen-button:hover{background:#f2f5f9!important;color:#283d59!important}
 .app-header #fullscreen-toggle #fullscreen-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 body:has(#sales:not([hidden])) #shared-data-state{display:none}
+/* R-17: phone product cards: name, then a 2×2 grid (Sales, vs PY %, Ach %, Variance). */
+.portfolio-card .pc-name{grid-column:1/-1}
+.portfolio-card .pc-grid{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:4px}
+.portfolio-card .pc-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.portfolio-card .pc-cell small{font-size:11px;color:#5b6b7f;font-weight:500}
+.portfolio-card .pc-cell b{font-size:14px;color:#1f3555;font-variant-numeric:tabular-nums}
+.portfolio-card .pc-cell b.ach{align-self:flex-start;padding:1px 8px;border-radius:999px;font-size:13px}
+.portfolio-card .pc-cell b.variance.positive{color:#146c43}.portfolio-card .pc-cell b.variance.negative{color:#a1261b}
