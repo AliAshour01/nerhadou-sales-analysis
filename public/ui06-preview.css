@@ -573,3 +573,8 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales>.heading>div:first-child .page-subtitle{flex-basis:100%;order:3}
 #sales .bridge-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px}
 #sales .bridge-toolbar #bridge-years:not([hidden]){display:inline-flex;gap:10px;align-items:flex-end}
+/* V69 U-14: multi-year panels */
+#sales .series-legend button,#sales .series-legend span{white-space:nowrap}
+#sales .series-legend button[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+#sales #sales-by-year g[role="button"],#sales #share-by-year g{cursor:pointer;outline:none}
+#sales #sales-by-year g[role="button"]:focus-visible rect{stroke:#1f3555;stroke-width:2}

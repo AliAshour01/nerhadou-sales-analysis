@@ -90,11 +90,15 @@ const PANEL_BODIES={
  bridge:()=>panel('What drove the change',`<div class="analysis-toolbar bridge-toolbar"><label>Break down by<select id="movement-dimension"></select></label><span id="bridge-years" hidden><label>From<select id="bridge-from"></select></label><label>To<select id="bridge-to"></select></label></span></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details class="bridge-numbers"><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`),
  mixDistributor:()=>panel('Distributor mix','<p class="mix-context chart-note"></p><div id="distributors"></div>'),
  mixChannel:()=>panel('Sales-type mix','<p class="mix-context chart-note"></p><div id="company-channels"></div>'),
+ salesByYear:()=>panel('Sales by year','<p id="years-context" class="chart-note"></p><div id="sales-by-year"></div>'),
+ shareByYear:()=>panel('Share of company by year','<p class="chart-note">Product sales ÷ company sales, same months each year.</p><div id="share-by-year"></div>'),
  mixLine:()=>panel('Sales by line','<p class="mix-context chart-note"></p><div id="line-mix"></div>'),
  productFacts:()=>panel('Product facts','<ul id="product-facts" class="facts-list"></ul>')
 };
 const RENDERERS={
  productsTable:ctx=>renderProductsTable(ctx),
+ salesByYear:ctx=>renderSalesByYear(ctx),
+ shareByYear:ctx=>renderShareByYear(ctx),
  monthly:ctx=>renderMonthlyPanel(ctx),
  attention:()=>renderAttention(),
  bridge:ctx=>renderBridge(ctx),
@@ -103,7 +107,7 @@ const RENDERERS={
  mixLine:ctx=>renderLineMix(ctx),
  productFacts:ctx=>renderProductFacts(ctx)
 };
-const layoutApi={renderers:RENDERERS,attentionCount,factCount:ctx=>productFacts(ctx).length,shareYears:()=>0,bridgeOptions};
+const layoutApi={renderers:RENDERERS,attentionCount,factCount:ctx=>productFacts(ctx).length,shareYears,bridgeOptions};
 function mountOverviewGrid(){
  const overview=$('view-overview'),old=overview.querySelector('.chart-grid'),monthly=$('trend').closest('article');
  overview.insertAdjacentHTML('afterbegin','<div id="overview-grid" class="v69-grid"></div><details id="overview-not-shown" class="not-shown" hidden><summary></summary><ul></ul></details>');
@@ -408,7 +412,39 @@ function renderMonthlyPanel(ctx){
  node.innerHTML=note+(ui.monthlyCumulative?cumulativeChart(rows,metric,mode,ctx):window.actualDashboard.monthlyChartHTML(rows,metric,plotWidth('trend'),{compare:mode,maxBar:ctx.monthCount===2?64:38,pyYear:ctx.compareYear}));
  $('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'}${mode==='target'?' · vs monthly target':mode==='py'?' · vs '+ctx.compareYear:''}${ui.monthlyCumulative?' · cumulative':''}`;
 }
-function renderMultiYearMonthly(){}
+// ── V69 U-14: multi-year renderers (replace the Historical page charts) ──
+// Monthly chart, one line per selected year; legend buttons toggle a year; phones show the 3 latest years first.
+function renderMultiYearMonthly(ctx){
+ const metric=ui.metric,article=$('panel-monthly'),legend=article.querySelector('.progress-legend'),node=$('trend'),mobile=isMobile();
+ const all=ctx.years.slice(),limited=mobile&&!ui.monthlyAllYears&&all.length>3,shownYears=limited?all.slice(-3):all,hidden=ui.hiddenYears||(ui.hiddenYears=new Set());
+ for(const y of [...hidden])if(!shownYears.includes(Number(y)))hidden.delete(y);if(shownYears.every(y=>hidden.has(String(y))))hidden.clear();
+ const controls=[];if(ctx.monthCount>1)controls.push(buttons('Monthly or cumulative',[['monthly','Monthly'],['cumulative','Cumulative']],ui.monthlyCumulative?'cumulative':'monthly','data-monthly-view'));
+ if(mobile&&all.length>3)controls.push(`<button type="button" class="link-button" data-monthly-years="${limited?'all':'recent'}">${limited?'Show all years ('+all.length+')':'Show 3 latest years'}</button>`);
+ $('monthly-controls').innerHTML=controls.join('');
+ const series=shownYears.map((y,k)=>{let run=0,broken=false;const values=ctx.months.map(m=>{const v=ctxSummary(ctx,y,[m],metric).value;if(!ui.monthlyCumulative)return v;if(v==null||broken){broken=true;return null}run+=v;return run});return {key:String(y),name:String(y)+(provisional(y)?' (provisional)':''),values,color:y===ctx.focusYear?'#1d4ed8':SERIES_COLORS[(all.indexOf(y)+1)%SERIES_COLORS.length],dash:y===ctx.focusYear?'0':SERIES_DASH[(all.indexOf(y)+1)%SERIES_DASH.length]}});
+ legend.hidden=false;legend.innerHTML=seriesLegend(series,'data-year-line',hidden);
+ if(ctx.monthCount===1){const rows=series.map(s=>({name:s.name,v:s.values[0]})),max=Math.max(1,...rows.map(r=>Math.abs(r.v||0)));node.innerHTML=`<div class="month-card"><p class="month-card-title">${ms[ctx.months[0]-1]} · ${e(yearSpan(ctx.years))}</p>${rows.map((r,k)=>`<div class="month-card-row" tabindex="0" data-tip="${e(r.name+' · '+(r.v==null?'unknown':amt(r.v,metric)))}"><span class="mc-label">${e(r.name)}</span><span class="mc-track"><i style="width:${r.v==null?0:Math.abs(r.v)/max*100}%;background:${series[k].color}"></i></span><b>${r.v==null?'unknown':e(amt(r.v,metric))}</b></div>`).join('')}</div>`;legend.hidden=true}
+ else{const visible=series.filter(s=>!hidden.has(s.key)),gaps=series.filter(s=>s.values.some(v=>v==null)).map(s=>s.key);node.innerHTML=(gaps.length?`<p class="chart-note unknown-note">Unknown ${metric} months are gaps, not zero (${e(gaps.join(', '))}).</p>`:'')+linesChart(visible,ctx.months,metric,'trend',`Monthly ${ui.monthlyCumulative?'cumulative ':''}sales, one line per year`)}
+ $('monthly-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'} · one line per year${ui.monthlyCumulative?' · cumulative':''}${ctx.droppedMonths.length?' · common months only':''}`;
+}
+// Sales by year: one bar per selected year (same months), PPG label vs the previous selected year, withheld for 2023 pairs.
+function salesByYearRows(ctx,metric=ui.metric){return ctx.years.map((y,i)=>{const v=ctxSummary(ctx,y,ctx.months,metric).value,prev=i?ctx.years[i-1]:null,pv=prev==null?null:ctxSummary(ctx,prev,ctx.months,metric).value,allowed=prev==null?null:growthAllowed(prev,y),ppg=allowed?.ok&&v!=null&&pv>0?(v-pv)/pv*100:null;return {year:y,value:v,prev,ppg,withheld:allowed&&!allowed.ok?allowed.reason:null}})}
+function renderSalesByYear(ctx){
+ const metric=ui.metric,rows=salesByYearRows(ctx,metric),id='sales-by-year',W=plotWidth(id,420),L=48,R=W-12,T=30,B=232,H=300,vals=rows.map(r=>r.value).filter(Number.isFinite),axis=niceAxis([0,...vals],4),Y=v=>B-(v-axis.min)/(axis.max-axis.min||1)*(B-T),step=(R-L)/rows.length,bw=Math.min(54,step*.62);
+ let svg=svgPlot(W,H,`Sales by year, ${metric}, ${periodLabel()}`);for(const v of axisTicks(axis))svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e9eff2"/><text class="axis-tick" x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#5b6b7f">${tickLabel(v,axis)}</text>`;
+ rows.forEach((r,i)=>{const x=L+step*(i+.5),focus=r.year===ctx.focusYear,known=Number.isFinite(r.value),y=known?Y(r.value):B,label=r.withheld?'withheld':r.ppg==null?'':pct(r.ppg),tip=`${r.year} · ${known?amt(r.value,metric):'unknown'}${r.prev?' · vs '+r.prev+': '+(r.withheld?'growth withheld (provisional year)':r.ppg==null?'no comparison':pct(r.ppg)):''}`;
+  svg+=`<g role="button" tabindex="0" data-focus-year="${r.year}" data-tip="${e(tip)}" aria-label="${e(tip+(focus?' · focus year':' · make this the focus year'))}" aria-pressed="${focus}">${known?`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${Math.max(1,B-y)}" rx="4" fill="${focus?'#1d4ed8':'#9db7dc'}"/>`:`<text x="${x}" y="${B-8}" text-anchor="middle" font-size="11" fill="#5b6b7f">unknown</text>`}<text x="${x}" y="${(known?y:B)-6}" text-anchor="middle" font-size="11" font-weight="700" fill="#1f3555">${known?short(r.value):''}</text>${label?`<text x="${x}" y="${B+34+(step<66&&i%2?14:0)}" text-anchor="middle" font-size="${r.withheld?10:10.5}" font-weight="600" fill="${r.withheld?'#5b6b7f':r.ppg>=0?'#146c43':'#a1261b'}">${e(label)}</text>`:''}<text x="${x}" y="${B+18}" text-anchor="middle" font-size="12" font-weight="${focus?700:500}" fill="#1f3555">${r.year}</text></g>`});
+ $(id).innerHTML=svg+'</svg>';$('years-context').textContent=`${periodLabel()} · ${metric==='value'?'EGP value':'Units'} · growth vs previous selected year · click a year to focus it`;
+}
+// Share of company by year (one product): product sales ÷ company sales, same months, per year.
+function shareByYearRows(ctx,metric=ui.metric){return ctx.years.map(y=>{const a=ctxSummary(ctx,y,ctx.months,metric).value,b=ctxSummary(ctx,y,ctx.months,metric,{}).value;return {year:y,share:a!=null&&b>0?a/b*100:null,sold:a!=null}})}
+function shareYears(ctx){return ctx.yearMode==='multi'&&ctx.productMode==='one'?shareByYearRows(ctx).filter(r=>r.share!=null).length:0}
+function renderShareByYear(ctx){
+ const rows=shareByYearRows(ctx),id='share-by-year',W=plotWidth(id,420),L=44,R=W-12,T=34,B=210,H=260,vals=rows.map(r=>r.share).filter(Number.isFinite),axis=niceAxis([0,...vals],4),Y=v=>B-(v-axis.min)/(axis.max-axis.min||1)*(B-T),step=(R-L)/rows.length,bw=Math.min(44,step*.55);
+ let svg=svgPlot(W,H,`Share of company by year for ${ctx.product}`);for(const v of axisTicks(axis))svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e9eff2"/><text class="axis-tick" x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#5b6b7f">${v.toFixed(axis.max<5?1:0)}%</text>`;
+ rows.forEach((r,i)=>{const x=L+step*(i+.5),known=r.share!=null,y=known?Y(r.share):B,tip=`${r.year} · ${known?r.share.toFixed(1)+'% of company '+ui.metric:r.sold?'company total unavailable':'not sold in '+r.year}`;svg+=`<g role="img" tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}">${known?`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${Math.max(1,B-y)}" rx="4" fill="${r.year===ctx.focusYear?'#1f9a8a':'#9fd0c8'}"/><text x="${x}" y="${y-6}" text-anchor="middle" font-size="11" font-weight="700" fill="#1f3555">${r.share.toFixed(1)}%</text>`:`<text x="${x}" y="${B-8}" text-anchor="middle" font-size="11" fill="#5b6b7f">—</text>`}<text x="${x}" y="${B+18}" text-anchor="middle" font-size="12" fill="#1f3555">${r.year}</text></g>`});
+ $(id).innerHTML=svg+'</svg>';
+}
 // S-32 table for the Monthly chart: Month, PY, CY, PPG %, Target, Ach. % (columns that apply), Total row, Export Excel.
 function monthlyTableData(ctx,metric=ui.metric){
  if(ctx.yearMode==='multi'){const years=ctx.years,rows=ctx.months.map(m=>[ms[m-1],...years.map(y=>ctxSummary(ctx,y,[m],metric).value)]);rows.push(['Total',...years.map(y=>ctxSummary(ctx,y,ctx.months,metric).value)]);return {headers:['Month',...years.map(String)],kinds:['text',...years.map(()=>'number')],rows}}
@@ -451,6 +487,7 @@ function wireDrilldowns(){
  document.querySelectorAll('[data-focus="product"]').forEach(b=>{b.onclick=()=>selectProduct(b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('#lines-chart [data-focus="line"]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter('line',b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('[data-mix-focus]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter(b.dataset.mixFocus,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
+ document.querySelectorAll('g[data-focus-year]').forEach(b=>{b.onclick=()=>window.actualDashboard.setFocusYear?.(Number(b.dataset.focusYear));b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('g[data-bridge-dim]').forEach(b=>{b.onclick=()=>b.dataset.bridgeDim==='product'?selectProduct(b.dataset.key):window.actualDashboard.focusFilter(b.dataset.bridgeDim,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('g[data-select-product]').forEach(b=>b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectProduct(b.dataset.selectProduct)}});
 }
@@ -549,6 +586,8 @@ function onClick(ev){
 
  else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';else if(b.dataset.attentionAll)ui.attentionAll=b.dataset.attentionAll==='on';else if(b.dataset.factsAll)ui.factsAll=b.dataset.factsAll==='on';else if(b.dataset.monthlyCompare)ui.monthlyCompare=b.dataset.monthlyCompare;else if(b.dataset.monthlySplit)ui.monthlySplit=b.dataset.monthlySplit==='on';else if(b.dataset.measureSwitch)ui.metric=b.dataset.measureSwitch;else if(b.dataset.monthlyExport){exportMonthlyTable();return}
  else if(b.dataset.monthlyView)ui.monthlyCumulative=b.dataset.monthlyView==='cumulative';
+ else if(b.dataset.monthlyYears)ui.monthlyAllYears=b.dataset.monthlyYears==='all';
+ else if(b.dataset.yearLine){const h=ui.hiddenYears||(ui.hiddenYears=new Set());h.has(b.dataset.yearLine)?h.delete(b.dataset.yearLine):h.add(b.dataset.yearLine)}
  else if(b.dataset.distributorView)ui.distributorMode=b.dataset.distributorView;
  else if(b.dataset.leaderSort)ui.leaderSort=b.dataset.leaderSort;
  else if(b.dataset.gapMode)ui.signedGap=b.dataset.gapMode==='signed';
