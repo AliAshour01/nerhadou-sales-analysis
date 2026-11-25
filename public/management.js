@@ -534,7 +534,8 @@ function productFacts(ctx){
  for(const a of attentionItems(ctx).filter(a=>!trivial.has(a.title)))items.push({label:a.title,value:a.chip,note:a.text,tone:a.tone});
  return items;
 }
-function renderProductFacts(ctx){const all=productFacts(ctx),limit=isMobile()?3:4,list=ui.factsAll?all:all.slice(0,limit);
+// V72 R-08: up to 6 facts are always shown in full (no Show all), so the card reaches the Monthly chart's height.
+function renderProductFacts(ctx){const all=productFacts(ctx),limit=all.length<=6?6:isMobile()?3:4,list=ui.factsAll?all:all.slice(0,limit);
  $('product-facts').innerHTML=list.map(x=>`<li class="fact${x.tone?' '+x.tone:''}"><span class="fact-label">${e(x.label)}</span><b>${e(x.value)}</b>${x.note?`<small>${e(x.note)}</small>`:''}</li>`).join('')+(all.length>limit?`<li class="fact-more"><button type="button" class="show-all" data-facts-all="${ui.factsAll?'off':'on'}" aria-expanded="${!!ui.factsAll}">${ui.factsAll?'Show fewer':'Show all ('+all.length+')'}</button></li>`:'')}
 function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return attentionCache.items;attentionCache={key:ctx,items:computeAttention()};return attentionCache.items}
 // V69 U-05: one column, impact order, then 'Show all (n)' expands in place; the panel never sets the row height.

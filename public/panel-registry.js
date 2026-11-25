@@ -11,16 +11,18 @@ const mixReason = (ctx, key, word, plural) => {
   if (d.knownShare < 0.5) return `${word} is recorded for less than half of the selected sales.`;
   return null;
 };
+// V72 R-08: one product over several years pairs the two year charts (6 + 6), then Monthly and the bridge full width.
+const multiOne = (ctx) => ctx.yearMode === 'multi' && ctx.productMode === 'one';
 const mixShown = (ctx, key) => ctx.hasData && ctx.dims[key].categories >= 2 && ctx.dims[key].knownShare >= 0.5;
 
 export const PANELS = [
   // ── Overview ──
-  { id: 'salesByYear', tab: 'overview', row: 2, title: 'Sales by year', span: () => 4, show: (ctx) => ctx.yearMode === 'multi' && ctx.hasData, reason: () => null },
-  { id: 'monthly', tab: 'overview', row: 2, title: 'Monthly sales', span: (ctx) => (ctx.yearMode === 'single' && ctx.monthCount === 1 ? 6 : 8), show: (ctx) => ctx.hasData && ctx.monthCount > 0, reason: (ctx) => (ctx.monthCount ? null : 'Select at least one month.') },
+  { id: 'salesByYear', tab: 'overview', row: 2, title: 'Sales by year', span: (ctx) => (multiOne(ctx) ? 6 : 4), show: (ctx) => ctx.yearMode === 'multi' && ctx.hasData, reason: () => null },
+  { id: 'monthly', tab: 'overview', row: (ctx) => (multiOne(ctx) ? 3 : 2), title: 'Monthly sales', span: (ctx) => (multiOne(ctx) ? 12 : ctx.yearMode === 'single' && ctx.monthCount === 1 ? 6 : 8), show: (ctx) => ctx.hasData && ctx.monthCount > 0, reason: (ctx) => (ctx.monthCount ? null : 'Select at least one month.') },
   { id: 'attention', tab: 'overview', row: 2, title: 'Needs attention', span: () => 4, show: (ctx, api) => ctx.yearMode === 'single' && ctx.productMode !== 'one' && ctx.hasData && api.attentionCount(ctx) > 0, reason: (ctx) => (ctx.yearMode === 'single' && ctx.productMode !== 'one' && ctx.hasData ? 'No items need attention for this selection.' : null) },
   { id: 'productFacts', tab: 'overview', row: 2, title: 'Product facts', span: () => 4, show: (ctx, api) => ctx.yearMode === 'single' && ctx.productMode === 'one' && ctx.hasData && api.factCount(ctx) > 0, reason: () => null },
-  { id: 'shareByYear', tab: 'overview', row: 3, title: 'Share of company by year', span: () => 4, show: (ctx, api) => ctx.yearMode === 'multi' && ctx.productMode === 'one' && ctx.hasData && api.shareYears(ctx) >= 2, reason: (ctx) => (ctx.yearMode === 'multi' && ctx.productMode === 'one' ? 'Company share needs complete product and company sales in at least two selected years.' : null) },
-  { id: 'bridge', tab: 'overview', row: 3, title: 'What drove the change', span: (ctx) => (ctx.yearMode === 'multi' && ctx.productMode === 'one' ? 8 : 12), show: (ctx, api) => ctx.hasData && api.bridgeOptions(ctx).length > 0 && !api.bridgeGap?.(ctx), reason: (ctx, api) => (!ctx.hasData ? null : api.bridgeGap?.(ctx) || (ctx.compareYear == null || !ctx.growthOk ? ctx.growthReason || 'No comparable previous-year data for this selection.' : 'No comparable previous-year data for this selection.')) },
+  { id: 'shareByYear', tab: 'overview', row: (ctx) => (multiOne(ctx) ? 2 : 3), title: 'Share of company by year', span: (ctx) => (multiOne(ctx) ? 6 : 4), show: (ctx, api) => ctx.yearMode === 'multi' && ctx.productMode === 'one' && ctx.hasData && api.shareYears(ctx) >= 2, reason: (ctx) => (ctx.yearMode === 'multi' && ctx.productMode === 'one' ? 'Company share needs complete product and company sales in at least two selected years.' : null) },
+  { id: 'bridge', tab: 'overview', row: (ctx) => (multiOne(ctx) ? 3.5 : 3), title: 'What drove the change', span: () => 12, show: (ctx, api) => ctx.hasData && api.bridgeOptions(ctx).length > 0 && !api.bridgeGap?.(ctx), reason: (ctx, api) => (!ctx.hasData ? null : api.bridgeGap?.(ctx) || (ctx.compareYear == null || !ctx.growthOk ? ctx.growthReason || 'No comparable previous-year data for this selection.' : 'No comparable previous-year data for this selection.')) },
   { id: 'mixDistributor', tab: 'overview', row: 4, title: 'Distributor mix', span: () => 4, show: (ctx) => mixShown(ctx, 'distributor'), reason: (ctx) => (ctx.hasData ? mixReason(ctx, 'distributor', 'Distributor') : null) },
   { id: 'mixChannel', tab: 'overview', row: 4, title: 'Sales-type mix', span: () => 4, show: (ctx) => mixShown(ctx, 'channel'), reason: (ctx) => (ctx.hasData ? mixReason(ctx, 'channel', 'Sales type') : null) },
   { id: 'mixLine', tab: 'overview', row: 4, title: 'Sales by line', span: () => 4, show: (ctx) => ctx.productMode !== 'one' && mixShown(ctx, 'line'), reason: (ctx) => (ctx.hasData && ctx.productMode !== 'one' ? mixReason(ctx, 'line', 'Line') : null) },
@@ -65,8 +67,9 @@ export function layout(tab, ctx, api, { mobile = false, excluded = null } = {}) 
   }
   const rows = [];
   for (const entry of visible) {
-    let row = rows.find((r) => r.row === entry.row);
-    if (!row) rows.push((row = { row: entry.row, panels: [] }));
+    const at = typeof entry.row === 'function' ? entry.row(ctx) : entry.row;
+    let row = rows.find((r) => r.row === at);
+    if (!row) rows.push((row = { row: at, panels: [] }));
     row.panels.push({ id: entry.id, entry, span: entry.span(ctx) });
   }
   rows.sort((a, b) => a.row - b.row);

@@ -563,3 +563,8 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 @media(max-width:699px){#kpis .kpi strong{font-size:22px}}
 /* R-07: Needs attention never scrolls inside the card; the row height follows the taller panel. */
 #sales .v69-grid>#panel-attention,#sales .v69-grid>#panel-productFacts{display:flex;flex-direction:column}
+/* R-08: Product facts stretches to the row and spreads its facts; no blank block under the list. */
+#sales .v69-grid>#panel-productFacts .facts-list{flex:1 1 auto;justify-content:space-between}
+#sales #panel-attention .attention-item{gap:4px;padding:11px 14px}
+#sales #panel-attention .attention-item span{line-height:1.55}
+#sales #panel-attention .attention-list{gap:8px}
