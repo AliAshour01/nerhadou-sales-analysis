@@ -1,9 +1,9 @@
-import {createBreakdown} from './breakdown.js?v=sales-ux-v68';
 import {comparisonProduct} from './compare-core.js?v=sales-ux-v68';
 import {comparableSummary,changeBetween,movement,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-ux-v68';
 import {tableWorkbook} from './comparison-xlsx.js?v=sales-ux-v68';
 import {resolveViewContext,knownCategory,yearSpan} from './view-context.js?v=sales-ux-v68';
 import {PANELS,layout} from './panel-registry.js?v=sales-ux-v68';
+import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-ux-v68';
 import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate} from './chart-utils.js?v=sales-ux-v68';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -14,7 +14,7 @@ const ui={monthlyCumulative:false,monthlyCompare:null,monthlySplit:false,monthly
 Object.defineProperty(ui,'metric',{get:()=>window.actualDashboard?.measure?.()||'units',set:v=>window.actualDashboard?.setMeasure?.(v),enumerable:true});
 Object.defineProperty(ui,'distributorMetric',{get:()=>ui.metric,set:()=>{},enumerable:false});Object.defineProperty(ui,'channelMetric',{get:()=>ui.metric,set:()=>{},enumerable:false});
 let chartResizeFrame=null,chartWidthSignature='';
-let historical=null,breakdown=null;
+let historical=null;
 const plotWidth=(id,fallback=640)=>window.actualDashboard.chartWidth(id,fallback);
 const svgPlot=(w,h,label,extra='')=>window.actualDashboard.plotSVG(w,h,label,extra);
 const labelStride=(count,width)=>window.actualDashboard.monthStride(count,width);
@@ -33,7 +33,7 @@ function provisionalNote(){return records().length&&payload?.seed?.notes?.find?.
 function badge(s){return [s.estimated?'Estimated value included':'',s.approximate?'Available totals · approved scope':'',s.value==null?s.reason:''].filter(Boolean).join(' · ')}
 function buttons(id,items,chosen,attr){return `<div class="control-group" role="group" aria-label="${e(id)}">${items.map(([v,label])=>`<button class="choice ${chosen===v?'chosen':''}" aria-pressed="${chosen===v}" ${attr}="${e(v)}">${e(label)}</button>`).join('')}</div>`}
 // V68 S-32: every chart has a Table view built from the chart's own tooltips, so the values are identical.
-const CHART_TABLES=[['trend','Monthly performance'],['distributors','Distributor mix'],['company-channels','Sales-type mix'],['line-mix','Sales by line'],['movement-chart','What drove the change'],['breakdown-products-chart','Breakdown by product'],['breakdown-lines-chart','Breakdown by line'],['forecast-chart','Cumulative path, Jan–Dec']],tableViews=new Set();
+const CHART_TABLES=[['trend','Monthly performance'],['distributors','Distributor mix'],['company-channels','Sales-type mix'],['line-mix','Sales by line'],['movement-chart','What drove the change'],['forecast-chart','Cumulative path, Jan–Dec']],tableViews=new Set();
 function chartTableHTML(id,caption){if(id==='trend')return monthlyTableHTML();const host=$(id),tips=[...new Set([...host.querySelectorAll('[data-tip]')].map(el=>el.dataset.tip))],rows=tips.map(t=>t.split(' · ')),cols=Math.max(1,...rows.map(r=>r.length));if(!rows.length)return `<p class="chart-note">No plotted values to tabulate.</p>`;return `<div class="table-wrap chart-table-wrap"><table class="chart-table"><caption>${e(caption)} · plotted values</caption><thead><tr><th scope="col">Item</th>${Array.from({length:cols-1},(_,i)=>`<th scope="col">${i===0?'Value':'Detail '+i}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><th scope="row">${e(r[0])}</th>${Array.from({length:cols-1},(_,i)=>`<td>${e(r[i+1]??'—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
 function applyChartTables(){for(const [id,caption]of CHART_TABLES){const host=$(id);if(!host)continue;const card=host.closest('.forecast-chart-wrap,article,.panel,.bd-card')||host.parentElement;let btn=card.querySelector(`[data-chart-table="${id}"]`);if(!btn){const head=card.querySelector(':scope > .panel-title, :scope > .bd-card-head, :scope > .bd-card-title')||null;const html=`<button type="button" class="chart-table-toggle" data-chart-table="${id}" aria-pressed="false" aria-controls="${id}-table">Table</button>`;if(head)head.insertAdjacentHTML('beforeend',html);else host.insertAdjacentHTML('beforebegin',html);btn=card.querySelector(`[data-chart-table="${id}"]`);btn.onclick=()=>{tableViews.has(id)?tableViews.delete(id):tableViews.add(id);applyChartTables()}}
   const on=tableViews.has(id);btn.setAttribute('aria-pressed',String(on));btn.textContent=on?'Chart':'Table';let table=$(id+'-table');if(!table){host.insertAdjacentHTML('afterend',`<div id="${id}-table" class="chart-table-host" hidden></div>`);table=$(id+'-table')}host.hidden=on;table.hidden=!on;if(on)table.innerHTML=chartTableHTML(id,caption)}}
@@ -45,14 +45,9 @@ function productDetailTemplate(prefix){return `<div class="drawer-heading"><div>
 // V68 S-10: the actions cluster sits on the H1 row of the Sales page; Historical keeps its V67 position above the page.
 function placeActions(page){const actions=document.querySelector('.manager-actions');if(!actions)return;if(page==='sales'){$('sales').querySelector('.heading').append(actions)}else document.querySelector('main').insertBefore(actions,$('sales'))}
 function mount(){
- breakdown=createBreakdown({read:()=>({dashboard:dashboard(),records:records(),openProduct:(name,el)=>openProduct(name,null,el)}),changed:()=>{window.actualDashboard.wire();applyChartTables()}});
  $('sales').querySelector('.summary-toolbar').insertAdjacentHTML('beforebegin',`<div class="manager-actions"><button id="actions-toggle" class="actions-toggle" aria-expanded="false" aria-controls="actions-cluster" aria-label="Views, link and report actions">⋯</button><div id="actions-cluster" class="actions-cluster"><details class="views-menu"><summary>Views <span aria-hidden="true">▾</span></summary><div class="saved-view-tools views-menu-body"><label class="sr-only" for="saved-view">Saved views</label><select id="saved-view"><option value="">Saved views…</option></select><input id="view-name" maxlength="70" aria-label="Name this view" placeholder="Name this view…"><div class="views-menu-buttons"><button id="save-view">Save view</button><button id="delete-view" disabled>Delete</button></div></div></details><button id="share-view">Copy link</button><button id="meeting-open" class="primary-action">Meeting report</button></div></div><p id="manager-status" class="manager-status" role="status"></p><div id="data-health" class="data-health" aria-live="polite"></div>`);
 
  const periodControl=document.querySelector('[aria-label="Data view"]').parentElement;$('period-field').insertAdjacentElement('beforebegin',periodControl);
- // V68 S-13: Target basis lives inside the panels it affects (Portfolio toolbar, Breakdown shortfall options).
- const targetControl=document.querySelector('[aria-label="Target period"]').parentElement;targetControl.id='analysis-target-control';targetControl.hidden=true;$('sales').querySelector('.section-tabs').insertAdjacentElement('afterend',targetControl);
- const basis=where=>`<div class="target-basis" data-target-basis-for="${where}"><span>Target basis</span><div class="control-group" role="group" aria-label="Target basis (${where})"><button class="choice" data-global="targetBasis" data-choice="period">Selected period</button><button class="choice" data-global="targetBasis" data-choice="annual">Full year</button></div></div>`;
- $('portfolio-controls').insertAdjacentHTML('afterend',basis('portfolio'));$('breakdown-target-note').insertAdjacentHTML('afterend',basis('breakdown'));
  const tabs=$('sales').querySelector('.section-tabs');
  tabs.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>window.actualDashboard.showSection(b.dataset.section));
  mountOverviewGrid();
@@ -105,6 +100,7 @@ const PANEL_BODIES={
  singleProduct:()=>'<article class="panel"></article>'
 };
 const RENDERERS={
+ productsTable:ctx=>renderProductsTable(ctx),
  monthly:ctx=>renderMonthlyPanel(ctx),
  attention:()=>renderAttention(),
  bridge:ctx=>renderBridge(ctx),
@@ -150,7 +146,7 @@ function viewContext(d=dashboard()){const state={years:d.years||[d.snapshot.year
 function renderSection(){
  const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;
  if(d.section==='forecast')renderPlanning();
- scheduleChartReflow();$('analysis-target-control').hidden=true;if(d.section==='overview')applyLayout('overview',viewContext(d));window.actualDashboard.wire();wireDrilldowns();
+ scheduleChartReflow();if(d.section==='overview')applyLayout('overview',viewContext(d));else if(d.section==='portfolio')renderProductsTable(viewContext(d));window.actualDashboard.wire();wireDrilldowns();
 }
 function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single)$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)}}
 // V68 S-10: month ranges read "Jan–Aug" and "Jan–Mar, May".
@@ -405,6 +401,28 @@ function monthlyTableHTML(){
 function exportMonthlyTable(){const ctx=viewContext(),{headers,kinds,rows}=monthlyTableData(ctx);const bytes=tableWorkbook({title:'Nerhadou · Monthly sales',subtitle:[periodLabel(),scopeText(),ui.metric==='value'?'EGP value':'Units'].join(' · '),columns:headers.map((label,i)=>({label,width:i?18:14,kind:kinds[i]})),rows:rows.map(r=>r.map((v,i)=>kinds[i]==='percent'&&v!=null?v/100:v)),notes:['Exported '+new Date().toISOString()+' · Data revision '+payload?.revision+'. Unknown values stay blank, never zero.','PPG % = (current ÷ previous − 1) × 100 for the same month. Growth involving 2023 is withheld.']});const url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),a=document.createElement('a');a.href=url;a.download='nerhadou-monthly-sales-'+ctx.years.join('-')+'-'+ui.metric+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function statesMetric(){return ui.metric}
 function buttonProduct(p){return `<button class="product-link" data-product-detail="${e(p)}">${e(p)}</button>`}
+// ── V69 U-09: Products tab (plan 4.8) ──
+let ptCache={ctx:null,key:'',data:null},ptSearchTimer=null;
+function selectProduct(name){if(!window.actualDashboard.selectProduct?.(name))window.actualDashboard.focusFilter('product',name)}
+function productMeasures(ctx){return window.actualDashboard.bothMeasures?.()?[ctx.measure,ctx.other]:[ctx.measure]}
+function productsData(ctx){const d=dashboard(),measures=productMeasures(ctx),basis=d.targetBasis==='annual'?'annual':'period',key=measures.join()+basis;if(ptCache.ctx!==ctx||ptCache.key!==key)ptCache={ctx,key,data:productsTableData(ctx,{measures,targetBasis:basis,period:periodLabel(d,ctx.months)})};return {data:ptCache.data,measures,basis}}
+function renderProductsTable(ctx){
+ if(!$('details'))return;const d=dashboard(),{data,measures,basis}=productsData(ctx),term=($('search')?.value||'').trim().toLowerCase();
+ const view={...data,view:term?data.rows.filter(r=>r.product.toLowerCase().includes(term)):data.rows};
+ const opts=sortOptions(ctx);if(!ui.ptSort||(!ui.ptSort.startsWith('col:')&&!opts.some(([k])=>k===ui.ptSort))||(ui.ptSort.startsWith('col:')&&!data.cols.some(c=>'col:'+c.key===ui.ptSort))){ui.ptSort='sales';ui.ptDesc=true}
+ const groupable=!ctx.selection.line.length&&ctx.dims.line.categories>=2,grouped=groupable&&!!ui.ptGroup&&!term;
+ const html=productsTableHTML(view,ctx,{sort:ui.ptSort,desc:ui.ptDesc!==false,measures,showAll:!!ui.ptAll||!!term,grouped});
+ $('detail-head').innerHTML=html.head;$('details').innerHTML=html.body;$('portfolio-cards').innerHTML=html.cards;$('pt-more').innerHTML=html.more;
+ $('portfolio-sort').innerHTML=opts.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')+(ui.ptSort.startsWith('col:')?`<option value="${e(ui.ptSort)}">Column: ${e(data.cols.find(c=>'col:'+c.key===ui.ptSort)?.short||'')}</option>`:'');$('portfolio-sort').value=ui.ptSort;
+ $('pt-basis-field').hidden=!(ctx.yearMode==='single'&&ctx.hasTargets);$('pt-target-basis').value=basis;$('pt-both').checked=measures.length>1;$('pt-group-field').hidden=!groupable;$('pt-group').checked=grouped;
+ $('portfolio-context').textContent=[periodLabel(d,ctx.months),ctx.yearMode==='single'&&ctx.hasTargets?'Target: '+(basis==='annual'?'full year '+ctx.focusYear:'selected period'):null,'Shares use full company sales for the period'].filter(Boolean).join(' · ');
+ $('rowcount').textContent=`${html.shown} of ${data.count} products${term?' match the search':''}`;$('search-clear').hidden=!term;$('export').disabled=!data.rows.length;
+ if(!$('search').dataset.v69){$('search').dataset.v69='1';$('search').oninput=()=>{clearTimeout(ptSearchTimer);ptSearchTimer=setTimeout(()=>renderProductsTable(viewContext()),150)}}
+}
+function exportProductsTable(){const ctx=viewContext(),d=dashboard(),{data,measures,basis}=productsData(ctx),term=($('search')?.value||'').trim().toLowerCase(),rows=productsTableHTML({...data,view:term?data.rows.filter(r=>r.product.toLowerCase().includes(term)):data.rows},ctx,{sort:ui.ptSort||'sales',desc:ui.ptDesc!==false,measures,showAll:true}).sorted;
+ const pctKind=k=>['share','ach','ppg','growth'].includes(k),cols=[{label:'Product',width:30,kind:'text'},...data.cols.map(c=>({label:c.label,width:22,kind:pctKind(c.kind)?'percent':'number'}))],line=r=>[r.product,...data.cols.map(c=>{const v=r.cells[c.key];return v==null?null:pctKind(c.kind)?v/100:v})];
+ const bytes=tableWorkbook({title:'Nerhadou · Products',subtitle:[periodLabel(d,ctx.months),scopeText()].join(' · '),columns:cols,rows:[line(data.total),...rows.map(line)],notes:['Exported '+new Date().toISOString()+' · Revision '+(payload?.revision||''),'Shares use total company sales for the same period, before product, line, distributor and sales-type filters. Missing values stay blank.'+(ctx.hasTargets&&ctx.yearMode==='single'?' Target basis: '+(basis==='annual'?'full year.':'selected period.'):'')]}),url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),a=document.createElement('a');
+ a.href=url;a.download=`nerhadou-products-${ctx.yearMode==='multi'?ctx.years[0]+'-'+ctx.focusYear:ctx.focusYear}-${measures.join('-')}.xlsx`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function wireDrilldowns(){
  document.querySelectorAll('[data-focus="product"]').forEach(b=>{b.onclick=()=>openProduct(b.dataset.key,null,b);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('#lines-chart [data-focus="line"]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter('line',b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
@@ -490,6 +508,11 @@ function renderForecastContext(d,input,cutoff,r,seasonal){
 function onClick(ev){
  const b=ev.target.closest('button,[role="button"]');if(!b)return;if(b.dataset.page==='comparison'&&dashboard()?.selection.product.length===1){const name=comparisonProduct(records().find(r=>r.dataset==='actual'&&r.year===dashboard().snapshot.year&&r.product===dashboard().selection.product[0])||{product:dashboard().selection.product[0]});window.comparisonDashboard?.restore({scope:'product',product:name})}if(b.dataset.page){placeActions(b.dataset.page);document.querySelector('.manager-actions').hidden=!['sales','comparison'].includes(b.dataset.page);$('manager-status').hidden=!['sales','comparison'].includes(b.dataset.page);}
  if(b.dataset.productDetail){openProduct(b.dataset.productDetail,Number(b.dataset.detailMonth)||null,b);return}
+ if(b.dataset.selectProduct){selectProduct(b.dataset.selectProduct);return}
+ if(b.dataset.ptSort){const k=b.dataset.ptSort;ui.ptDesc=ui.ptSort===k?!ui.ptDesc:true;ui.ptSort=k;renderProductsTable(viewContext());$('detail-head').querySelector(`[data-pt-sort="${k}"]`)?.focus();return}
+ if(b.dataset.ptAll){ui.ptAll=b.dataset.ptAll==='on';renderProductsTable(viewContext());return}
+ if(b.id==='search-clear'){$('search').value='';renderProductsTable(viewContext());$('search').focus();return}
+ if(b.id==='export'&&dashboard()){exportProductsTable();return}
  let changed=true;
  if(b.dataset.managerMetric)ui.metric=b.dataset.managerMetric;
  else if(b.dataset.distributorMetric){ui.distributorMetric=b.dataset.distributorMetric;if(drawer)renderDrawer()}
@@ -507,6 +530,10 @@ function onClick(ev){
 }
 function onChange(ev){
  const id=ev.target.id;
+ if(id==='portfolio-sort'){ui.ptSort=ev.target.value;ui.ptDesc=ev.target.value!=='name';renderProductsTable(viewContext());return}
+ if(id==='pt-target-basis'){window.actualDashboard.setTargetBasis(ev.target.value);return}
+ if(id==='pt-both'){window.actualDashboard.setBothMeasures(ev.target.checked);renderProductsTable(viewContext());return}
+ if(id==='pt-group'){ui.ptGroup=ev.target.checked;renderProductsTable(viewContext());return}
  if(id==='forecast-cutoff')ui.forecastCutoff=Number(ev.target.value);
  else if(id==='bridge-from')ui.bridgeFrom=Number(ev.target.value);else if(id==='bridge-to')ui.bridgeTo=Number(ev.target.value);
  else if(id==='movement-dimension')ui.bridgeDimension=ev.target.value;
@@ -516,7 +543,7 @@ function onChange(ev){
  else return;
  window.actualDashboard.render();
 }
-function capture(){const d=dashboard();return {year:d.snapshot.year,selection:d.selection,months:d.months,periodMode:d.periodMode,targetBasis:d.targetBasis,section:d.section,ui:{...ui},breakdown:breakdown?.capture(),page:!$('comparison').hidden?'comparison':'sales',comparison:window.comparisonDashboard?.capture()}}
+function capture(){const d=dashboard();return {year:d.snapshot.year,selection:d.selection,months:d.months,periodMode:d.periodMode,targetBasis:d.targetBasis,section:d.section,ui:{...ui},page:!$('comparison').hidden?'comparison':'sales',comparison:window.comparisonDashboard?.capture()}}
 function validConfig(config){
  if(!config||typeof config!=='object'||JSON.stringify(config).length>14000)throw Error('Invalid view link.');
  if(!Number.isInteger(config.year)||config.year<2000||config.year>2100)throw Error('Invalid sales year.');
@@ -528,7 +555,7 @@ async function restore(config){
  try{validConfig(config);if(!payload||!dashboard()){restorePending=config;return}
  if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if(['trends','movement','analysis','breakdown'].includes(config.section))config={...config,section:'overview'};if(config.section==='products')config={...config,section:'portfolio'};const available=dashboard().snapshot.availableYears;if(!available.includes(config.year)){status(`Year ${config.year} is no longer available. View was not applied.`);return}
  if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],distributorMetric:['units','value'],channelMetric:['units','value'],leaderSort:['sales','increase','decline'],bridgeDimension:['product','line','distributor'],distributorMode:['mix','compare']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyPY','signedGap','monthlyCumulative'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
- await window.actualDashboard.apply(config);if(config.breakdown)breakdown?.restore(config.breakdown);if(config.comparison)window.comparisonDashboard?.restore(config.comparison);
+ await window.actualDashboard.apply(config);if(config.comparison)window.comparisonDashboard?.restore(config.comparison);
  document.querySelector(`[data-page="${config.page==='comparison'?'comparison':'sales'}"]`)?.click();status('View restored. Only available filters were applied; sales data was not changed.');
  }catch(err){status(err.message)}
 }
@@ -587,6 +614,6 @@ window.addEventListener('commercial:comparison',event=>{historical=event.detail;
 mount();
 Promise.resolve(window.nerhadouSecurity?.ready).then(me=>{const id=me?.user?.id||me?.user?.email;if(!id)return;storageKey='nerhadou-management-views:'+id;refreshSaved();if(!restored&&payload&&dashboard()){restored=true;readLink()}});
 
-function scheduleChartReflow(){if(chartResizeFrame!==null)clearTimeout(chartResizeFrame);chartResizeFrame=setTimeout(()=>{chartResizeFrame=null;if(!dashboard()||$('sales').hidden)return;const ids=['sales','trend','timeline','company-achievement-chart','company-ppg-chart','single-chart','single-achievement-chart','single-ppg-chart','drawer-chart','breakdown-products-chart','breakdown-lines-chart','bd-full-chart'];const signature=ids.map(id=>Math.round($(id)?.getBoundingClientRect?.().width||0)).join(',');if(signature===chartWidthSignature)return;chartWidthSignature=signature;const focus=document.activeElement;window.actualDashboard.render();if($('report-dialog').open)buildMeetingReport();if(focus?.isConnected)focus.focus?.({preventScroll:true});},140);}
+function scheduleChartReflow(){if(chartResizeFrame!==null)clearTimeout(chartResizeFrame);chartResizeFrame=setTimeout(()=>{chartResizeFrame=null;if(!dashboard()||$('sales').hidden)return;const ids=['sales','trend','timeline','company-achievement-chart','company-ppg-chart','single-chart','single-achievement-chart','single-ppg-chart','drawer-chart'];const signature=ids.map(id=>Math.round($(id)?.getBoundingClientRect?.().width||0)).join(',');if(signature===chartWidthSignature)return;chartWidthSignature=signature;const focus=document.activeElement;window.actualDashboard.render();if($('report-dialog').open)buildMeetingReport();if(focus?.isConnected)focus.focus?.({preventScroll:true});},140);}
 window.addEventListener('resize',scheduleChartReflow,{passive:true});
 if(window.ResizeObserver){const observer=new window.ResizeObserver(scheduleChartReflow);const main=document.querySelector('main');if(main)observer.observe(main);const sales=$('sales');if(sales)observer.observe(sales);}
