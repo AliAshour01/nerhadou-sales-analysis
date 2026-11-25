@@ -4,7 +4,7 @@ import {tableWorkbook} from './comparison-xlsx.js?v=sales-comparison-v71';
 import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts} from './view-context.js?v=sales-comparison-v71';
 import {PANELS,layout} from './panel-registry.js?v=sales-comparison-v71';
 import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-comparison-v71';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate} from './chart-utils.js?v=sales-comparison-v71';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel} from './chart-utils.js?v=sales-comparison-v71';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>compact(v);
@@ -249,7 +249,7 @@ function kpiCards(ctx){
  const C=picks[3]==='price'?kpiCandidates({...ctx,slot4Price:true}):C0;
  return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+picks.filter(k=>k&&C[k]).map(k=>C[k]()).join('');
 }
-function drawBridge(id,result,metric,dimension='product'){const cap=isMobile()?6:8;
+function drawBridge(id,result,metric,dimension='product',display=x=>x){const cap=isMobile()?6:8;
  const node=$(id);if(result.delta==null){node.innerHTML=`<p class="empty-chart">${e(result.reason||'Comparable periods unavailable.')}</p>`;return}
  let items=result.items;
  const matched=result.ordered?items.filter(x=>!x.residual):items.filter(x=>!x.residual).slice().sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)),other=result.ordered&&matched.length<=12?[]:matched.slice(cap);if(other.length)items=[...matched.slice(0,cap),{name:`Other (${other.length})`,delta:other.reduce((n,r)=>n+r.delta,0)},...items.filter(x=>x.residual)];
@@ -257,12 +257,17 @@ function drawBridge(id,result,metric,dimension='product'){const cap=isMobile()?6
  // V68 S-17: start the value axis at a nice value just below every running total so small changes stay visible;
  // total bars keep their true values on the truncated axis and an axis-break marker + note say so.
  const points=bars.flatMap(b=>b.total?[b.to]:[b.from,b.to]),cut=niceAxis(points,4,{includeZero:false}),truncated=points.every(v=>v>0)&&cut.min>0,axis=truncated?cut:niceAxis(bars.flatMap(b=>[b.from,b.to]),4);for(const b of bars)if(b.total&&truncated)b.from=axis.min;
- const lo=axis.min,hi=axis.max,range=hi-lo||1,W=plotWidth(id,900),dense=W<1050,L=58,R=W-30,T=35,B=260,H=B+40,Y=v=>B-(v-lo)/range*(B-T),step=(R-L)/bars.length,bw=Math.min(48,step*.65),maxChars=Math.max(4,Math.floor((step-6)/6.6));
+ const lo=axis.min,hi=axis.max,range=hi-lo||1,W=plotWidth(id,900),L=58,R=W-30,T=35,B=260,H=B+40,Y=v=>B-(v-lo)/range*(B-T),step=(R-L)/bars.length,bw=Math.min(48,step*.65);
+ // V72 R-05 / R-06: labels are fitted to their slot (measured, never overlapping) and use the product display name.
+ // Numbered labels + a key below are used only for products whose fitted names would keep fewer than 4 characters;
+ // months always print their names and value labels.
+ const nameOf=b=>b.total||b.residual||/^Other \(/.test(b.name)||dimension!=='product'?b.name:display(b.name),fitted=bars.map(b=>fitLabel(nameOf(b),step-6,12)),dense=dimension!=='month'&&bars.some((b,i)=>!b.total&&fitted[i].replace('…','').length<4);
+ const valueText=b=>(!b.total&&(b.total?b.to:b.delta)>0?'+':'')+short(b.total?b.to:b.delta);
  let svg=svgPlot(W,H,`Contribution bridge from ${result.a} to ${result.b}; ${metric}${truncated?'; axis starts at '+tickLabel(axis.min,axis):''}`);
  if(truncated)svg+=`<path class="axis-break" d="M${L-7},${B-2} l4,-5 l4,5 l4,-5" fill="none" stroke="#1f3555" stroke-width="1.5"/><text class="axis-break-note" x="${L}" y="16" font-size="12" fill="#5b6b7f">Axis starts at ${tickLabel(axis.min,axis)} · bars are not drawn from zero</text>`;
  for(const v of axisTicks(axis)){svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e5edf5"/><text class="axis-tick" data-tick="${v}" x="${L-10}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`}
- bars.forEach((b,i)=>{const x=L+step*(i+.5),value=b.total?b.to:b.delta,displayName=dense?(b.total?b.name:String(i)):b.name,tip=`${b.name} · ${amt(value,metric)}${b.residual?' · Detail unavailable; not assigned to a product':b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"`:'role="img"'} data-tip="${e(tip)}" tabindex="0" aria-label="${e(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(b.from),Y(b.to))}" width="${bw}" height="${Math.max(.8,Math.abs(Y(b.to)-Y(b.from)))}" fill="${b.total?'#245fa7':b.residual?'#a1aebd':b.delta<0?'#bc665b':'#39836e'}"/><text x="${x}" y="${Math.min(Y(b.from),Y(b.to))-9}" text-anchor="middle" font-size="12" fill="#254365">${dense?'':(!b.total&&value>0?'+':'')+short(value)}</text><text x="${x}" y="${B+22}" text-anchor="middle" font-size="12" fill="#536c86">${e(truncate(String(displayName),maxChars))}</text></g>`;if(i&& !b.total)svg+=`<line x1="${x-step+bw/2}" x2="${x-bw/2}" y1="${Y(b.from)}" y2="${Y(b.from)}" stroke="#94a7b8" stroke-dasharray="3 3"/>`});
- node.innerHTML='<div class="chart-scroll bridge-fit" tabindex="0" role="region" aria-label="Contribution bridge">'+svg+'</svg></div>'+(dense?'<ol class="bridge-key">'+bars.filter(b=>!b.total).map(b=>'<li><span>'+e(b.name)+'</span><strong>'+e(amt(b.delta,metric))+'</strong></li>').join('')+'</ol>':'')+(other.length?'<details class="bridge-other-detail"><summary>Other: '+other.length+' smaller contributions</summary>'+table(['Product / group','Change'],other.map(r=>[e(r.name),amt(r.delta,metric)]))+'</details>':'');
+ bars.forEach((b,i)=>{const x=L+step*(i+.5),value=b.total?b.to:b.delta,displayName=dense?(b.total?b.name:String(i)):fitted[i],vLabel=dense||textWidth(valueText(b),12)>step-2?'':valueText(b),tip=`${nameOf(b)} · ${amt(value,metric)}${b.residual?' · Detail unavailable; not assigned to a product':b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"`:'role="img"'} data-tip="${e(tip)}" tabindex="0" aria-label="${e(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(b.from),Y(b.to))}" width="${bw}" height="${Math.max(.8,Math.abs(Y(b.to)-Y(b.from)))}" fill="${b.total?'#245fa7':b.residual?'#a1aebd':b.delta<0?'#bc665b':'#39836e'}"/><text x="${x}" y="${Math.min(Y(b.from),Y(b.to))-9}" text-anchor="middle" font-size="12" fill="#254365">${e(vLabel)}</text><text x="${x}" y="${B+22}" text-anchor="middle" font-size="12" fill="#536c86">${e(String(displayName))}</text></g>`;if(i&& !b.total)svg+=`<line x1="${x-step+bw/2}" x2="${x-bw/2}" y1="${Y(b.from)}" y2="${Y(b.from)}" stroke="#94a7b8" stroke-dasharray="3 3"/>`});
+ node.innerHTML='<div class="chart-scroll bridge-fit" tabindex="0" role="region" aria-label="Contribution bridge">'+svg+'</svg></div>'+(dense?'<ol class="bridge-key">'+bars.filter(b=>!b.total).map(b=>'<li><span>'+e(nameOf(b))+'</span><strong>'+e(amt(b.delta,metric))+'</strong></li>').join('')+'</ol>':'')+(other.length?'<details class="bridge-other-detail"><summary>Other: '+other.length+' smaller contributions</summary>'+table(['Product / group','Change'],other.map(r=>[e(dimension==='product'?display(r.name):r.name),amt(r.delta,metric)]))+'</details>':'');
 }
 function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>'<tr'+(row[0]==='Total'?' class="total-row"':'')+'>'+row.map(v=>`<td>${v}</td>`).join('')+'</tr>').join('')}</tbody></table>`}
 // ── V69 U-06: one 'What drove the change' panel on Overview (replaces Sales Analysis Movement and Historical Contribution to change) ──
@@ -308,11 +313,11 @@ function renderBridge(ctx){
  const yearPick=$('bridge-years');yearPick.hidden=ctx.yearMode!=='multi';
  if(ctx.yearMode==='multi'){const ok=ctx.years;$('bridge-from').innerHTML=ok.filter(y=>y<b).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-from').value=String(a);$('bridge-to').innerHTML=ok.filter(y=>ok.some(x=>x<y)).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-to').value=String(b)}
  if(result.delta==null)return {empty:result.reason||'Comparable periods unavailable.'};
- drawBridge('movement-chart',result,metric,dimension);
+ drawBridge('movement-chart',result,metric,dimension,ctx.displayName||(x=>x));
  $('movement-context').textContent=`${a} → ${b} · ${ctx.yearMode==='single'&&ctx.comparePartial?ctx.compareNote:periodLabel()+' in both years'} · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated?' · Estimated value included':''}${result.approximate?' · Recorded subtotals included':''}`;
  $('movement-unmatched').hidden=!result.unmatched?.length;$('movement-unmatched-list').innerHTML=(result.unmatched||[]).map(name=>`<p>${e(name)} — a comparable amount is unavailable in one of the periods; no zero baseline is assumed.</p>`).join('');
  $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Blue: period totals. Green/red: signed change. New: absent activity in a complete prior report counts as zero sales. Grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.';
- $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
+ $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(dimension==='product'&&!r.residual?ctx.displayName(r.name):r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
 }
 
 function rankedHTML(items,metric,click=true,chartId=null){

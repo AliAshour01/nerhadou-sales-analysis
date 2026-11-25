@@ -24,4 +24,9 @@ export const ACH_THRESHOLDS={good:100,warn:90};
 export function achStatus(pct){return pct==null||!Number.isFinite(pct)?'unknown':pct>=ACH_THRESHOLDS.good?'good':pct>=ACH_THRESHOLDS.warn?'warn':'bad'}
 // S-16 truncation: never break inside a word; keep the full name for tooltips.
 export function truncate(text,maxChars){const s=String(text??'');return s.length<=maxChars?s:s.slice(0,Math.max(1,maxChars-1)).trimEnd()+'…'}
-if(typeof window!=='undefined')window.nerhadouChart={compact,niceStep,niceAxis,axisTicks,tickLabel,CATEGORY_COLORS,categoryColor,ACH_THRESHOLDS,achStatus,truncate};
+// V72 R-05: approximate rendered width of SVG label text (system sans-serif), so labels can be fitted to a slot
+// without a DOM. Upper-case letters are wider than lower-case; the estimate errs wide so labels never overlap.
+const NARROW=/[ilIjtf.,'’:;|!()\[\] ]/,WIDE=/[MWmw@%]/;
+export function textWidth(text,fontSize=12){let w=0;for(const c of String(text??''))w+=NARROW.test(c)?.32:WIDE.test(c)?.9:/[A-Z0-9]/.test(c)?.68:/[–—…+−]/.test(c)?.62:.56;return w*fontSize}
+export function fitLabel(text,maxWidth,fontSize=12){const s=String(text??'');if(textWidth(s,fontSize)<=maxWidth)return s;for(let n=s.length-1;n>0;n--){const t=s.slice(0,n).trimEnd()+'…';if(textWidth(t,fontSize)<=maxWidth)return t}return ''}
+if(typeof window!=='undefined')window.nerhadouChart={compact,niceStep,niceAxis,axisTicks,tickLabel,CATEGORY_COLORS,categoryColor,ACH_THRESHOLDS,achStatus,truncate,textWidth,fitLabel};

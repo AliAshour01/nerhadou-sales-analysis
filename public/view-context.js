@@ -19,6 +19,39 @@ export function comparisonRecords(records) {
   }
   return mapped;
 }
+// V72 R-05 / R-23: one display name per product across views. A reviewed comparison name (multi-year key, often
+// upper case) shows as its source name in the latest year it sold, when that year has exactly one such source name.
+// Historical single-year views (before the latest year) show that same name for each source pack / price version
+// (the source name stays in tooltips). Display only: selections, filters and records keep their own names.
+const displayCache = new WeakMap();
+export function productDisplayNames(records) {
+  let out = displayCache.get(records);
+  if (out) return out;
+  const latest = new Map();
+  for (const r of records) {
+    if (r.dataset !== 'actual' || !(r.month > 0)) continue;
+    const key = comparisonProduct(r),
+      src = r.source_product ?? r.product,
+      cur = latest.get(key);
+    if (!cur || r.year > cur.year) latest.set(key, { year: r.year, names: new Set([src]) });
+    else if (r.year === cur.year) cur.names.add(src);
+  }
+  const multi = new Map([...latest].map(([key, v]) => [key, v.names.size === 1 ? [...v.names][0] : key]));
+  const byYear = new Map();
+  for (const r of records) {
+    if (r.dataset !== 'actual' || !(r.month > 0)) continue;
+    let y = byYear.get(r.year);
+    if (!y) byYear.set(r.year, (y = new Map()));
+    const key = comparisonProduct(r);
+    if (!y.has(key)) y.set(key, new Set());
+    y.get(key).add(r.source_product ?? r.product);
+  }
+  const single = new Map();
+  for (const [year, keys] of byYear) for (const [key, names] of keys) for (const name of names) single.set(year + '|' + name, multi.get(key) ?? key);
+  out = { multi: (name) => multi.get(name) ?? name, single: (year, name) => single.get(year + '|' + name) ?? name };
+  displayCache.set(records, out);
+  return out;
+}
 export function actualYears(records) {
   return [...new Set(records.filter((r) => r.dataset === 'actual' && r.month > 0).map((r) => r.year))].sort((a, b) => a - b);
 }
@@ -138,7 +171,10 @@ export function resolveViewContext(rawRecords, state) {
     filterCompareGap = compareGap ? { ...compareGap, year: compareYear, short: `${compareYear} has no ${compareGap.word} data`, sentence: `${compareYear} does not record ${compareGap.word}, so the change for ${selection[compareGap.key].length === 1 ? selection[compareGap.key][0] : 'the selected ' + compareGap.word + 's'} can’t be measured.` } : null;
   const provisionalYears = years.filter((y) => PROVISIONAL_YEARS.has(y)),
     hasData = focusRows.length > 0;
+  const names = productDisplayNames(rawRecords),
+    displayName = yearMode === 'multi' ? names.multi : focusYear < latestYear ? (name) => names.single(focusYear, name) : (name) => name;
   const ctx = {
+    displayName,
     years,
     allYears,
     yearMode,
