@@ -50,6 +50,8 @@ function mount(){
  mountOverviewGrid();
  // V69 U-18: on phones the filter card collapses to 'Filters (n)' with the selection summary; tap to open it.
  const fbar=$('sales').querySelector('.filters'),ftitle=fbar.querySelector('.filter-bar-title');ftitle.insertAdjacentHTML('beforeend','<button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="sales-filters-body">Filters</button><span id="filters-summary" class="filters-summary"></span>');fbar.id='sales-filters-body';fbar.classList.add('collapsed');
+ // V72 R-13: active filter chips sit on the filter card's second row, after More filters and Reset filters.
+ if($('active-filters'))fbar.append($('active-filters'));
  $('filters-toggle').onclick=()=>{const open=fbar.classList.toggle('collapsed')===false;$('filters-toggle').setAttribute('aria-expanded',String(open))};
 
 

@@ -572,3 +572,24 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .section-tabs [role="tab"].tab-disabled{opacity:.5;cursor:not-allowed}
 #sales .tab-message{margin:-6px 0 14px;padding:8px 12px;border-radius:8px;background:#f2f6fc;border:1px solid #dbe5f2;color:#34516e;font-size:13px}
 #sales .tab-message .link-button{margin-left:6px}
+/* R-13: stable desktop filter grid. Row 1: Years | Period | Through | Products | Measure (labels above);
+   row 2: More filters · Reset filters · active chips. Phones keep the summary + sheet. */
+#sales>.filters #period-field.is-disabled{opacity:.55}
+#sales>.filters #period-field.is-disabled select{cursor:not-allowed}
+@media(min-width:1100px){
+ #sales>.filters{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,.55fr) minmax(120px,.55fr) minmax(150px,.9fr) auto;align-items:end;column-gap:14px;row-gap:12px}
+ #sales>.filters>.filter-bar-title{grid-column:1/-1}
+ #sales>.filters>#years-field{grid-column:1}
+ #sales>.filters>label,#sales>.filters>.filter-slot,#sales>.filters>.measure-field{min-width:0;width:auto;max-width:none;margin:0}
+ #sales>.filters>#more-filters{grid-column:1;justify-self:start}
+ #sales>.filters>#more-filters[open]{grid-column:1/-1}
+ #sales>.filters>#reset{grid-column:2;justify-self:start}
+ #sales>.filters>#active-filters{grid-column:3/-1;margin:0;padding:0;background:none;align-self:center}
+ #sales>.filters>#product-filter,#sales>.filters>#months-filter{display:flex;flex-direction:column;gap:6px}
+ #sales>.filters>#product-filter::before{content:'Products'}
+ #sales>.filters>#months-filter::before{content:'Months'}
+ #sales>.filters>#product-filter::before,#sales>.filters>#months-filter::before{color:var(--text-muted,#5b6b7f);font-size:11px;font-weight:550;letter-spacing:.015em}
+ #sales>.filters>#product-filter .multi-select>summary>span:first-child,#sales>.filters>#months-filter .multi-select>summary>span:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ #sales>.filters select{width:100%}
+}
+#sales>.filters>#active-filters:empty{display:none}
