@@ -511,3 +511,10 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
  #sales .v69-grid>#panel-attention:not(.span-12),#sales .v69-grid>#panel-productFacts:not(.span-12){contain:size;display:flex;flex-direction:column;overflow:hidden}
  #sales .v69-grid>#panel-attention:not(.span-12) .attention-list,#sales .v69-grid>#panel-productFacts:not(.span-12) .facts-list{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
 }
+/* U-07: composition row. A lone mix panel spans 12 columns and lays its legend beside the donut. */
+#sales #panel-mixDistributor .mix-context,#sales #panel-mixChannel .mix-context,#sales #panel-mixLine .mix-context{margin:-4px 0 8px}
+#sales .v69-grid>.span-12 .product-mix-donut,#sales .v69-grid>.span-6 .product-mix-donut{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);align-items:center;gap:24px}
+#sales .v69-grid>.span-12 .product-mix-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 24px}
+#sales .v69-grid>.span-4 .product-mix-donut{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+#sales .v69-grid>.span-4 .product-mix-donut>svg{width:180px;height:180px;align-self:center}
+@media(max-width:699px){#sales .v69-grid>[class*="span-"] .product-mix-donut{display:flex;flex-direction:column}#sales .v69-grid>[class*="span-"] .product-mix-donut>svg{width:180px;height:180px;align-self:center}}
