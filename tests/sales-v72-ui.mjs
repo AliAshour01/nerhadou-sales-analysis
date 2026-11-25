@@ -96,5 +96,17 @@ await window.actualDashboard.apply(cfg());
   assert(names(window.actualDashboard.monthlyChartHTML(rows(12), 'units', 330, { compare: 'py' })) < 12);
 }
 
+// R-23 + R-02: 2023 Products show the display name with the source name underneath, and a Jan–Sep sales subtotal.
+await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, periodMode: 'full', section: 'portfolio' }));
+{
+  const head = document.querySelector('#view-portfolio thead').textContent;
+  assert.match(head, /Sales Jan–Sep/);
+  const named = [...document.querySelectorAll('#view-portfolio tbody [data-select-product]')].find((b) => b.querySelector('.src-name'));
+  assert(named, 'source name shown under the display name');
+  assert.match(named.title, /^Source name: /);
+  assert.notEqual(named.dataset.selectProduct, named.firstChild.textContent, 'filter key stays the source name');
+}
+await window.actualDashboard.apply(cfg());
+
 window.actualDashboard.setMeasure('units');
 console.log('sales-v72 UI checks passed');

@@ -1,7 +1,7 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-comparison-v71';
-import { knownCategory, monthSpan } from './view-context.js?v=sales-comparison-v71';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v72';
+import { knownCategory, monthSpan } from './view-context.js?v=sales-review-v72';
 
 const finite = Number.isFinite;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
