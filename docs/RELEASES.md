@@ -1,5 +1,9 @@
 # Nerhadou Commercial Hub releases
 
+## V71 · Include recorded 2023 sales in comparisons
+
+Sales comparisons now use 2023 recorded amounts for matching months across KPIs, charts, products, movement, and exports. Original October–December 2023 monthly coverage is unavailable. Annual source controls remain separate. Incomplete value detail uses the recorded subtotal where all selected months have numeric coverage. See [V71 handoff](SALES-COMPARISONS-V71.md).
+
 ## V70 · Advanced filters and comparison explanations
 
 Advanced filters expand inside the filter card. Growth comparisons involving provisional 2023 data show the reason directly in the dashboard and exports.

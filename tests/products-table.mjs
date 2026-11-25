@@ -41,11 +41,11 @@ c = ctx({ selection: { ...none, distributor: ['PHARMA'] } });
 d = productsTableData(c, { measures: ['units'] });
 assert.ok(!d.cols.some((x) => x.kind === 'target'));
 assert.ok(d.total.cells['share:units'] < 100);
-// 2023 provisional: PY shown, PPG withheld, sort options without growth.
+// 2023 recorded amounts support previous-year growth and growth sorting.
 c = ctx({ years: [2023], months: ytd(9) });
 d = productsTableData(c, { measures: ['units'] });
-assert.deepEqual(d.cols.map((x) => x.kind), ['sales', 'share', 'py']);
-assert.deepEqual(sortOptions(c).map((x) => x[0]), ['sales', 'name']);
+assert.deepEqual(d.cols.map((x) => x.kind), ['sales', 'share', 'py', 'ppg']);
+assert.ok(sortOptions(c).some(([key]) => key === 'growth'));
 // Multi-year: one Sales column per year, Change / Growth / Share; missing years are "Not sold in Y", never 0.
 c = ctx({ years: [2021, 2022, 2023, 2024, 2025, 2026] });
 d = productsTableData(c, { measures: ['units'] });
