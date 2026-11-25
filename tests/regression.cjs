@@ -75,7 +75,7 @@ async function main() {
  equal(run('view[0].units'),10074,'March single month');
  equal(run('monthlyData().length'),1,'One selected month only');
  equal((nodes.timeline.innerHTML.match(/<polyline/g)||[]).length,0,'No trend fabricated from one point');
- equal((nodes.timeline.innerHTML.match(/<circle data-series="(units|value)"/g)||[]).length,2,'One point per metric');
+ equal((nodes.timeline.innerHTML.match(/<circle[^>]*data-series="(units|value)"/g)||[]).length,2,'One point per metric');
  buttons[2].onclick();
  near(run('view[0].targetUnits'),100000/12,'Monthly denominator');
  assert(nodes.trend.innerHTML.includes('#d6a15e'),'Overachievement drawn beyond monthly target');passed++;

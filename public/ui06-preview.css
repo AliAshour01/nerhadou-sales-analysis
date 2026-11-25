@@ -437,9 +437,10 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 .undo-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:14px;background:#1f3555;color:#fff;padding:10px 12px 10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(15,30,50,.25);font-size:14px;max-width:calc(100vw - 32px)}
 .undo-toast[hidden]{display:none}
 .undo-toast button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer}
-.product-mix-legend li.mix-focus{cursor:pointer;border-radius:6px}
-.product-mix-legend li.mix-focus:hover{background:#f1f5fb}
-.product-mix-legend li.mix-focus:focus-visible{outline:2px solid #2456d6;outline-offset:2px}
+.product-mix-legend li:has(>.mix-focus){display:block}
+.product-mix-legend .mix-focus{display:grid;grid-template-columns:9px minmax(100px,1fr) auto;align-items:center;gap:12px;width:100%;padding:2px 4px;margin:0;border:0;background:none;font:inherit;font-size:12px;color:#34445d;text-align:left;cursor:pointer;border-radius:6px}
+.product-mix-legend .mix-focus:hover{background:#f1f5fb}
+.product-mix-legend .mix-focus:focus-visible{outline:2px solid #2456d6;outline-offset:2px}
 /* S-33 data notes live behind a link in the health strip */
 #sales .methodology:not([open]){display:none}
 .data-notes-link{background:none;border:0;padding:0;color:#2456d6;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
