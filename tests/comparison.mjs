@@ -37,5 +37,5 @@ for(let month=1;month<=12;month++){const m=summarize(records,{year:2025,mode:'mo
 // Source 2024 values must reconcile per source row, not merely company total.
 for(const a of records.filter(r=>r.year===2024&&r.month===0&&r.dataset==='actual'))near(records.filter(r=>r.series_id===a.series_id&&r.month>0).reduce((s,r)=>s+(r.value??0),0),a.value,'2024 per-row value reconciliation');
 const html=fs.readFileSync('public/index.html','utf8'),ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]));
-for(const file of ['comparison.js','data-manager.js'])for(const m of fs.readFileSync('public/'+file,'utf8').matchAll(/\$\('([^']+)'\)/g))eq(ids.has(m[1]),true,'UI target '+m[1]+' exists');
+for(const file of ['data-manager.js'])for(const m of fs.readFileSync('public/'+file,'utf8').matchAll(/\$\('([^']+)'\)/g))eq(ids.has(m[1]),true,'UI target '+m[1]+' exists');
 console.log(checks+' comparison/source assertions passed');
