@@ -335,12 +335,6 @@ function renderBridge(ctx){
  $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(dimension==='product'&&!r.residual?ctx.displayName(r.name):r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
 }
 
-function rankedHTML(items,metric,click=true,chartId=null){
- if(!items.length)return '<p class="empty-chart">No comparable detail for this selection.</p>';
- const W=plotWidth(chartId,640),mobile=W<520,axis=niceAxis(items.map(r=>r.value),3),lo=axis.min,hi=axis.max,range=hi-lo||1,L=mobile?24:Math.round(W*.34),R=W-145,rowH=mobile?85:52,H=65+items.length*rowH,X=v=>L+(v-lo)/range*(R-L),zero=X(0);let svg=svgPlot(W,H,'Ranked signed '+metric,'comparison-svg');
- items.forEach((r,i)=>{const y=35+i*rowH,barY=y+(mobile?22:-9),tip=`${r.name} · ${amt(r.value,metric)}${r.note?' · '+r.note:''}`,maxChars=Math.max(15,Math.floor((mobile?W-40:L-50)/6.8));svg+=`<g tabindex="0" ${click?`role="button" data-select-product="${e(r.name)}"`:'role="img"'} data-tip="${e(tip)}" aria-label="${e(tip)}"><text x="5" y="${y+4}" font-size="12" fill="#789">${i+1}</text><text x="30" y="${y+4}" font-size="12" fill="#284362">${e(r.name.length>maxChars?r.name.slice(0,maxChars-1)+'…':r.name)}</text><rect x="${Math.min(zero,X(r.value))}" y="${barY}" width="${Math.max(.5,Math.abs(X(r.value)-zero))}" height="18" fill="${r.value<0?'#bc665b':'#245fa7'}"/><text x="${W-8}" y="${mobile?y+35:y+4}" text-anchor="end" font-size="12" fill="#284362">${n(r.value)}</text>${r.note?`<text x="${W-8}" y="${mobile?y+58:y+22}" text-anchor="end" font-size="12" fill="#5b6b7f">${e(r.note)}</text>`:''}</g>`});
- for(const v of axisTicks(axis)){svg+=`<text class="axis-tick" data-tick="${v}" x="${X(v)}" y="${H-8}" text-anchor="middle" font-size="12" fill="#789">${tickLabel(v,axis)}</text>`}return svg+'</svg>';
-}
 // V69 U-07: the composition row (Distributor mix · Sales-type mix · Sales by line) for one year, in the global measure.
 // E-rule 2: a panel needs 2+ known categories and 50%+ of selected sales in known categories (the registry checks ctx.dims).
 function compositionYear(ctx){if(ctx.yearMode==='single')return ctx.focusYear;const withData=compositionYears(ctx);return withData.includes(ui.compositionYear)?ui.compositionYear:withData.includes(bridgePair(ctx)?.[1])?bridgePair(ctx)[1]:withData.includes(ctx.focusYear)?ctx.focusYear:withData.at(-1)??ctx.focusYear}
@@ -350,32 +344,22 @@ function mixItems(ctx,key,year,metric=ui.metric){
  const scoped=scopeRecords(ctx.records,ctx.selection).filter(r=>r.dataset==='actual'&&r.year===year&&ctx.dataMonths.includes(r.month)),names=[...new Set(scoped.map(r=>r[key]||'NOT PROVIDED'))];
  return names.map(name=>({name,value:ctxSummary(ctx,year,ctx.dataMonths,metric,{...ctx.selection,[key]:[name]}).value})).filter(r=>r.value!=null).sort((a,b)=>b.value-a.value);
 }
-function renderMixChart(id,key,ctx){
- const year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.dataMonths,metric).value,items=mixItems(ctx,key,year,metric);
- if(!items.length||total==null)return {empty:`${key==='distributor'?'Distributor':'Sales type'} amounts are not available for ${periodLabel(dashboard(),ctx.dataMonths,year)}.`};
- $(id).innerHTML=productMixDonut(items,metric,total,id,key);
- const ctxLine=$(id).closest('article').querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${mixPeriod(ctx,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
-}
-function renderLineMix(ctx){
- const year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.dataMonths,metric).value,items=mixItems(ctx,'line',year,metric);if(!items.length)return {empty:`Line amounts are not available for ${periodLabel(dashboard(),ctx.dataMonths,year)}.`};const W=plotWidth('line-mix',520),mobile=W<420,cap=isMobile()?5:8,shown=items.slice(0,cap),rest=items.slice(cap);
+// V72 R-16: Distributor mix, Sales-type mix and Sales by line share one ranked horizontal-bar renderer (the V69
+// Sales by line chart). Distributor / sales-type bars keep their category colours (S-15); NOT PROVIDED is grey.
+const MIX_TARGET={distributor:['distributors','panel-mixDistributor','Distributor'],channel:['company-channels','panel-mixChannel','Sales type'],line:['line-mix','panel-mixLine','Line']};
+function renderMixChart(id,key,ctx){return renderMixBars(key,ctx)}
+function renderLineMix(ctx){return renderMixBars('line',ctx)}
+function renderMixBars(key,ctx){
+ const [id,panelId,word]=MIX_TARGET[key],year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.dataMonths,metric).value,items=mixItems(ctx,key,year,metric);
+ if(!items.length||total==null)return {empty:`${word} amounts are not available for ${periodLabel(dashboard(),ctx.dataMonths,year)}.`};
+ const W=plotWidth(id,520),mobile=W<420,cap=isMobile()?5:8,shown=items.slice(0,cap),rest=items.slice(cap);
  if(rest.length)shown.push({name:`Other (${rest.length})`,value:rest.reduce((a,r)=>a+r.value,0),other:true});
  const max=Math.max(1,...shown.map(r=>Math.abs(r.value))),labelW=mobile?0:Math.min(170,Math.round(W*.36)),rowH=mobile?46:30,H=shown.length*rowH+6,valueW=mobile?0:118,L=mobile?4:labelW+8,R=W-(mobile?4:valueW);
- let svg=svgPlot(W,H,'Sales by line in '+(metric==='value'?'EGP':'units'));
- shown.forEach((r,i)=>{const y=i*rowH+4,share=total>0?r.value/total*100:null,tip=`${r.name} · ${amt(r.value,metric)} · ${share==null?'—':share.toFixed(1)+'%'} of selected sales`,w=Math.max(.5,Math.abs(r.value)/max*(R-L)),name=truncate(r.name,mobile?40:Math.floor(labelW/6.6)),barY=mobile?y+18:y+6,color=knownCategory(r.name)?'#5e85c9':'#9aa5b4';
-  svg+=`<g tabindex="0" ${r.other||!knownCategory(r.name)?'role="img"':`role="button" data-mix-focus="line" data-key="${e(r.name)}"`} data-tip="${e(tip)}" aria-label="${e(tip)}"><rect x="0" y="${y}" width="${W}" height="${rowH-2}" fill="transparent"/><text x="${mobile?L:0}" y="${mobile?y+12:y+16}" font-size="12" fill="#38516f">${e(name)}</text><rect x="${L}" y="${barY}" width="${w}" height="14" rx="3" fill="${r.value<0?'#bb7764':color}"/><text x="${W-4}" y="${mobile?y+12:y+16}" text-anchor="end" font-size="12" fill="#304b6f">${e(short(r.value))}<tspan fill="#5b6b7f"> · ${share==null?'—':share.toFixed(1)+'%'}</tspan></text></g>`});
- $('line-mix').innerHTML=svg+'</svg>';
- const ctxLine=$('panel-mixLine').querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${mixPeriod(ctx,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
-}
-function productMixDonut(items,metric,total,chartId=null,focusKey=null){
- if(!items.length||total==null)return '<p class="empty-chart">Mix unavailable for this selection.</p>';
- if(items.some(r=>r.value<0))return rankedHTML(items,metric,false,chartId)+'<p class="chart-note">Signed adjustments shown as bars; donut shares require non-negative sales.</p>';
- if(total<=0)return '<p class="empty-chart">No positive sales for this selection.</p>';
- if(items.length>6){const top=items.slice(0,5),rest=items.slice(5);return productMixDonut([...top,{name:'Others',value:rest.reduce((a,r)=>a+r.value,0)}],metric,total,chartId,focusKey)+'<details><summary>View all '+items.length+' groups</summary>'+rankedHTML(items,metric,false,chartId)+'</details>'}
- const sum=items.reduce((a,r)=>a+r.value,0);if(Math.abs(sum-total)>Math.max(1e-6,Math.abs(total)*1e-8))return rankedHTML(items,metric,false,chartId)+'<p class="chart-note">Complete mix is unavailable; known amounts are shown without a donut.</p>';
- // V68 S-15: one colour per category everywhere (chart-utils CATEGORY_COLORS); NOT PROVIDED is neutral grey.
- const colors=items.map(r=>categoryColor(r.name));let offset=0;
- const arcs=items.map((r,i)=>{const share=r.value/total*100,tip=r.name+' · '+amt(r.value,metric)+' · '+share.toFixed(1)+'% of selected',arc=`<circle role="img" cx="110" cy="110" r="78" fill="none" stroke="${colors[i%colors.length]}" stroke-width="28" pathLength="100" stroke-dasharray="${share} ${100-share}" stroke-dashoffset="${-offset}" transform="rotate(-90 110 110)" tabindex="0" data-tip="${e(tip)}" aria-label="${e(tip)}"></circle>`;offset+=share;return arc}).join('');
- return `<div class="product-mix-donut"><svg viewBox="0 0 220 220" role="img" aria-label="Selected ${e(metric)} mix"><circle cx="110" cy="110" r="78" fill="none" stroke="#edf1f7" stroke-width="28"/>${arcs}<text x="110" y="106" text-anchor="middle" font-size="23" font-weight="700" fill="#233653">${e(short(total))}</text><text x="110" y="127" text-anchor="middle" font-size="14" fill="#5b6b7f">${metric==='value'?'EGP':'Units'}</text></svg><ul class="product-mix-legend">${items.map((r,i)=>{const f=focusKey&&r.name!=='Others',body=`<i style="background:${colors[i%colors.length]}"></i><span>${e(r.name)}</span><strong>${n(r.value)}<small>${(r.value/total*100).toFixed(1)}%</small></strong>`;return f?`<li data-key="${e(r.name)}"><button type="button" class="mix-focus" data-mix-focus="${focusKey}" data-key="${e(r.name)}" title="${e('Filter to '+r.name)}">${body}</button></li>`:`<li>${body}</li>`}).join('')}</ul></div>`;
+ let svg=svgPlot(W,H,`${word} mix in ${metric==='value'?'EGP':'units'}`);
+ shown.forEach((r,i)=>{const y=i*rowH+4,share=total>0?r.value/total*100:null,tip=`${r.name} · ${amt(r.value,metric)} · ${share==null?'—':share.toFixed(1)+'%'} of selected sales`,w=Math.max(.5,Math.abs(r.value)/max*(R-L)),name=fitLabel(r.name,mobile?W-8:labelW-6,12),barY=mobile?y+18:y+6,color=r.other?'#b7c0cc':!knownCategory(r.name)?'#9aa5b4':key==='line'?'#5e85c9':categoryColor(r.name);
+  svg+=`<g tabindex="0" ${r.other||!knownCategory(r.name)?'role="img"':`role="button" data-mix-focus="${key}" data-key="${e(r.name)}"`} data-tip="${e(tip)}" aria-label="${e(tip)}" data-mix-name="${e(r.name)}" data-mix-color="${r.value<0?'#bb7764':color}"><rect x="0" y="${y}" width="${W}" height="${rowH-2}" fill="transparent"/><text x="${mobile?L:0}" y="${mobile?y+12:y+16}" font-size="12" fill="#38516f">${e(name)}</text><rect x="${L}" y="${barY}" width="${w}" height="14" rx="3" fill="${r.value<0?'#bb7764':color}"/><text x="${W-4}" y="${mobile?y+12:y+16}" text-anchor="end" font-size="12" fill="#304b6f">${e(short(r.value))}<tspan fill="#5b6b7f"> · ${share==null?'—':share.toFixed(1)+'%'}</tspan></text></g>`});
+ $(id).innerHTML=svg+'</svg>';
+ const ctxLine=$(panelId).querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${mixPeriod(ctx,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
 }
 // ── V69 U-04: the one Monthly chart (replaces Monthly performance, Sales trend, the PPG panel and the value timeline) ──
 function tgt(ctx,products,metric,chosen,annual=false,filters=ctx.selection){return targetSum(records(),{year:ctx.focusYear},products,chosen,metric,filters,annual)}
