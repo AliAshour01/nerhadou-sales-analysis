@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const release=JSON.parse(fs.readFileSync('release.config.json','utf8'));
 const check=process.argv.includes('--check');let changed=0;
-function visit(dir){for(const item of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())visit(file);else if(item.name.endsWith('.html')||['management.js','comparison.js','view-context.js','panel-registry.js','products-table.js'].includes(item.name)){
+function visit(dir){for(const item of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())visit(file);else if(item.name.endsWith('.html')||['management.js','view-context.js','panel-registry.js','products-table.js'].includes(item.name)){
  const old=fs.readFileSync(file,'utf8');let next=old;
  if(item.name.endsWith('.html'))next=next.replace(/((?:src|href)="[^"?]+\.(?:js|css|png)\?v=)[^"&]+/g,'$1'+release.assetToken);
  else next=next.replace(/(from\s+['"][^'"?]+\.js\?v=)[^'"]+/g,'$1'+release.assetToken);
