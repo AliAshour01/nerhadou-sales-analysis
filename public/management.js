@@ -56,11 +56,10 @@ function mount(){
  const tabs=$('sales').querySelector('.section-tabs');
  tabs.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>window.actualDashboard.showSection(b.dataset.section));
  mountOverviewGrid();
- const movementHTML=`<div class="analysis-toolbar"><label>Break down change by<select id="movement-dimension"><option value="product">Products</option><option value="line">Lines</option><option value="distributor">Distributors</option></select></label><label>Compare from<select id="movement-year"></select></label></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`;
- $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-movement" hidden>${panel('What drove the change',movementHTML)}</section>`);
+
+
  $('sales').querySelector('.methodology').insertAdjacentHTML('beforebegin',`<section id="view-forecast" hidden><article class="panel"><div class="panel-title"><div><h2>Year-end forecast scenarios</h2><p>Scenario estimates · not reported actuals · entire YTD in selected year</p></div><label>Forecast as of<select id="forecast-cutoff"></select></label></div><div class="chart-grid forecast-grid"><article><h3>YTD Average Forecast</h3><div id="run-rate"></div><div id="run-rate-vs" class="forecast-vs"></div></article><article><h3>Historical Seasonality Forecast</h3><div id="target-forecast"></div><div id="seasonal-vs" class="forecast-vs"></div></article><article><h3>Required to hit target</h3><div id="forecast-required"></div></article></div><div class="forecast-chart-wrap"><h3>Cumulative path, Jan–Dec</h3><p class="chart-note">Scenario estimates, not reported actuals. Solid = actual through the cutoff; dashed = scenarios; navy = cumulative target.</p><div id="forecast-chart" class="wide-chart"></div></div></article></section>`);
- $('view-breakdown').insertAdjacentElement('beforebegin',$('view-movement'));
- for(const [id,tab]of [['view-overview','tab-overview'],['view-trends','tab-analysis'],['view-movement','tab-analysis'],['view-breakdown','tab-analysis'],['view-portfolio','tab-portfolio'],['view-forecast','tab-forecast']]){const view=$(id);if(view){view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby',tab)}}
+ for(const [id,tab]of [['view-overview','tab-overview'],['view-trends','tab-analysis'],['view-breakdown','tab-analysis'],['view-portfolio','tab-portfolio'],['view-forecast','tab-forecast']]){const view=$(id);if(view){view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby',tab)}}
  document.body.insertAdjacentHTML('beforeend',`<dialog id="product-drawer" class="product-drawer" aria-labelledby="drawer-title">${productDetailTemplate('drawer')}</dialog><dialog id="report-dialog" class="report-dialog" aria-labelledby="report-heading"><div class="report-controls"><button id="report-print">Print / Save PDF</button><button id="report-close">Close ×</button></div><div id="meeting-report"></div></dialog>`);
  $('panel-singleProduct').innerHTML=productDetailTemplate('single');for(const id of ['single-close','single-focus'])$(id)?.remove();$('sales').querySelector('.heading').insertAdjacentHTML('beforeend','<div id="product-scope-chip" hidden></div>');
  $('focus-content').querySelector('.focus-table-panel').insertAdjacentHTML('beforebegin',panel('Contribution to change',`<div class="analysis-toolbar"><label>From year<select id="historical-from"></select></label><label>To year<select id="historical-to"></select></label></div><p id="historical-context" class="analysis-context"></p><div id="historical-bridge" class="wide-chart"></div><p id="historical-note" class="chart-note"></p>`,'historical-movement-panel'));
@@ -99,6 +98,7 @@ function render(){
 // V69 U-02: Overview panels live in one 12-column grid; the registry (public/panel-registry.js) decides visibility and spans.
 const PANEL_BODIES={
  attention:()=>panel('Needs attention','<p class="chart-note">Rules describe the selected data. They do not establish the cause.</p><div id="attention-list" class="attention-list"></div>'),
+ bridge:()=>panel('What drove the change',`<div class="analysis-toolbar bridge-toolbar"><label>Break down by<select id="movement-dimension"></select></label><span id="bridge-years" hidden><label>From<select id="bridge-from"></select></label><label>To<select id="bridge-to"></select></label></span></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details class="bridge-numbers"><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`),
  mixDistributor:()=>panel('Distributor mix','<div id="distributors-measure" class="mix-measure"></div><div id="distributors"></div>'),
  mixChannel:()=>panel('Sales-type mix','<div id="company-channels-measure" class="mix-measure"></div><div id="company-channels"></div>'),
  singleProduct:()=>'<article class="panel"></article>'
@@ -106,11 +106,12 @@ const PANEL_BODIES={
 const RENDERERS={
  monthly:ctx=>renderMonthlyPanel(ctx),
  attention:()=>renderAttention(),
+ bridge:ctx=>renderBridge(ctx),
  mixDistributor:ctx=>renderMixChart('distributors','distributor',ctx.selection,ctx.months),
  mixChannel:ctx=>renderMixChart('company-channels','channel',ctx.selection,ctx.months),
  singleProduct:ctx=>renderProductView({product:ctx.product,month:null,metric:ui.metric},'single')
 };
-const layoutApi={renderers:RENDERERS,attentionCount,factCount:()=>1,shareYears:()=>0,bridgeOptions:()=>[]};
+const layoutApi={renderers:RENDERERS,attentionCount,factCount:()=>1,shareYears:()=>0,bridgeOptions};
 function mountOverviewGrid(){
  const overview=$('view-overview'),old=overview.querySelector('.chart-grid'),monthly=$('trend').closest('article'),distributors=$('distributors').closest('article');
  overview.insertAdjacentHTML('afterbegin','<div id="overview-grid" class="v69-grid"></div><details id="overview-not-shown" class="not-shown" hidden><summary></summary><ul></ul></details>');
@@ -138,10 +139,10 @@ let viewCtx=null,viewCtxKey='';
 function viewContext(d=dashboard()){const state={years:d.years||[d.snapshot.year],focusYear:d.focusYear,months:d.months,periodMode:d.periodMode,selection:d.selection,measure:ui.metric,growthBasis:d.growthBasis,commonMonths:d.commonMonths},key=JSON.stringify([payload?.revision,state]);if(key!==viewCtxKey||!viewCtx){viewCtx=resolveViewContext(records(),state);viewCtxKey=key}return viewCtx}
 function renderSection(){
  const d=dashboard();if(!d||!payload||d.snapshot.revision!==payload.revision)return;
- if(d.section==='analysis'){renderMovement();if(d.selection.product.length!==1)breakdown?.render()}else if(d.section==='movement')renderMovement();else if(d.section==='forecast'||d.section==='trends')renderPlanning();
+ if(d.section==='analysis'){if(d.selection.product.length!==1)breakdown?.render()}else if(d.section==='forecast'||d.section==='trends')renderPlanning();
  scheduleChartReflow();$('analysis-target-control').hidden=true;if(d.section==='breakdown')breakdown?.render();if(d.section==='overview')applyLayout('overview',viewContext(d));window.actualDashboard.wire();wireDrilldowns();
 }
-function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;document.querySelector('[data-section="portfolio"]').hidden=!!single;document.querySelector('[data-section="analysis"]').hidden=false;for(const id of ['view-trends','view-movement'])$(id).classList.add('in-sales-analysis');$('view-breakdown').classList.toggle('in-sales-analysis',!single);$('view-portfolio').classList.toggle('in-sales-analysis',!!single);if(d.section==='analysis')window.actualDashboard.showSection('analysis');if(single&&d.section==='breakdown'){window.actualDashboard.showSection('overview');status('Showing product overview for '+single)}$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single)$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)}}
+function renderSingleScope(){const d=dashboard(),single=d.selection.product.length===1?d.selection.product[0]:null;document.querySelector('[data-section="portfolio"]').hidden=!!single;document.querySelector('[data-section="analysis"]').hidden=false;$('view-breakdown').classList.toggle('in-sales-analysis',!single);$('view-portfolio').classList.toggle('in-sales-analysis',!!single);if(d.section==='analysis')window.actualDashboard.showSection('analysis');if(single&&d.section==='breakdown'){window.actualDashboard.showSection('overview');status('Showing product overview for '+single)}$('product-scope-chip').hidden=!single;$('product-scope-chip').innerHTML=single?`<span>Viewing: ${e(single)}</span> <button id="clear-product-scope" aria-label="Clear product selection">×</button>`:'';if(single)$('clear-product-scope').onclick=()=>{const cfg=capture();cfg.selection.product=[];cfg.section='overview';window.actualDashboard.apply(cfg)}}
 // V68 S-10: month ranges read "Jan–Aug" and "Jan–Mar, May".
 function monthRange(list){const out=[];for(let i=0;i<list.length;){let j=i;while(j+1<list.length&&list[j+1]===list[j]+1)j++;out.push(j>i?ms[list[i]-1]+'–'+ms[list[j]-1]:ms[list[i]-1]);i=j+1}return out.join(', ')}
 function renderHealth(){
@@ -176,10 +177,10 @@ function summaryCards(f,chosen,metric){
   +card('other',other==='value'?'Sales value · EGP':'Sales · units',amt(oCur.value,other),`<small>${e(oCur.value==null?otherCards[0][2]:oPrior.value==null?otherCards[4][2]:`vs ${py}: ${amt(oPrior.value,other)}`)}</small>${deltaChip(oChange,py)}`);
 }
 
-function drawBridge(id,result,metric){
+function drawBridge(id,result,metric,dimension='product'){const cap=isMobile()?6:8;
  const node=$(id);if(result.delta==null){node.innerHTML=`<p class="empty-chart">${e(result.reason||'Comparable periods unavailable.')}</p>`;return}
  let items=result.items;
- const matched=items.filter(x=>!x.residual).slice().sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)),other=matched.slice(8);if(matched.length>8)items=[...matched.slice(0,8),{name:`Other (${other.length})`,delta:other.reduce((n,r)=>n+r.delta,0)},...items.filter(x=>x.residual)];
+ const matched=result.ordered?items.filter(x=>!x.residual):items.filter(x=>!x.residual).slice().sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)),other=result.ordered&&matched.length<=12?[]:matched.slice(cap);if(other.length)items=[...matched.slice(0,cap),{name:`Other (${other.length})`,delta:other.reduce((n,r)=>n+r.delta,0)},...items.filter(x=>x.residual)];
  let running=result.previous.value;const bars=[{name:String(result.a),from:0,to:running,total:true}];for(const item of items){bars.push({...item,from:running,to:running+item.delta});running+=item.delta}bars.push({name:String(result.b),from:0,to:result.current.value,total:true});
  // V68 S-17: start the value axis at a nice value just below every running total so small changes stay visible;
  // total bars keep their true values on the truncated axis and an axis-break marker + note say so.
@@ -188,19 +189,49 @@ function drawBridge(id,result,metric){
  let svg=svgPlot(W,H,`Contribution bridge from ${result.a} to ${result.b}; ${metric}${truncated?'; axis starts at '+tickLabel(axis.min,axis):''}`);
  if(truncated)svg+=`<path class="axis-break" d="M${L-7},${B-2} l4,-5 l4,5 l4,-5" fill="none" stroke="#1f3555" stroke-width="1.5"/><text class="axis-break-note" x="${L}" y="16" font-size="12" fill="#5b6b7f">Axis starts at ${tickLabel(axis.min,axis)} · bars are not drawn from zero</text>`;
  for(const v of axisTicks(axis)){svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e5edf5"/><text class="axis-tick" data-tick="${v}" x="${L-10}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`}
- bars.forEach((b,i)=>{const x=L+step*(i+.5),value=b.total?b.to:b.delta,displayName=dense?(b.total?b.name:String(i)):b.name,tip=`${b.name} · ${amt(value,metric)}${b.residual?' · Detail unavailable; not assigned to a product':b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;svg+=`<g role="img" data-tip="${e(tip)}" tabindex="0" aria-label="${e(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(b.from),Y(b.to))}" width="${bw}" height="${Math.max(.8,Math.abs(Y(b.to)-Y(b.from)))}" fill="${b.total?'#245fa7':b.residual?'#a1aebd':b.delta<0?'#bc665b':'#39836e'}"/><text x="${x}" y="${Math.min(Y(b.from),Y(b.to))-9}" text-anchor="middle" font-size="12" fill="#254365">${dense?'':(!b.total&&value>0?'+':'')+short(value)}</text><text x="${x}" y="${B+22}" text-anchor="middle" font-size="12" fill="#536c86">${e(truncate(String(displayName),maxChars))}</text></g>`;if(i&& !b.total)svg+=`<line x1="${x-step+bw/2}" x2="${x-bw/2}" y1="${Y(b.from)}" y2="${Y(b.from)}" stroke="#94a7b8" stroke-dasharray="3 3"/>`});
+ bars.forEach((b,i)=>{const x=L+step*(i+.5),value=b.total?b.to:b.delta,displayName=dense?(b.total?b.name:String(i)):b.name,tip=`${b.name} · ${amt(value,metric)}${b.residual?' · Detail unavailable; not assigned to a product':b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"`:'role="img"'} data-tip="${e(tip)}" tabindex="0" aria-label="${e(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(b.from),Y(b.to))}" width="${bw}" height="${Math.max(.8,Math.abs(Y(b.to)-Y(b.from)))}" fill="${b.total?'#245fa7':b.residual?'#a1aebd':b.delta<0?'#bc665b':'#39836e'}"/><text x="${x}" y="${Math.min(Y(b.from),Y(b.to))-9}" text-anchor="middle" font-size="12" fill="#254365">${dense?'':(!b.total&&value>0?'+':'')+short(value)}</text><text x="${x}" y="${B+22}" text-anchor="middle" font-size="12" fill="#536c86">${e(truncate(String(displayName),maxChars))}</text></g>`;if(i&& !b.total)svg+=`<line x1="${x-step+bw/2}" x2="${x-bw/2}" y1="${Y(b.from)}" y2="${Y(b.from)}" stroke="#94a7b8" stroke-dasharray="3 3"/>`});
  node.innerHTML='<div class="chart-scroll bridge-fit" tabindex="0" role="region" aria-label="Contribution bridge">'+svg+'</svg></div>'+(dense?'<ol class="bridge-key">'+bars.filter(b=>!b.total).map(b=>'<li><span>'+e(b.name)+'</span><strong>'+e(amt(b.delta,metric))+'</strong></li>').join('')+'</ol>':'')+(other.length?'<details class="bridge-other-detail"><summary>Other: '+other.length+' smaller contributions</summary>'+table(['Product / group','Change'],other.map(r=>[e(r.name),amt(r.delta,metric)]))+'</details>':'');
 }
 function labelLines(text,max=24){const out=[];let line='';for(const word of String(text).split(/\s+/)){if(line.length&&line.length+word.length+1>max){out.push(line);line=word}else line+=(line?' ':'')+word}if(line)out.push(line);return out}
 function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>'<tr'+(row[0]==='Total'?' class="total-row"':'')+'>'+row.map(v=>`<td>${v}</td>`).join('')+'</tr>').join('')}</tbody></table>`}
-function renderMovement(){
- const d=dashboard(),years=d.snapshot.availableYears.filter(y=>y!==d.snapshot.year);if(!years.includes(ui.bridgeYear))ui.bridgeYear=years.includes(d.snapshot.year-1)?d.snapshot.year-1:years.at(-1);
- $('movement-year').innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');$('movement-year').value=String(ui.bridgeYear??'');
- const allowed=growthAllowed(ui.bridgeYear,d.snapshot.year),result=allowed.ok?movement(records(),{a:ui.bridgeYear,b:d.snapshot.year,months:d.months,dimension:ui.bridgeDimension,metric:ui.metric,filters:d.selection}):{a:ui.bridgeYear,b:d.snapshot.year,delta:null,items:[],unmatched:[],reason:allowed.reason};drawBridge('movement-chart',result,ui.metric);
- $('movement-context').textContent=`${ui.bridgeYear??'—'} → ${d.snapshot.year} · Same selected months · ${ui.metric} · ${scopeText()}${result.estimated?' · Estimated value included':''}${result.approximate?' · ≈ Approved available totals':''}`;
+// ── V69 U-06: one 'What drove the change' panel on Overview (replaces Sales Analysis Movement and Historical Contribution to change) ──
+const DIM_LABEL={product:'Products',line:'Lines',distributor:'Distributors',channel:'Sales types',month:'Month'};
+function bridgePair(ctx){
+ if(ctx.yearMode==='single')return ctx.compareYear!=null&&ctx.growthOk?[ctx.compareYear,ctx.focusYear]:null;
+ const ok=ctx.years.filter(y=>!provisional(y));let b=ok.includes(ui.bridgeTo)?ui.bridgeTo:ok.includes(ctx.focusYear)?ctx.focusYear:ok.at(-1);let a=ok.includes(ui.bridgeFrom)&&ui.bridgeFrom<b?ui.bridgeFrom:ctx.compareYear!=null&&ok.includes(ctx.compareYear)&&ctx.compareYear<b?ctx.compareYear:ok.filter(y=>y<b).at(-1);
+ return a!=null&&b!=null&&growthAllowed(a,b).ok?[a,b]:null;
+}
+function bridgeOptions(ctx){
+ const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return [];
+ const opts=[];
+ if(ctx.productMode!=='one'&&ctx.productCount>=2)opts.push('product');
+ for(const k of ['line','distributor','channel'])if(ctx.dims[k].comparable&&ctx.dims[k].categories>=2&&!(k==='line'&&ctx.productMode==='one'))opts.push(k);
+ if(ctx.monthCount>=2)opts.push('month');
+ return opts;
+}
+function bridgeResult(ctx,a,b,dimension,metric=ui.metric){
+ const key=JSON.stringify(['bridge',ctx.yearMode,a,b,dimension,metric,ctx.months,ctx.selection]);if(cache.has(key))return cache.get(key);
+ let result;
+ if(dimension==='month'){
+  result=movement(ctx.records,{a,b,months:ctx.months,metric,dimension:'product',filters:ctx.selection});
+  if(result.delta!=null){const parts=ctx.months.map(m=>({m,r:movement(ctx.records,{a,b,months:[m],metric,dimension:'product',filters:ctx.selection})}));
+   if(parts.some(p=>p.r.delta==null))result={...result,delta:null,reason:'Monthly change needs comparable data in each selected month.'};
+   else{const items=parts.map(p=>({name:ms[p.m-1],month:p.m,delta:p.r.delta,previous:p.r.previous.value,current:p.r.current.value,ppg:p.r.ppg})),residual=result.delta-items.reduce((s,r)=>s+r.delta,0);if(Math.abs(residual)>Math.max(1e-4,Math.abs(result.delta)*1e-12))items.push({name:'Unallocated monthly detail',delta:residual,residual:true});result={...result,items,ordered:true}}}
+ }else result=movement(ctx.records,{a,b,months:ctx.months,dimension,metric,filters:ctx.selection});
+ cache.set(key,result);return result;
+}
+function renderBridge(ctx){
+ const opts=bridgeOptions(ctx),pair=bridgePair(ctx);if(!opts.length||!pair)return;
+ if(!opts.includes(ui.bridgeDimension))ui.bridgeDimension=ctx.productMode==='one'?'month':opts[0];
+ const [a,b]=pair,dimension=ui.bridgeDimension,metric=ui.metric,result=bridgeResult(ctx,a,b,dimension,metric);
+ $('movement-dimension').innerHTML=opts.map(o=>`<option value="${o}">${DIM_LABEL[o]}</option>`).join('');$('movement-dimension').value=dimension;
+ const yearPick=$('bridge-years');yearPick.hidden=ctx.yearMode!=='multi';
+ if(ctx.yearMode==='multi'){const ok=ctx.years.filter(y=>!provisional(y));$('bridge-from').innerHTML=ok.filter(y=>y<b).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-from').value=String(a);$('bridge-to').innerHTML=ok.filter(y=>ok.some(x=>x<y)).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-to').value=String(b)}
+ drawBridge('movement-chart',result,metric,dimension);
+ $('movement-context').textContent=`${a} → ${b} · ${periodLabel()} in both years · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated?' · Estimated value included':''}${result.approximate?' · ≈ Approved available totals':''}`;
  $('movement-unmatched').hidden=!result.unmatched?.length;$('movement-unmatched-list').innerHTML=(result.unmatched||[]).map(name=>`<p>${e(name)} — a comparable amount is unavailable in one of the periods; no zero baseline is assumed.</p>`).join('');
- $('movement-note').textContent='Blue: period totals. Green/red: signed change. New: absent activity in a complete prior report counts as zero sales; PPG is New. Grey: genuinely unavailable detail. Contributions reconcile to the total difference. Large lists group the remaining matched changes into Other.';
- $('movement-table').innerHTML=table(['Product / group',String(ui.bridgeYear),String(d.snapshot.year),'Change','Growth (PPG%)'],result.items.map(r=>[e(r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));if(!allowed.ok)$('movement-table').innerHTML=`<p class="chart-note">${e(allowed.reason)}</p>`;
+ $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Blue: period totals. Green/red: signed change. New: absent activity in a complete prior report counts as zero sales. Grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.';
+ $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
 }
 
 function miniCards(cards){return cards.map(([label,value])=>`<div><span>${e(label)}</span><strong>${e(value)}</strong></div>`).join('')}
@@ -465,7 +496,7 @@ function onClick(ev){
 function onChange(ev){
  const id=ev.target.id;
  if(id==='forecast-cutoff')ui.forecastCutoff=Number(ev.target.value);
- else if(id==='movement-year')ui.bridgeYear=Number(ev.target.value);
+ else if(id==='bridge-from')ui.bridgeFrom=Number(ev.target.value);else if(id==='bridge-to')ui.bridgeTo=Number(ev.target.value);
  else if(id==='movement-dimension')ui.bridgeDimension=ev.target.value;
 
  else if(['historical-from','historical-to'].includes(id)){renderHistoricalBridge();return}
