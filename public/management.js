@@ -46,7 +46,7 @@ function mount(){
 
 
  const tabs=$('sales').querySelector('.section-tabs');
- tabs.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>window.actualDashboard.showSection(b.dataset.section));
+ tabs.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>{if(b.getAttribute('aria-disabled')==='true'){showTabMessage(b.dataset.section);return}$('tab-message')&&($('tab-message').hidden=true);window.actualDashboard.showSection(b.dataset.section)});
  mountOverviewGrid();
  // V69 U-18: on phones the filter card collapses to 'Filters (n)' with the selection summary; tap to open it.
  const fbar=$('sales').querySelector('.filters'),ftitle=fbar.querySelector('.filter-bar-title');ftitle.insertAdjacentHTML('beforeend','<button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="sales-filters-body">Filters</button><span id="filters-summary" class="filters-summary"></span>');fbar.id='sales-filters-body';fbar.classList.add('collapsed');
@@ -141,12 +141,21 @@ function applyLayout(tab,ctx){
 // V69 U-08: tabs appear only when they have content (plan 2.3). A hidden active tab falls back to Overview with a toast;
 // a lone Overview tab renders as a plain section title.
 function tabVisible(tab,ctx){if(tab==='overview')return true;if(tab==='portfolio')return layout('products',ctx,{renderers:null,attentionCount,factCount:()=>1,shareYears:()=>0,bridgeOptions}).visible.includes('productsTable');if(tab==='forecast')return window.nerhadouSecurity?.me?.user?.status==='active'&&layout('forecast',ctx,{renderers:null}).visible.length>0;return false}
-function syncTabs(ctx){
- const bar=$('sales').querySelector('.section-tabs');let shown=0;
- for(const b of bar.querySelectorAll('[data-section]')){const on=tabVisible(b.dataset.section,ctx);b.hidden=!on;if(on)shown++}
- bar.classList.toggle('single-tab',shown===1);
- const d=dashboard();if(d.section!=='overview'&&bar.querySelector(`[data-section="${d.section}"]`)?.hidden){window.actualDashboard.showSection('overview');window.actualDashboard.toast?.(ctx.productMode==='one'?'Showing '+ctx.product+' on Overview':'Showing Overview for this selection')}
+// V72 R-11: a tab without content stays in the bar, disabled, with the reason as a tooltip and as a one-line
+// message (with a fix-it link) when clicked. Forecast stays hidden only for users who may not see it.
+function tabReason(tab,ctx){
+ if(tab==='portfolio')return {text:ctx.productMode==='one'?'Products compares two or more products. One product is selected.':'Products needs two or more products in this selection.',action:ctx.selection.product.length?['clear-products','Show all products']:null};
+ if(tab==='forecast'){const lead=ctx.yearMode==='multi'?'Forecast needs one open year.':!ctx.isOpenYear?'Forecast needs the open year.':'Forecast needs sales in the selected year.',fix=ctx.years.length===1&&ctx.focusYear===ctx.latestYear?null:`Select ${ctx.latestYear} only.`;return {text:lead+(fix?' '+fix:''),lead,action:fix?['latest-year',fix]:null};}
+ return null;
 }
+function syncTabs(ctx){
+ const bar=$('sales').querySelector('.section-tabs');
+ for(const b of bar.querySelectorAll('[data-section]')){const tab=b.dataset.section,on=tabVisible(tab,ctx),allowed=tab!=='forecast'||window.nerhadouSecurity?.me?.user?.status==='active',why=on?null:tabReason(tab,ctx);b.hidden=!on&&!allowed;b.classList.toggle('tab-disabled',!on);if(on){b.removeAttribute('aria-disabled');b.removeAttribute('title');delete b.dataset.reason}else{b.setAttribute('aria-disabled','true');b.title=why?.text||'Not available for this selection';b.dataset.reason=why?.text||''}}
+ let msg=$('tab-message');if(!msg){bar.insertAdjacentHTML('afterend','<p id="tab-message" class="tab-message" role="status" hidden></p>');msg=$('tab-message')}
+ if(msg.dataset.tab&&!bar.querySelector(`[data-section="${msg.dataset.tab}"]`)?.classList.contains('tab-disabled'))msg.hidden=true;
+ const d=dashboard(),active=bar.querySelector(`[data-section="${d.section}"]`);if(d.section!=='overview'&&(active?.hidden||active?.classList.contains('tab-disabled'))){window.actualDashboard.showSection('overview');showTabMessage(d.section,ctx)}
+}
+function showTabMessage(tab,ctx=viewContext()){const msg=$('tab-message'),why=tabReason(tab,ctx);if(!msg||!why)return;msg.dataset.tab=tab;msg.innerHTML=`${e(why.action&&why.lead?why.lead:why.text)}${why.action?` <button type="button" class="link-button" data-tab-fix="${why.action[0]}" data-tab="${tab}">${e(why.action[1])}</button>`:''}`;msg.hidden=false}
 // V69 U-13: multi-year filter options come from the records of the selected years (products by comparison name).
 let optionsCache={key:'',value:null};
 function multiOptions(key,years){const k=JSON.stringify([payload?.revision,key,years]);if(optionsCache.key===k)return optionsCache.value;const wanted=new Set(years),rows=comparisonRecords(records()).filter(r=>r.dataset==='actual'&&r.month>0&&wanted.has(r.year));const value=key==='months'?[...new Set(rows.map(r=>r.month))].sort((a,b)=>a-b):[...new Set(rows.map(r=>r[key]))].filter(v=>v&&knownCategory(v)).sort();optionsCache={key:k,value};return value}
@@ -608,6 +617,7 @@ function renderForecastContext(d,input,cutoff,r,seasonal){
 function onClick(ev){
  const b=ev.target.closest('button,[role="button"]');if(!b)return;if(b.dataset.page==='comparison'){ev.preventDefault();openHistoricalRedirect();return}if(b.dataset.page){placeActions(b.dataset.page);document.querySelector('.manager-actions').hidden=b.dataset.page!=='sales';$('manager-status').hidden=b.dataset.page!=='sales';}
  if(b.dataset.selectProduct){selectProduct(b.dataset.selectProduct);return}
+ if(b.dataset.tabFix){const tab=b.dataset.tab;$('tab-message').hidden=true;(async()=>{if(b.dataset.tabFix==='latest-year')await window.actualDashboard.setYears([viewContext().latestYear]);else{const d=dashboard();await window.actualDashboard.apply({...capture(),selection:{...d.selection,product:[]}})}window.actualDashboard.showSection(tab)})();return}
  if(b.dataset.ptSort){const k=b.dataset.ptSort;ui.ptDesc=ui.ptSort===k?!ui.ptDesc:true;ui.ptSort=k;renderProductsTable(viewContext());$('detail-head').querySelector(`[data-pt-sort="${k}"]`)?.focus();return}
  if(b.dataset.ptAll){ui.ptAll=b.dataset.ptAll==='on';renderProductsTable(viewContext());return}
  if(b.id==='search-clear'){$('search').value='';renderProductsTable(viewContext());$('search').focus();return}

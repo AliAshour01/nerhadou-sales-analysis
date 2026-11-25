@@ -8,7 +8,8 @@ import {categoryColor,CATEGORY_COLORS} from '../public/chart-utils.js';
 const $=id=>document.getElementById(id),base=window.actualDashboard.read(),none={product:[],line:[],distributor:[],channel:[]},Y=base.snapshot.latestYear;
 const cfg=(over={})=>({years:[Y],year:Y,months:[1,2,3,4,5,6,7,8],periodMode:'ytd',targetBasis:'period',selection:none,section:'overview',...over});
 const visible=()=>[...$('overview-grid').querySelectorAll('.v69-panel:not([hidden])')].map(p=>p.dataset.panel);
-const tabs=()=>[...document.querySelectorAll('.section-tabs [role="tab"]')].filter(t=>!t.hidden).map(t=>t.dataset.section);
+// V72 R-11: unavailable tabs stay in the bar, disabled; "tabs" are the enabled ones.
+const tabs=()=>[...document.querySelectorAll('.section-tabs [role="tab"]')].filter(t=>!t.hidden&&t.getAttribute('aria-disabled')!=='true').map(t=>t.dataset.section);
 const strip=()=>$('overview-not-shown').hidden?'':$('overview-not-shown').textContent;
 // A1 · 2026 YTD Aug, all products
 await window.actualDashboard.apply(cfg());
