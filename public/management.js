@@ -199,19 +199,29 @@ function kpiCandidates(ctx){
   const u=S(fy,'units'),v=S(fy,'value'),pu=S(cy,'units'),pv=S(cy,'value'),price=u>0&&v!=null?v/u:null,pPrice=pu>0&&pv!=null?pv/pu:null,fmtP=x=>'EGP '+(x>=100?n(x):x.toFixed(1));
   C.price=!one||price==null?null:()=>kpiCard('price','Average price · EGP/unit',fmtP(price),`<small>${e(pPrice!=null?`vs ${cy}: ${fmtP(pPrice)}${cyLabel}`:label)}</small>${deltaChip(chg(price,pPrice),cy)}`);
  }else{
-  const withheld=!ctx.growthOk?ctx.growthReason:null,delta=cur!=null&&prev!=null?cur-prev:null,ppg=delta!=null&&prev>0?delta/prev*100:null;
+  // V69.1: with 3+ years selected the cards summarise the whole selected range (first comparable selected year → focusYear),
+  // not just the previous year. The previous-year figure stays visible as a subtitle. Two selected years keep the plain pair comparison.
+  const range=multiYearRange(ctx,S),base=range?range.start:cy,baseCur=S(base,m),word=x=>x.replace(/^Growth withheld: /,'').replace(/\.$/,'');
+  const withheld=range?null:!ctx.growthOk?ctx.growthReason:null,prev=baseCur,delta=cur!=null&&prev!=null?cur-prev:null,ppg=delta!=null&&prev>0?delta/prev*100:null;
+  const lastYear=range&&cy!=null?(ctx.growthOk?(()=>{const p=S(cy,m),d=cur!=null&&p!=null?cur-p:null;return d==null?null:{delta:d,ppg:p>0?d/p*100:null}})():{withheld:ctx.growthReason}):null;
+  const vsLast=(kind)=>!lastYear?'':lastYear.withheld?` · vs ${cy}: withheld`:kind==='delta'?` · vs ${cy}: ${(lastYear.delta<0?'−':'+')+amt(Math.abs(lastYear.delta),m)}`:lastYear.ppg==null?'':` · ${cy} → ${fy}: ${pct(lastYear.ppg)}`;
   C.salesFocus=cur==null?null:()=>kpiCard('sales',`Sales ${fy} · ${unit(m)}`,amt(cur,m),`<small>${e(label.replace(yearSpan(ctx.years),String(fy)))}</small>`,' style="--kpi-accent:1"');
-  C.salesCompare=prev==null?null:()=>kpiCard('compare',`Sales ${cy} · ${unit(m)}`,amt(prev,m),`<small>${e(provisional(cy)?'Provisional year':'Same months as '+fy)}</small>`);
-  const word=x=>x.replace(/^Growth withheld: /,'').replace(/\.$/,'');
-  C.change=cy==null||(delta==null&&!withheld)?null:()=>withheld?kpiCard('change',`Change ${cy} → ${fy}`,'Withheld',`<small>${e(word(withheld))}</small>`):kpiCard('change',`Change ${cy} → ${fy}`,(delta<0?'−':'+')+amt(Math.abs(delta),m),`<small>${unit(m)} · same months</small>`);
-  C.growth=cy==null||(ppg==null&&!withheld)?null:()=>withheld?kpiCard('growth',`Growth ${cy} → ${fy}`,'Withheld',`<small>${e(word(withheld))}</small>`):kpiCard('growth',`Growth ${cy} → ${fy}`,pct(ppg),`<small>${e(DIM_YEARS_NOTE(ctx))}</small>`);
-  const shareOf=year=>{const a=S(year,m),b=S(year,m,chosen,{});return a!=null&&b>0?a/b*100:null},sF=one?shareOf(fy):null,sC=one&&cy!=null?shareOf(cy):null;
-  C.shareYears=sF==null?null:()=>kpiCard('share',`Share of company ${fy}`,sF.toFixed(1)+'%',`<small>${e(sC==null?'of company '+unit(m):withheld?`${cy}: ${sC.toFixed(1)}% · change withheld`:`${sF-sC>=0?'+':'−'}${Math.abs(sF-sC).toFixed(1)} pts vs ${cy}`)}</small>`);
+  C.salesCompare=prev==null?null:()=>kpiCard('compare',`Sales ${base} · ${unit(m)}`,amt(prev,m),`<small>${e(provisional(base)?'Provisional year':range?(base===ctx.years[0]?'First selected year · same months':`First comparable year · ${ctx.years.filter(y=>y<base).join(', ')} provisional`):'Same months as '+fy)}</small>`);
+  C.change=base==null||(delta==null&&!withheld)?null:()=>withheld?kpiCard('change',`Change ${base} → ${fy}`,'Withheld',`<small>${e(word(withheld))}</small>`):kpiCard('change',`Change ${base} → ${fy}`,(delta<0?'−':'+')+amt(Math.abs(delta),m),`<small>${e(unit(m)+' · same months'+vsLast('delta'))}</small>`,range?` data-range="${base}-${fy}"`:'');
+  if(range){
+   const yrs=fy-base,cagr=cur>0&&prev>0?(Math.pow(cur/prev,1/yrs)-1)*100:null;
+   C.growth=cagr==null&&ppg==null?null:()=>kpiCard('growth',cagr!=null?`Avg yearly growth ${base} → ${fy}`:`Growth ${base} → ${fy}`,pct(cagr??ppg),`<small>${e((cagr!=null&&ppg!=null?`Total ${pct(ppg)} over ${yrs} years`:`${yrs} years`)+vsLast('ppg'))}</small>`,` data-range="${base}-${fy}"`);
+  }else C.growth=cy==null||(ppg==null&&!withheld)?null:()=>withheld?kpiCard('growth',`Growth ${cy} → ${fy}`,'Withheld',`<small>${e(word(withheld))}</small>`):kpiCard('growth',`Growth ${cy} → ${fy}`,pct(ppg),`<small>${e(DIM_YEARS_NOTE(ctx))}</small>`);
+  const shareOf=year=>{const a=S(year,m),b=S(year,m,chosen,{});return a!=null&&b>0?a/b*100:null},sF=one?shareOf(fy):null,sC=one&&base!=null?shareOf(base):null;
+  C.shareYears=sF==null?null:()=>kpiCard('share',`Share of company ${fy}`,sF.toFixed(1)+'%',`<small>${e(sC==null?'of company '+unit(m):withheld?`${base}: ${sC.toFixed(1)}% · change withheld`:`${sF-sC>=0?'+':'−'}${Math.abs(sF-sC).toFixed(1)} pts vs ${base}`)}</small>`);
  }
  C.products=()=>kpiCard('products','Products with sales',String(ctx.productCount),`<small>${e(label)}</small>`);
  C.months=()=>kpiCard('months','Months selected',String(chosen.length),`<small>${e(label)}</small>`);
  return C;
 }
+// V69.1: range start for 3+ selected years = earliest selected year before focusYear whose growth vs focusYear is allowed (not provisional)
+// and that has a positive figure in the measure for the same months. null → the cards fall back to the compareYear pair.
+function multiYearRange(ctx,S){if(ctx.yearMode!=='multi'||ctx.years.length<3)return null;const start=ctx.years.find(y=>y<ctx.focusYear&&growthAllowed(y,ctx.focusYear).ok&&S(y,ctx.measure)>0);return start==null?null:{start}}
 const DIM_YEARS_NOTE=ctx=>ctx.growthBasis==='selected'?'vs previous selected year':'vs previous year';
 function kpiSlots(ctx){
  if(ctx.yearMode==='multi')return ctx.productMode==='one'?[['salesFocus','other'],['shareYears','salesCompare'],['change','salesCompare'],['growth','other']]:[['salesFocus','other'],['salesCompare','other'],['change','other'],['growth','other']];

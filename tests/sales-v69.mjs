@@ -54,6 +54,20 @@ await window.actualDashboard.apply(cfg({years:ALL}));assert.deepEqual(tabs(),['o
 assert($('trend').querySelectorAll('polyline').length>=ALL.length,'one line per year');
 // A9 · multi-year one product: Share by year, bridge by month, no Products tab
 {const p=window.actualDashboard.translateProducts(['ONDALENZ 8MG'],'multi',Y);await window.actualDashboard.apply(cfg({years:ALL,selection:{...none,product:p}}));assert.deepEqual(tabs(),['overview']);assert(visible().includes('shareByYear'));assert.equal($('movement-dimension').value,'month');assert(/Share of company/.test($('kpis').textContent))}
+// A8b · V69.1: with 3+ years selected the KPI cards summarise the whole selected range, not only the previous year.
+{const cards=()=>[...$('kpis').querySelectorAll('.kpi')].map(k=>k.textContent.replace(/\s+/g,' ').trim());
+await window.actualDashboard.apply(cfg({years:ALL}));let c=cards();assert.equal(c.length,4);
+assert(c[1].startsWith('Sales 2021'),'card 2 = first selected year');assert(c[2].startsWith('Change 2021 → 2026')&&c[2].includes('+13,357,562'),'change first → last');assert(c[2].includes('vs 2025: +6,123,077'),'previous-year change kept as subtitle');
+assert(c[3].startsWith('Avg yearly growth 2021 → 2026')&&c[3].includes('+21.2%')&&c[3].includes('Total +162.1% over 5 years')&&c[3].includes('2025 → 2026: +39.6%'),'CAGR + total + last-year growth');
+const p=window.actualDashboard.translateProducts(['ONDALENZ 8MG'],'multi',Y);await window.actualDashboard.apply(cfg({years:ALL,selection:{...none,product:p}}));c=cards();
+assert(/vs 2021/.test(c[1])&&c[1].startsWith('Share of company 2026'),'one product: share vs first year');assert(c[2].includes('Change 2021 → 2026')&&c[2].includes('+1,089,160'));assert(c[3].includes('Avg yearly growth 2021 → 2026')&&c[3].includes('+60.0%')&&c[3].includes('2025 → 2026: +100.9%'));
+// 2023 is provisional, so a range that starts at 2023 starts at the first comparable year instead (no growth involving 2023).
+await window.actualDashboard.apply(cfg({years:[2023,2024,2025,2026]}));c=cards();assert(c[1].startsWith('Sales 2024')&&/2023 provisional/.test(c[1]));assert(c[3].includes('2024 → 2026'));assert(!c.join(' ').includes('2023 → '));
+// Range works even when the previous year is withheld (focus 2024, previous 2023 provisional).
+await window.actualDashboard.apply(cfg({years:[2022,2023,2024],year:2024}));c=cards();assert(c[2].startsWith('Change 2022 → 2024')&&c[2].includes('vs 2023: withheld'));assert(/\+\d/.test(c[3]));
+// Two selected years keep the plain pair comparison; single year is unchanged.
+await window.actualDashboard.apply(cfg({years:[2025,2026]}));c=cards();assert(c[1].startsWith('Sales 2025'));assert(c[3].startsWith('Growth 2025 → 2026')&&c[3].includes('+39.6%'));assert(!/Avg yearly growth/.test(c.join(' ')));
+await window.actualDashboard.apply(cfg());assert(!/Avg yearly growth|Change 20/.test($('kpis').textContent));}
 // A10 · 2025+2026 Line: Gyn line works for both years; Line disabled for 2021–2024
 await window.actualDashboard.apply(cfg({years:[2025,2026],selection:{...none,line:['Gyn line']}}));assert.deepEqual(window.actualDashboard.read().selection.line,['Gyn line']);assert(/Gyn line/.test($('page-subtitle').textContent));
 await window.actualDashboard.apply(cfg({years:[2021,2022,2023,2024]}));assert(document.querySelector('[data-multi="line"]').classList.contains('not-recorded'));assert(/Not recorded for 2021–2024/.test($('line-summary').textContent));

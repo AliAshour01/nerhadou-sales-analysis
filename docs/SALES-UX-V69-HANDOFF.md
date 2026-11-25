@@ -63,3 +63,7 @@ DOM tests need `NERHADOU_DOM_MODULE` pointing at a local linkedom. Browser test 
 ## Rollback
 
 Code only: redeploy the previous saved Site version. No data, schema or auth change to undo.
+
+## V69.1 follow-up: multi-year KPI range
+
+With 3+ selected years the KPI row summarises the range (first comparable selected year → focusYear): Sales in the start year, Change start → focus, average yearly growth (CAGR) + total, with the compareYear figures as subtitles. `multiYearRange(ctx,S)` in `public/management.js` picks the earliest selected year before focusYear that is growth-allowed (not provisional) and has a positive figure; when none exists the cards fall back to the compareYear pair. Two-year and single-year cards are unchanged. Tests: `tests/sales-v69.mjs` block A8b.
