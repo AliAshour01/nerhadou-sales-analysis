@@ -49,19 +49,48 @@ export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
 }
+// V72 R-19: base product of a tender twin ("X - Tender", "X -Tender", "X  - TENDER", "X-Tender" → "X"); other names unchanged.
+// public/app.js keeps a byte-identical copy of the pattern for the product picker (tests/sales-v72.mjs checks parity).
+export const TENDER_SUFFIX=/\s*-\s*tender\s*$/i;
+export function tenderBase(name){const raw=String(name??''),base=raw.replace(TENDER_SUFFIX,'').trim();return base||raw.trim()}
+export const isTenderVariant=name=>TENDER_SUFFIX.test(String(name??''))&&tenderBase(name)!==String(name??'').trim();
+// V72 R-01: a filter dimension (distributor / line / sales type) is "recorded" in a year only when that year has
+// actual rows in the chosen months and every one of them carries a known value for it. NOT PROVIDED / NOT RECORDED
+// and the undivided "COMBINED / SOURCE" sales-type bucket are data gaps, not categories: while any sales sit in
+// such a bucket, a filtered value that is absent may be hidden inside it, so absence cannot be read as zero.
+const UNRECORDED=/^(not provided|not recorded|combined \/ source)?$/i;
+export const recordedValue=v=>!UNRECORDED.test(String(v??'').trim());
+export const DIMENSION_WORD={distributor:'distributor',line:'line',channel:'sales type'};
+// true when `year` has actual rows in `months` and all of them have a known value for `dim`
+export function dimensionRecorded(records,year,months,dim){
+ const rows=recordsForYear(records,year).filter(r=>r.dataset==='actual'&&months.includes(r.month));
+ return rows.length>0&&rows.every(r=>recordedValue(r[dim]));
+}
+// First filtered dimension that `year` does not record, as {key, word, reason}; null when every filter can be measured.
+export function dimensionGap(records,year,months,filters={}){
+ for(const key of ['distributor','line','channel'])if(filters[key]?.length&&!dimensionRecorded(records,year,months,key))return {key,word:DIMENSION_WORD[key],reason:`${year} does not record ${DIMENSION_WORD[key]}`};
+ return null;
+}
 // Owner-confirmed sparse sales rule, scoped to Movement: absent rows mean no activity
 // only when the complete company report covers every selected month. Explicit nulls stay unknown.
+// V72 R-01: the rule never applies when the filtered dimension itself is not recorded in that year.
 function movementSummary(records,year,months,metric,filters){
  const s=comparableSummary(records,year,months,metric,filters);if(s.value!=null||!months.length)return s;
+ const gap=dimensionGap(records,year,months,filters);if(gap)return {...s,value:null,reason:gap.reason,dimensionGap:gap};
  const company=comparableSummary(records,year,months,metric,{}),report=records.filter(r=>r.dataset==='actual'&&r.year===year&&months.includes(r.month));
  if(company.value==null||(year===2023&&company.approximate)||months.some(m=>!report.some(r=>r.month===m))||report.some(r=>r.reportingIncomplete))return s;
  const rows=scopeRecords(report,filters);if(rows.some(r=>!finite(r[metric])))return s;
  return {...s,rows,value:rows.reduce((n,r)=>n+r[metric],0),partial:false,reason:null,absentIsZero:true};
 }
+// V72 R-01: period totals only (no per-item breakdown), so the page can decide whether a bridge can be drawn.
+export function movementTotals(records,{a,b,months,metric='units',filters={}}){
+ const current=movementSummary(records,b,months,metric,filters),previous=movementSummary(records,a,months,metric,filters),total=changeBetween(current,previous);
+ return {a,b,current,previous,...total,reason:total.delta!=null?null:previous.dimensionGap?previous.reason:current.dimensionGap?current.reason:`${a}: ${previous.reason||'available'}; ${b}: ${current.reason||'available'}`};
+}
 export function movement(records,{a,b,months,metric='units',dimension='product',filters={}}){
  const scoped=scopeRecords(records,filters),current=movementSummary(records,b,months,metric,filters),previous=movementSummary(records,a,months,metric,filters);
  const total=changeBetween(current,previous);
- if(total.delta==null)return {a,b,current,previous,...total,items:[],reason:`${a}: ${previous.reason||'available'}; ${b}: ${current.reason||'available'}`};
+ if(total.delta==null)return {a,b,current,previous,...total,items:[],reason:previous.dimensionGap?previous.reason:current.dimensionGap?current.reason:`${a}: ${previous.reason||'available'}; ${b}: ${current.reason||'available'}`};
  const candidates=scoped.filter(r=>r.dataset==='actual'&&[a,b].includes(r.year)&&months.includes(r.month)).sort((x,y)=>(x.year===b)-(y.year===b)),names=[...new Map(candidates.map(r=>{const name=dimension==='product'?productName(r):r[dimension]||'NOT PROVIDED';return [dimension==='product'?productKey(name):name,name]})).values()];
  const items=[],unmatched=[];
  for(const name of names){const groupFilters={...filters,[dimension]:[name]},old=movementSummary(records,a,months,metric,groupFilters),now=movementSummary(records,b,months,metric,groupFilters),change=changeBetween(now,old);

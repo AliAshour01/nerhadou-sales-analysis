@@ -1,13 +1,7 @@
 .forecast-method{margin:12px 0}.forecast-method summary{color:#245fc2;cursor:pointer;font-size:12px}.forecast-method p{font-size:12px;line-height:1.8;padding:12px;background:#f5f8fd;border-radius:8px}#view-forecast .projection-number{font-size:32px;font-weight:700;color:#193d73}
-.product-mix-donut{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);align-items:center;gap:18px;min-height:245px;}
-.product-mix-donut>svg{width:100%;height:auto;min-width:0;max-width:220px;}
-.product-mix-legend{list-style:none;margin:0;padding:0;display:grid;gap:15px;}
-.product-mix-legend li{display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:9px;font-size:12px;color:#34445d;}
-.product-mix-legend i{height:9px;width:9px;border-radius:50%;}.product-mix-legend strong{text-align:right;font-size:13px;font-variant-numeric:tabular-nums;}.product-mix-legend small{display:block;color:var(--text-muted);font-size:11px;font-weight:500;margin-top:3px;}
-@media(max-width:1150px){.product-mix-donut{grid-template-columns:1fr;gap:8px;}.product-mix-donut>svg{margin:auto;max-width:180px;}}
 
 /* V39 unified performance and responsive analytics */
-#kpis{grid-template-columns:repeat(4,minmax(0,1fr));}.mini-kpis[hidden]{display:none!important;}#analysis-target-control{display:flex;align-items:center;gap:12px;margin:14px 0;}#analysis-target-control[hidden]{display:none!important;}.mini-kpis small{display:block;margin-top:8px;color:var(--text-muted);font-size:11px;}.product-rate-grid{margin:18px 0;}.product-mix-legend span{overflow-wrap:anywhere;}#forecast-cutoff{padding:8px;border:1px solid #d5dfed;border-radius:8px;}@media(max-width:1000px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));}}@media(max-width:500px){#kpis{grid-template-columns:1fr;}}
+#kpis{grid-template-columns:repeat(4,minmax(0,1fr));}.mini-kpis[hidden]{display:none!important;}#analysis-target-control{display:flex;align-items:center;gap:12px;margin:14px 0;}#analysis-target-control[hidden]{display:none!important;}.mini-kpis small{display:block;margin-top:8px;color:var(--text-muted);font-size:11px;}.product-rate-grid{margin:18px 0;}#forecast-cutoff{padding:8px;border:1px solid #d5dfed;border-radius:8px;}@media(max-width:1000px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));}}@media(max-width:500px){#kpis{grid-template-columns:1fr;}}
 
 #company-rate-panels{grid-column:1 / -1;grid-template-columns:repeat(2,minmax(0,1fr));}@media(max-width:700px){#company-rate-panels{grid-template-columns:1fr;}}
 
@@ -15,7 +9,7 @@
 .monthly-table-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}.monthly-table-heading button{border:1px solid #cddded;border-radius:8px;padding:9px 14px;background:#f4f7ff;color:#245fa7;}#distributors{display:grid;grid-template-columns:minmax(170px,230px) minmax(0,1fr);align-items:center;gap:14px;}#distributors>svg{grid-row:1 / span 12;width:100%;}#distributors>button{min-width:0;}#bd-full-chart{overflow:auto;max-height:65vh;}#bd-full-chart svg{display:block;min-width:740px;width:100%;}#bd-full-chart svg[aria-label*="lines"]{min-width:1000px;}@media(max-width:650px){#distributors{grid-template-columns:1fr;}#distributors>svg{grid-row:auto;max-width:220px;margin:auto;}}
 
 /* UI09: compact aligned composition cards,year-aware navigation */
-.app-header{padding-inline:24px!important}.header-left{min-width:0;padding-left:8px}.period-field>div{margin-top:10px}.product-mix-legend{max-width:440px;width:100%}.product-mix-legend li{grid-template-columns:9px minmax(100px,1fr) auto;gap:12px}.product-mix-donut{grid-template-columns:minmax(130px,210px) minmax(0,440px);justify-content:start}#distributors{display:block!important}#view-overview .chart-grid>article:has(#distributors){grid-column:auto!important}#company-channel-panel{grid-column:auto!important}.product-monthly-controls{margin:12px 0}.table-wrap tr:last-child:has(td:first-child){font-weight:inherit}.table-wrap tbody tr.total-row{background:#f0f5ff;font-weight:700}@media(max-width:800px){.product-mix-donut{grid-template-columns:1fr}.app-header{padding-inline:14px!important}}
+.app-header{padding-inline:24px!important}.header-left{min-width:0;padding-left:8px}.period-field>div{margin-top:10px}#distributors{display:block!important}#view-overview .chart-grid>article:has(#distributors){grid-column:auto!important}#company-channel-panel{grid-column:auto!important}.product-monthly-controls{margin:12px 0}.table-wrap tr:last-child:has(td:first-child){font-weight:inherit}.table-wrap tbody tr.total-row{background:#f0f5ff;font-weight:700}@media(max-width:800px){.app-header{padding-inline:14px!important}}
 
 /* V42: two coherent compact KPI rows,one measure throughout */
 #kpis{gap:10px 12px;margin-bottom:20px;align-items:stretch;}#kpis .kpi-group-label{grid-column:1 / -1;font-size:11px;font-weight:650;color:#586d8b;letter-spacing:.02em;padding:3px 0 0;}#kpis .kpi{padding:14px 17px!important;min-height:0!important;border-radius:12px;display:flex;flex-direction:column;gap:7px;}#kpis .kpi .label{font-size:10px;line-height:1.4;letter-spacing:.055em;margin:0!important;}#kpis .kpi strong{font-size:clamp(21px,2.1vw,30px)!important;line-height:1.15;margin:0!important;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}#kpis .kpi small{font-size:10px;line-height:1.45;margin:0!important;}#kpis .kpi-actual{background:linear-gradient(132deg,#2f6bff,#1d4ed8 52%,#14336e);border-color:transparent;}#kpis .kpi-actual strong{background:none;color:white;-webkit-background-clip:unset;background-clip:unset;}#kpis .kpi-actual .label,#kpis .kpi-actual small{color:#dce7ff;}#kpis .kpi:hover{transform:translateY(-2px);}@media(max-width:500px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}#kpis .kpi{padding:12px!important;}#kpis .kpi strong{font-size:21px!important;}}
@@ -146,9 +140,6 @@ main>footer{flex-wrap:wrap;gap:10px 20px;}main>footer .site-credit{color:var(--t
  .manager-headline{font-size:13px;padding:12px;}
  #sales>.section-tabs{box-shadow:inset -12px 0 14px -12px #4b73a7;}
 }
-/* A 180px donut keeps its 14-unit measure label above 11 physical pixels. */
-.product-mix-donut>svg{width:180px!important;min-width:180px!important;max-width:180px!important;}
-@media(min-width:1151px){.product-mix-donut{grid-template-columns:minmax(180px,210px) minmax(0,440px);}}
 
 /* V64: make the two analytics filter regions immediately identifiable. */
 #sales>.filters{
@@ -302,8 +293,7 @@ html{scroll-padding-top:120px}
 @media(max-width:699px){#kpis{gap:10px!important}#kpis .kpi{padding:11px 12px!important}#kpis .kpi strong{font-size:22px}#kpis .kpi small{font-size:11px}.delta-chip,.status-word{font-size:11px}}
 #kpis .kpi strong{white-space:nowrap;font-size:clamp(20px,1.95vw,30px)}
 #kpis .kpi .kpi-unit{font-size:.5em;font-weight:700;letter-spacing:.04em;vertical-align:.35em}
-#kpis .kpi-compact{display:none}
-@media(max-width:699px){#kpis .kpi strong{font-size:22px}#kpis .kpi-full{display:none}#kpis .kpi-compact{display:inline}}
+@media(max-width:699px){#kpis .kpi strong{font-size:22px}}
 /* S-13 real,sticky tabs; four labels fit at 360px */
 #sales>.section-tabs{position:sticky;top:64px;z-index:35;margin:18px 0;padding:6px;gap:6px;overflow:visible;box-shadow:0 4px 14px rgba(20,40,80,.06)}
 body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))}
@@ -350,9 +340,6 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
  .portfolio-cards{display:grid;gap:8px}
  .portfolio-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;text-align:left;padding:12px;border:1px solid #dfe7f2;border-radius:10px;background:#fff;min-height:44px;cursor:pointer}
  .portfolio-card .pc-name{font-weight:700;color:#1f3555;overflow-wrap:anywhere}
- .portfolio-card .pc-sales{grid-column:1;color:#2a4466}
- .portfolio-card .ach{grid-column:2;grid-row:1;align-self:start}
- .portfolio-card .variance{grid-column:2;grid-row:2;font-weight:600;font-size:12px}
 }
 #view-portfolio .table-wrap th,#view-portfolio .table-wrap td{padding:9px 8px}
 #view-portfolio .table-wrap .sticky-col{text-align:left;white-space:normal;min-width:150px;max-width:210px}
@@ -374,10 +361,6 @@ body.filters-stuck #sales>.section-tabs{top:calc(64px + var(--filter-bar-h,0px))
 .undo-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:14px;background:#1f3555;color:#fff;padding:10px 12px 10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(15,30,50,.25);font-size:14px;max-width:calc(100vw - 32px)}
 .undo-toast[hidden]{display:none}
 .undo-toast button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer}
-.product-mix-legend li:has(>.mix-focus){display:block}
-.product-mix-legend .mix-focus{display:grid;grid-template-columns:9px minmax(100px,1fr) auto;align-items:center;gap:12px;width:100%;padding:2px 4px;margin:0;border:0;background:none;font:inherit;font-size:12px;color:#34445d;text-align:left;cursor:pointer;border-radius:6px}
-.product-mix-legend .mix-focus:hover{background:#f1f5fb}
-.product-mix-legend .mix-focus:focus-visible{outline:2px solid #2456d6;outline-offset:2px}
 /* S-33 data notes live behind a link in the health strip */
 #sales .methodology:not([open]){display:none}
 .data-notes-link{background:none;border:0;padding:0;color:#2456d6;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
@@ -444,21 +427,12 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales #panel-attention .attention-list,#sales #panel-productFacts .facts-list{display:flex;flex-direction:column;gap:10px;grid-template-columns:none}
 #sales #panel-attention .attention-item{width:100%}
 #sales #panel-attention .show-all,#sales .show-all{align-self:flex-start;background:none;border:1px solid #cdd7e3;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;color:#1d4ed8;cursor:pointer}
-@media(min-width:700px){
- #sales .v69-grid>#panel-attention:not(.span-12),#sales .v69-grid>#panel-productFacts:not(.span-12){contain:size;display:flex;flex-direction:column;overflow:hidden}
- #sales .v69-grid>#panel-attention:not(.span-12) .attention-list,#sales .v69-grid>#panel-productFacts:not(.span-12) .facts-list{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
-}
 /* U-07: composition row. A lone mix panel spans 12 columns and lays its legend beside the donut. */
 #sales #panel-mixDistributor .mix-context,#sales #panel-mixChannel .mix-context,#sales #panel-mixLine .mix-context{margin:-4px 0 8px}
-#sales .v69-grid>.span-12 .product-mix-donut,#sales .v69-grid>.span-6 .product-mix-donut{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);align-items:center;gap:24px}
-#sales .v69-grid>.span-12 .product-mix-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 24px}
-#sales .v69-grid>.span-4 .product-mix-donut{display:flex;flex-direction:column;align-items:stretch;gap:12px}
-#sales .v69-grid>.span-4 .product-mix-donut>svg{width:180px;height:180px;align-self:center}
-@media(max-width:699px){#sales .v69-grid>[class*="span-"] .product-mix-donut{display:flex;flex-direction:column}#sales .v69-grid>[class*="span-"] .product-mix-donut>svg{width:180px;height:180px;align-self:center}}
 /* V69 U-08: a lone tab reads as a plain section title */
-.section-tabs.single-tab{border-bottom:0}
-.section-tabs.single-tab .section-tab{pointer-events:none;background:none;border-color:transparent;box-shadow:none;padding-left:0;font-weight:600}
-.section-tabs.single-tab .section-tab::after{display:none}
+
+
+
 /* V69 U-09: Products tab toolbar,inline share bar,line subtotals,top-15 + Show all */
 .products-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:4px 0 10px;font-size:13px;color:#2a4466}
 .products-toolbar label{display:inline-flex;align-items:center;gap:8px;font-weight:600}
@@ -467,15 +441,14 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 .products-toolbar .check-field{font-weight:500}
 .products-toolbar .check-field input{width:16px;height:16px;margin:0}
 #view-portfolio td.sales-bar-cell{position:relative;min-width:130px}
-#view-portfolio .sales-bar{display:block;height:6px;border-radius:3px;background:#e6edf7;margin:0 0 4px auto;width:100%;overflow:hidden}
+#view-portfolio .sales-bar{display:block;height:4px;border-radius:2px;background:#e6edf7;margin:4px 0 0 auto;width:100%;overflow:hidden}
+#view-portfolio .sales-bar.empty{background:transparent}
 #view-portfolio .sales-bar i{display:block;height:100%;background:#2f6db5;border-radius:3px;margin-left:auto}
 #view-portfolio .sales-num{display:block}
 #view-portfolio tr.subtotal-row th,#view-portfolio tr.subtotal-row td{background:#f4f7fb;font-weight:700;color:#1f3555}
 #view-portfolio tr.subtotal-row small{font-weight:500;color:#5b6b7f}
 .pt-more{display:flex;justify-content:center;margin-top:8px}
 .pt-more:empty{display:none}
-.portfolio-card .pc-second{grid-column:2;grid-row:1 / span 2;align-self:center;font-weight:700;color:#1f3555;text-align:right}
-.portfolio-card .pc-second small{display:block;font-weight:500;color:#5b6b7f}
 .products-toolbar label{white-space:nowrap;margin:0}
 .products-toolbar select{width:auto;min-width:0;padding-right:28px}
 /* V69 U-11: Product facts card */
@@ -559,3 +532,91 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
  margin-top: 4px;
  box-shadow: none;
 }
+/* V72 review fixes */
+#kpis .kpi .label .kpi-provisional{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#fff3d6;color:#7a4b00;font-size:9.5px;letter-spacing:.03em;vertical-align:1px;text-transform:none}
+#kpis .kpi small.kpi-compare-note{font-style:italic;opacity:.85}
+.compare-gap-note{color:#5b6b7f}
+#kpis .kpi:has(.kpi-compare-note){max-height:none}
+#kpis .kpi strong{font-size:clamp(22px,2.2vw,32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:699px){#kpis .kpi strong{font-size:22px}}
+/* R-07: Needs attention never scrolls inside the card; the row height follows the taller panel. */
+#sales .v69-grid>#panel-attention,#sales .v69-grid>#panel-productFacts{display:flex;flex-direction:column}
+/* R-08: Product facts stretches to the row and spreads its facts; no blank block under the list. */
+#sales .v69-grid>#panel-productFacts .facts-list{flex:1 1 auto;justify-content:space-between}
+#sales #panel-attention .attention-item{gap:4px;padding:11px 14px}
+#sales #panel-attention .attention-item span{line-height:1.55}
+#sales #panel-attention .attention-list{gap:8px}
+/* R-11: unavailable tabs stay visible, disabled, with a reason. */
+#sales .section-tabs [role="tab"].tab-disabled{opacity:.5;cursor:not-allowed}
+#sales .tab-message{margin:-6px 0 14px;padding:8px 12px;border-radius:8px;background:#f2f6fc;border:1px solid #dbe5f2;color:#34516e;font-size:13px}
+#sales .tab-message .link-button{margin-left:6px}
+/* R-13: stable desktop filter grid. Row 1: Years | Period | Through | Products | Measure (labels above);
+   row 2: More filters · Reset filters · active chips. Phones keep the summary + sheet. */
+#sales>.filters #period-field.is-disabled{opacity:.55}
+#sales>.filters #period-field.is-disabled select{cursor:not-allowed}
+@media(min-width:1100px){
+ #sales>.filters{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,.55fr) minmax(120px,.55fr) minmax(150px,.9fr) auto;align-items:end;column-gap:14px;row-gap:12px}
+ #sales>.filters>.filter-bar-title{grid-column:1/-1}
+ #sales>.filters>#years-field{grid-column:1}
+ #sales>.filters>label,#sales>.filters>.filter-slot,#sales>.filters>.measure-field{min-width:0;width:auto;max-width:none;margin:0}
+ #sales>.filters>#more-filters{grid-column:1;justify-self:start}
+ #sales>.filters>#more-filters[open]{grid-column:1/-1}
+ #sales>.filters>#reset{grid-column:2;justify-self:start}
+ #sales>.filters>#active-filters{grid-column:3/-1;margin:0;padding:0;background:none;align-self:center}
+ #sales>.filters>#product-filter,#sales>.filters>#months-filter{display:flex;flex-direction:column;gap:6px}
+ #sales>.filters>#product-filter::before{content:'Products'}
+ #sales>.filters>#months-filter::before{content:'Months'}
+ #sales>.filters>#product-filter::before,#sales>.filters>#months-filter::before{color:var(--text-muted,#5b6b7f);font-size:11px;font-weight:550;letter-spacing:.015em}
+ #sales>.filters>#product-filter .multi-select>summary>span:first-child,#sales>.filters>#months-filter .multi-select>summary>span:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ #sales>.filters select{width:100%}
+}
+#sales>.filters>#active-filters:empty{display:none}
+/* R-14: one primary action (Meeting report). Full screen is a secondary icon button; the data state is shown once,
+   in the status strip, so the header no longer repeats it on the Sales page. */
+.app-header #fullscreen-toggle.fullscreen-button{background:#fff!important;color:#5b6b7f!important;border:1px solid #dce5ef!important;box-shadow:none!important;padding:9px 10px;min-width:38px}
+.app-header #fullscreen-toggle.fullscreen-button:hover{background:#f2f5f9!important;color:#283d59!important}
+.app-header #fullscreen-toggle #fullscreen-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body:has(#sales:not([hidden])) #shared-data-state{display:none}
+/* R-17: phone product cards: name, then a 2×2 grid (Sales, vs PY %, Ach %, Variance). */
+.portfolio-card .pc-name{grid-column:1/-1}
+.portfolio-card .pc-grid{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:4px}
+.portfolio-card .pc-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.portfolio-card .pc-cell small{font-size:11px;color:#5b6b7f;font-weight:500}
+.portfolio-card .pc-cell b{font-size:14px;color:#1f3555;font-variant-numeric:tabular-nums}
+.portfolio-card .pc-cell b.ach{align-self:flex-start;padding:1px 8px;border-radius:999px;font-size:13px}
+.portfolio-card .pc-cell b.variance.positive{color:#146c43}.portfolio-card .pc-cell b.variance.negative{color:#a1261b}
+/* R-19: combined tender rows and their expandable members. */
+#view-portfolio .pt-expand{background:none;border:0;padding:0;font:inherit;font-weight:600;color:#1d4ed8;cursor:pointer;text-align:left}
+#view-portfolio .pt-expand small,.portfolio-card .pc-name small{font-weight:500;color:#5b6b7f}
+#view-portfolio tr.member-row td.sticky-col{padding-left:28px}
+#view-portfolio tr.member-row{background:#fafcff}
+.multi-option.tender-variant{padding-left:22px}
+/* R-20 forecast range, reason and products at risk */
+.forecast-legend .fl.range{height:10px;border:0;background:rgba(176,96,62,.18);border-radius:2px}
+.forecast-why{margin:12px 0 0;font-size:13px;color:#1f3555;line-height:1.5}
+.forecast-why[hidden],#forecast-risk-wrap[hidden]{display:none!important}
+.forecast-risk-wrap{margin-top:22px}
+.forecast-risk-head{display:flex;align-items:center;gap:12px}.forecast-risk-head h3{margin:0}
+.forecast-risk-head .chart-table-toggle[hidden]{display:none}
+.forecast-risk-table{width:100%;border-collapse:collapse;font-size:13px}
+.forecast-risk-table th,.forecast-risk-table td{padding:8px 10px;border-bottom:1px solid #e6ebf2;text-align:right;white-space:nowrap}
+.forecast-risk-table th:first-child{text-align:left;font-weight:600;white-space:normal}
+.forecast-risk-table thead th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#5b6b7f;background:#f5f8fc}
+.forecast-risk-table td.neg{color:#a1261b}
+.forecast-risk-table .ach{display:inline-block;padding:1px 8px;border-radius:999px;font-weight:600}
+.forecast-risk-table tbody th{text-transform:none;letter-spacing:0;font-size:13px;color:#1f3555;background:#fff}
+#forecast-risk .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.forecast-risk-table th:first-child{min-width:150px;position:sticky;left:0;z-index:1}
+.forecast-risk-table thead th:first-child{background:#f5f8fc}
+@media(max-width:600px){.forecast-risk-table{font-size:12px}.forecast-risk-table th,.forecast-risk-table td{padding:7px 8px}.forecast-risk-table thead th{white-space:normal;min-width:84px}}
+.forecast-risk-head .chart-table-toggle{white-space:nowrap;flex-shrink:0}@media(max-width:600px){.forecast-risk-table thead th{min-width:104px;overflow-wrap:normal;word-break:normal}}
+/* R-21 mobile Mix card */
+.mix-switch{display:flex;gap:0;margin:4px 0 10px;border:1px solid #d5deea;border-radius:8px;overflow:hidden}
+.mix-switch button{flex:1 1 0;min-height:36px;padding:6px 8px;border:0;border-left:1px solid #d5deea;background:#fff;color:#33475f;font-size:13px;font-weight:600;cursor:pointer}
+.mix-switch button:first-child{border-left:0}
+.mix-switch button[aria-pressed="true"]{background:#1f3555;color:#fff}
+.mix-switch button:focus-visible{outline:2px solid #2456d6;outline-offset:-2px}
+/* R-23 source name under the display name */
+#view-portfolio .src-name,.portfolio-card .src-name{display:block;font-size:11px;font-weight:400;color:#5b6b7f;text-transform:none;margin-top:2px}
+/* R-08 mix panels keep their own height instead of stretching to the tallest mix (no empty card bottoms) */
+#overview-grid .v69-panel[data-panel^="mix"],#overview-grid .v69-panel[data-panel="attention"]{align-self:start}
