@@ -503,3 +503,11 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
 #sales .month-card-row b{font-variant-numeric:tabular-nums;color:#233653}
 #sales .month-card-chips{display:flex;flex-wrap:wrap;gap:8px}
 #sales .chart-table-actions{display:flex;justify-content:flex-end;margin:0 0 8px}
+/* U-05: side panels take their row partner's height and scroll inside (never taller than the partner). */
+#sales #panel-attention .attention-list,#sales #panel-productFacts .facts-list{display:flex;flex-direction:column;gap:10px;grid-template-columns:none}
+#sales #panel-attention .attention-item{width:100%}
+#sales #panel-attention .show-all,#sales .show-all{align-self:flex-start;background:none;border:1px solid #cdd7e3;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;color:#1d4ed8;cursor:pointer}
+@media(min-width:700px){
+ #sales .v69-grid>#panel-attention:not(.span-12),#sales .v69-grid>#panel-productFacts:not(.span-12){contain:size;display:flex;flex-direction:column;overflow:hidden}
+ #sales .v69-grid>#panel-attention:not(.span-12) .attention-list,#sales .v69-grid>#panel-productFacts:not(.span-12) .facts-list{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
+}

@@ -372,7 +372,8 @@ function wireDrilldowns(){
 let attentionCache={key:null,items:[]};
 function attentionCount(ctx){return attentionItems(ctx).length}
 function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return attentionCache.items;attentionCache={key:ctx,items:computeAttention()};return attentionCache.items}
-function renderAttention(){const items=attentionItems();$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}" data-impact="${r.impact}" ${r.p?`data-product-detail="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>Open detail →</small></button>`).join('')}
+// V69 U-05: one column, impact order, top 4 (3 on phones) then 'Show all (n)' expands in place; the panel never sets the row height.
+function renderAttention(){const all=attentionItems(),limit=isMobile()?3:4,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}" data-impact="${r.impact}" ${r.p?`data-product-detail="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>Open detail →</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
 function computeAttention(){
  // V68 S-35: balanced rules (positive and negative), a magnitude chip, sorted by absolute impact in the selected measure.
  const d=dashboard(),items=[],metric=ui.metric,unitWord=metric==='value'?'':' units',signed=v=>(v>0?'+':v<0?'−':'')+(metric==='value'?'EGP ':'')+n(Math.abs(v))+unitWord;
@@ -451,7 +452,7 @@ function onClick(ev){
  else if(b.dataset.distributorMetric){ui.distributorMetric=b.dataset.distributorMetric;if(drawer)renderDrawer()}
  else if(b.dataset.channelMetric){ui.channelMetric=b.dataset.channelMetric;if(drawer)renderDrawer()}
 
- else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';else if(b.dataset.monthlyCompare)ui.monthlyCompare=b.dataset.monthlyCompare;else if(b.dataset.monthlySplit)ui.monthlySplit=b.dataset.monthlySplit==='on';else if(b.dataset.measureSwitch)ui.metric=b.dataset.measureSwitch;else if(b.dataset.monthlyExport){exportMonthlyTable();return}
+ else if(b.dataset.monthlyPy)ui.monthlyPY=b.dataset.monthlyPy==='on';else if(b.dataset.attentionAll)ui.attentionAll=b.dataset.attentionAll==='on';else if(b.dataset.monthlyCompare)ui.monthlyCompare=b.dataset.monthlyCompare;else if(b.dataset.monthlySplit)ui.monthlySplit=b.dataset.monthlySplit==='on';else if(b.dataset.measureSwitch)ui.metric=b.dataset.measureSwitch;else if(b.dataset.monthlyExport){exportMonthlyTable();return}
  else if(b.dataset.monthlyView)ui.monthlyCumulative=b.dataset.monthlyView==='cumulative';
  else if(b.dataset.distributorView)ui.distributorMode=b.dataset.distributorView;
  else if(b.dataset.leaderSort)ui.leaderSort=b.dataset.leaderSort;
