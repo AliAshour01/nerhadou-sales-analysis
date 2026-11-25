@@ -25,6 +25,18 @@ export function actualYears(records) {
 export function yearMonths(records, year) {
   return [...new Set(records.filter((r) => r.dataset === 'actual' && r.year === year && r.month > 0).map((r) => r.month))].sort((a, b) => a - b);
 }
+// "Jan–Sep", "Jan–Mar, May".
+export function monthSpan(list, names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']) {
+  const sorted = [...new Set(list)].sort((a, b) => a - b),
+    out = [];
+  for (let i = 0; i < sorted.length; ) {
+    let j = i;
+    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
+    out.push(j > i ? names[sorted[i] - 1] + '–' + names[sorted[j] - 1] : names[sorted[i] - 1]);
+    i = j + 1;
+  }
+  return out.join(', ');
+}
 export function yearSpan(years) {
   const list = [...years].sort((a, b) => a - b);
   if (!list.length) return '';
@@ -108,8 +120,21 @@ export function resolveViewContext(rawRecords, state) {
   if (yearMode === 'single')
     for (const metric of ['units', 'value'])
       for (const m of months) if (comparableSummary(records, focusYear, [m], metric, selection).value == null) unknownMonths[metric].push(m);
+  // V72 R-02: one month rule for every comparison. The focus year's recorded months inside the selection are the
+  // analysis months (2023 Full year = Jan–Sep); comparisons use the months both years record, on both sides.
+  const MS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    span = (list) => monthSpan(list, MS);
+  const recordedMonths = yearMode === 'single' ? months.filter((m) => focusMonths.includes(m)) : months,
+    missingMonths = months.filter((m) => !recordedMonths.includes(m)),
+    dataMonths = recordedMonths.length ? recordedMonths : months,
+    compareYearMonths = compareYear == null ? [] : yearMonths(rawRecords, compareYear),
+    compareMonths = yearMode === 'single' && compareYear != null ? dataMonths.filter((m) => compareYearMonths.includes(m)) : months,
+    comparePartial = yearMode === 'single' && compareMonths.length > 0 && compareMonths.length < months.length,
+    compareMissing = comparePartial ? months.filter((m) => !compareMonths.includes(m)) : [],
+    compareNote = comparePartial ? `${span(compareMonths)} only, ${span(compareMissing)} ${compareMissing.every((m) => !compareYearMonths.includes(m)) ? compareYear : focusYear} not recorded` : null,
+    missingNote = missingMonths.length && recordedMonths.length ? `${span(missingMonths)} not recorded` : null;
   // V72 R-01: a distributor / line / sales-type filter cannot be compared with a year that does not record that dimension.
-  const compareGap = compareYear != null && months.length ? dimensionGap(records, compareYear, months, selection) : null,
+  const compareGap = compareYear != null && compareMonths.length ? dimensionGap(records, compareYear, compareMonths, selection) : null,
     filterCompareGap = compareGap ? { ...compareGap, year: compareYear, short: `${compareYear} has no ${compareGap.word} data`, sentence: `${compareYear} does not record ${compareGap.word}, so the change for ${selection[compareGap.key].length === 1 ? selection[compareGap.key][0] : 'the selected ' + compareGap.word + 's'} can’t be measured.` } : null;
   const provisionalYears = years.filter((y) => PROVISIONAL_YEARS.has(y)),
     hasData = focusRows.length > 0;
@@ -128,6 +153,13 @@ export function resolveViewContext(rawRecords, state) {
     months,
     droppedMonths,
     monthCount: months.length,
+    recordedMonths,
+    missingMonths,
+    missingNote,
+    dataMonths,
+    compareMonths,
+    comparePartial,
+    compareNote,
     focusMonths,
     isOpenYear,
     productMode,

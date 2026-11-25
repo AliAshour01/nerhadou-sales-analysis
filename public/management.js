@@ -120,14 +120,21 @@ function mountOverviewGrid(){
  }
  if(old&&!old.children.length)old.remove();
 }
+let lastExcluded=new Map();
 function isMobile(){return (window.innerWidth||1280)<700}
 // Overview also lists unavailable comparisons inside visible panels.
-function layoutFor(tab,ctx,mobile=false){const result=layout(tab,ctx,layoutApi,{mobile});if(tab==='overview'&&ctx.hasData&&ctx.compareYear!=null&&!ctx.growthOk)result.hidden.push({id:'previousYear',title:'Previous-year comparison',reason:ctx.growthReason});return result}
+function layoutFor(tab,ctx,mobile=false,excluded=lastExcluded){if(excluded!==lastExcluded)lastExcluded=excluded;const result=layout(tab,ctx,layoutApi,{mobile,excluded});if(tab==='overview'&&ctx.hasData&&ctx.compareYear!=null&&!ctx.growthOk)result.hidden.push({id:'previousYear',title:'Previous-year comparison',reason:ctx.growthReason});return result}
+// V72 R-02: a renderer that has nothing to draw returns {empty: reason}; the panel then moves to "Not shown"
+// and the row is laid out again without it, so an empty panel can never be left on the page.
 function applyLayout(tab,ctx){
  const grid=$(tab+'-grid');if(!grid)return;
- const result=layoutFor(tab,ctx,isMobile());
- for(const entry of PANELS.filter(p=>p.tab===tab&&RENDERERS[p.id])){const node=$('panel-'+entry.id);if(node)node.hidden=!result.visible.includes(entry.id)}
- for(const row of result.rows)for(const p of row.panels){const node=$('panel-'+p.id);node.classList.remove('span-4','span-6','span-8','span-12','span-3','span-5','span-7');node.classList.add('span-'+p.span);node.dataset.row=row.row;grid.append(node);RENDERERS[p.id](ctx,node)}
+ const excluded=new Map();let result;
+ for(let pass=0;pass<4;pass++){
+  result=layoutFor(tab,ctx,isMobile(),excluded);let again=false;
+  for(const entry of PANELS.filter(p=>p.tab===tab&&RENDERERS[p.id])){const node=$('panel-'+entry.id);if(node)node.hidden=!result.visible.includes(entry.id)}
+  for(const row of result.rows)for(const p of row.panels){const node=$('panel-'+p.id);node.classList.remove('span-4','span-6','span-8','span-12','span-3','span-5','span-7');node.classList.add('span-'+p.span);node.dataset.row=row.row;grid.append(node);const out=RENDERERS[p.id](ctx,node);if(out?.empty&&!excluded.has(p.id)){excluded.set(p.id,out.empty);again=true}}
+  if(!again)break;
+ }
  const strip=$(tab+'-not-shown');if(strip){strip.hidden=!result.hidden.length;strip.querySelector('summary').textContent=`Not shown for this selection (${result.hidden.length})`;strip.querySelector('ul').innerHTML=result.hidden.map(h=>`<li><b>${e(h.title)}</b> ${e(h.reason)}</li>`).join('')}
  return result;
 }
@@ -177,27 +184,29 @@ function progressBar(pct,status,marker=null){const width=pct==null?0:Math.max(0,
 function statusWord(status){return {good:'On or above target',warn:'Within 10% of target',bad:'More than 10% below target',unknown:'Status unavailable'}[status]}
 
 // ── V69 U-12: KPI card sets (plan 4.1). Each slot has an ordered fallback list so no card is a bare "—". ──
-function kpiCard(key,label,value,body,extra=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}</div><strong title="${e(value)}">${String(value).startsWith('EGP ')&&/^[\d,.]+$/.test(String(value).slice(4))?'<span class="kpi-unit">EGP</span> <span class="kpi-full">'+e(value.slice(4))+'</span><span class="kpi-compact">'+e(compact(Number(value.slice(4).replace(/,/g,'')),2))+'</span>':e(value)}</strong>${body}</div>`}
+function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}${labelHTML}</div><strong title="${e(value)}">${String(value).startsWith('EGP ')&&/^[\d,.]+$/.test(String(value).slice(4))?'<span class="kpi-unit">EGP</span> <span class="kpi-full">'+e(value.slice(4))+'</span><span class="kpi-compact">'+e(compact(Number(value.slice(4).replace(/,/g,'')),2))+'</span>':e(value)}</strong>${body}</div>`}
 function kpiCandidates(ctx){
- const m=ctx.measure,o=ctx.other,fy=ctx.focusYear,cy=ctx.compareYear,f=ctx.selection,chosen=ctx.months,unit=v=>v==='value'?'EGP':'units',S=(year,metric,months=chosen,filters=f)=>year==null?null:ctxSummary(ctx,year,months,metric,filters).value,estimateLabel=(year,metric)=>year===2023&&ctxSummary(ctx,year,chosen,metric).estimated?' (includes estimates)':'',cyLabel=estimateLabel(cy,m);
+ // V72 R-02: single-year cards use the focus year's recorded months (2023 Full year = Jan–Sep) and compare the months
+ // both years record (ctx.compareMonths), the same months the Monthly chart and the bridge use.
+ const m=ctx.measure,o=ctx.other,fy=ctx.focusYear,cy=ctx.compareYear,f=ctx.selection,chosen=ctx.yearMode==='single'?ctx.dataMonths:ctx.months,cmp=ctx.yearMode==='single'?ctx.compareMonths:ctx.months,partial=ctx.yearMode==='single'&&ctx.comparePartial,missing=ctx.yearMode==='single'&&!!ctx.missingNote,unit=v=>v==='value'?'EGP':'units',S=(year,metric,months=chosen,filters=f)=>year==null?null:ctxSummary(ctx,year,months,metric,filters).value,estimateLabel=(year,metric)=>year===2023&&ctxSummary(ctx,year,chosen,metric).estimated?' (includes estimates)':'',cyLabel=estimateLabel(cy,m);
  const chg=(cur,prev)=>cy==null?{ppg:null,unavailable:null}:ctx.filterCompareGap?{delta:null,ppg:null,unavailable:null,gap:ctx.filterCompareGap.short}:ctx.growthOk?{...changeBetween({value:cur},{value:prev}),unavailable:null}:{delta:null,ppg:null,unavailable:ctx.growthReason};
- const cur=S(fy,m),prev=S(cy,m),oCur=S(fy,o),oPrev=S(cy,o),label=periodLabel(dashboard(),chosen),one=ctx.productMode==='one';
+ const cur=S(fy,m),prev=S(cy,m,cmp),oCur=S(fy,o),oPrev=S(cy,o,cmp),curC=partial?S(fy,m,cmp):cur,oCurC=partial?S(fy,o,cmp):oCur,label=missing?monthRange(chosen)+' '+fy:periodLabel(dashboard(),chosen),one=ctx.productMode==='one',vsText=(year,value,metric,extra='')=>`vs ${year}${partial?' '+monthRange(cmp):''}: ${amt(value,metric)}${extra}`,partialNote=partial?`<small class="kpi-compare-note">${e(ctx.compareNote)}</small>`:'',recordedLabel=missing?' '+monthRange(chosen)+' '+fy:'',provisionalChip=missing&&provisional(fy)?'<span class="kpi-provisional" title="'+e(provisionalNote())+'">Provisional</span>':'';
  const C={};
- C.sales=cur==null?null:()=>kpiCard('sales','Sales · '+unit(m),amt(cur,m),`<small>${e(prev!=null?`vs ${cy}: ${amt(prev,m)}${cyLabel}`:label)}${one&&oCur!=null&&ctx.slot4Price?' · '+e(amt(oCur,o)):''}</small>${deltaChip(chg(cur,prev),cy)}`,' style="--kpi-accent:1"');
- C.other=oCur==null?null:()=>kpiCard('other',o==='value'?'Sales value · EGP':'Sales · units',amt(oCur,o),`<small>${e(oPrev!=null?`vs ${cy}: ${amt(oPrev,o)}${estimateLabel(cy,o)}`:label)}</small>${deltaChip(chg(oCur,oPrev),cy)}`);
+ C.sales=cur==null?null:()=>kpiCard('sales','Sales'+recordedLabel+' · '+unit(m),amt(cur,m),`<small>${missing?e(ctx.missingNote)+' · ':''}${e(prev!=null?vsText(cy,prev,m,cyLabel):label)}${one&&oCur!=null&&ctx.slot4Price?' · '+e(amt(oCur,o)):''}</small>${missing?'':partialNote}${deltaChip(chg(curC,prev),cy)}`,' style="--kpi-accent:1"',provisionalChip);
+ C.other=oCur==null?null:()=>kpiCard('other',(o==='value'?'Sales value':'Sales')+recordedLabel+(o==='value'?' · EGP':' · units'),amt(oCur,o),`<small>${e(oPrev!=null?vsText(cy,oPrev,o,estimateLabel(cy,o)):label)}</small>${deltaChip(chg(oCurC,oPrev),cy)}`);
  if(ctx.yearMode==='single'){
   const t=ctx.hasTargets?tgt(ctx,ctx.products,m,chosen):null,annual=ctx.hasTargets?tgt(ctx,ctx.products,m,chosen,true):null,ach=cur!=null&&t>0?cur/t*100:null,fy100=cur!=null&&annual>0?cur/annual*100:null;
   const end=chosen.length?Math.max(...chosen):0,ytd=chosen.length===end&&chosen.every((x,i)=>x===i+1),pace=ytd?end/12*100:null,gapPts=fy100!=null&&pace!=null?fy100-pace:null,paceWord=gapPts==null?null:Math.abs(gapPts)<=3?'On pace':gapPts>0?'Ahead':'Behind',paceStatus=paceWord==null?'unknown':paceWord==='Behind'?(gapPts<-10?'bad':'warn'):'good',achS=achStatus(ach),gap=cur!=null&&t!=null?cur-t:null,kind=periodKind(chosen);
   C.ach=ach==null?null:()=>kpiCard('achievement',kind+' achievement',n(ach)+'%',`${progressBar(ach,achS)}<small>Target ${e(amt(t,m))} · ${gap>=0?e(amt(gap,m))+' above target':e(amt(-gap,m))+' to go'}</small><span class="status-word ${achS}">${e(statusWord(achS))}</span>`,` data-status="${achS}"`);
   C.fy=fy100==null||!ctx.isOpenYear?null:()=>kpiCard('fy','Full-year progress',n(fy100)+'%',`${progressBar(fy100,paceStatus,pace)}<small>FY target ${e(amt(annual,m))}${pace==null?'':' · pace '+pace.toFixed(1)+'%'}</small>${paceWord?`<span class="status-word ${paceStatus}">${paceWord}${pace==null?'':' · '+(gapPts>=0?'+':'−')+Math.abs(gapPts).toFixed(1)+' pts vs pace'}</span>`:''}`,` data-status="${paceStatus}"`);
-  const avg=cur!=null&&chosen.length>=2?cur/chosen.length:null,pAvg=prev!=null?prev/chosen.length:null;
-  C.avgMonth=avg==null?null:()=>kpiCard('avg','Average per month',amt(avg,m),`<small>${e(pAvg!=null?`vs ${cy}: ${amt(pAvg,m)}${cyLabel}`:`${chosen.length} months · ${unit(m)}`)}</small>${deltaChip(chg(avg,pAvg),cy)}`);
-  const company=S(fy,m,chosen,{}),share=cur!=null&&company>0&&!ctx.companyScope?cur/company*100:null,pShare=(()=>{if(cy==null||!ctx.growthOk||share==null)return null;const a=S(cy,m),b=S(cy,m,chosen,{});return a!=null&&b>0?a/b*100:null})();
+  const avg=cur!=null&&chosen.length>=2?cur/chosen.length:null,pAvg=prev!=null?prev/cmp.length:null,avgC=curC!=null?curC/cmp.length:null;
+  C.avgMonth=avg==null?null:()=>kpiCard('avg',missing?'Average per recorded month':'Average per month',amt(avg,m),`<small>${e(pAvg!=null?vsText(cy,pAvg,m,cyLabel):`${chosen.length} ${missing?'recorded ':''}months · ${unit(m)}`)}</small>${deltaChip(chg(avgC,pAvg),cy)}`);
+  const company=S(fy,m,chosen,{}),share=cur!=null&&company>0&&!ctx.companyScope?cur/company*100:null,pShare=(()=>{if(cy==null||!ctx.growthOk||ctx.filterCompareGap||share==null)return null;const a=S(cy,m,cmp),b=S(cy,m,cmp,{});return a!=null&&b>0?a/b*100:null})();
   C.share=share==null?null:()=>kpiCard('share','Share of company',share.toFixed(1)+'%',`<small>${e(pShare!=null?`${share-pShare>=0?'+':'−'}${Math.abs(share-pShare).toFixed(1)} pts vs ${cy}`:'of company '+unit(m)+' · '+label)}</small>`);
   const monthly=chosen.map(x=>({x,v:S(fy,m,[x])})).filter(r=>Number.isFinite(r.v)),best=monthly.length>=2?monthly.reduce((a,b)=>b.v>a.v?b:a):null;
   C.bestMonth=best==null?null:()=>kpiCard('best','Best month',ms[best.x-1]+' '+fy,`<small>${e(amt(best.v,m))} · ${monthly.length} months with data</small>`);
-  const u=S(fy,'units'),v=S(fy,'value'),pu=S(cy,'units'),pv=S(cy,'value'),price=u>0&&v!=null?v/u:null,pPrice=pu>0&&pv!=null?pv/pu:null,fmtP=x=>'EGP '+(x>=100?n(x):x.toFixed(1));
-  C.price=!one||price==null?null:()=>kpiCard('price','Average price · EGP/unit',fmtP(price),`<small>${e(pPrice!=null?`vs ${cy}: ${fmtP(pPrice)}${cyLabel}`:label)}</small>${deltaChip(chg(price,pPrice),cy)}`);
+  const u=S(fy,'units'),v=S(fy,'value'),pu=S(cy,'units',cmp),pv=S(cy,'value',cmp),uC=partial?S(fy,'units',cmp):u,vC=partial?S(fy,'value',cmp):v,price=u>0&&v!=null?v/u:null,priceC=uC>0&&vC!=null?vC/uC:null,pPrice=pu>0&&pv!=null?pv/pu:null,fmtP=x=>'EGP '+(x>=100?n(x):x.toFixed(1));
+  C.price=!one||price==null?null:()=>kpiCard('price','Average price · EGP/unit',fmtP(price),`<small>${e(pPrice!=null?`vs ${cy}${partial?' '+monthRange(cmp):''}: ${fmtP(pPrice)}${cyLabel}`:label)}</small>${deltaChip(chg(priceC,pPrice),cy)}`);
  }else{
   // V69.1: with 3+ years selected the cards summarise the whole selected range (first comparable selected year → focusYear),
   // not just the previous year. The previous-year figure stays visible as a subtitle. Two selected years keep the plain pair comparison.
@@ -216,7 +225,8 @@ function kpiCandidates(ctx){
   C.shareYears=sF==null?null:()=>kpiCard('share',`Share of company ${fy}`,sF.toFixed(1)+'%',`<small>${e(sC==null?'of company '+unit(m):unavailable?`${base}: ${sC.toFixed(1)}% · change unavailable`:`${sF-sC>=0?'+':'−'}${Math.abs(sF-sC).toFixed(1)} pts vs ${base}`)}</small>`);
  }
  C.products=()=>kpiCard('products','Products with sales',String(ctx.productCount),`<small>${e(label)}</small>`);
- C.months=()=>kpiCard('months','Months selected',String(chosen.length),`<small>${e(label)}</small>`);
+ // V72 R-02: "Months selected" is never shown while some selected months are not recorded.
+ C.months=missing?null:()=>kpiCard('months','Months selected',String(chosen.length),`<small>${e(label)}</small>`);
  return C;
 }
 // V69.1: range start for 3+ selected years = earliest selected year before focusYear eligible for comparison with the focus year
@@ -231,7 +241,7 @@ function kpiSlots(ctx){
 }
 function kpiCards(ctx){
  const slots=kpiSlots(ctx),probe={...ctx,slot4Price:false},C0=kpiCandidates(probe),used=new Set(),picks=[];
- for(const list of slots){const k=[...list,'products','months'].find(x=>C0[x]&&!used.has(x));if(k){used.add(k);picks.push(k)}}
+ for(const list of slots){const k=[...list,'products','months','avgMonth','bestMonth','other'].find(x=>C0[x]&&!used.has(x));if(k){used.add(k);picks.push(k)}}
  const C=picks[3]==='price'?kpiCandidates({...ctx,slot4Price:true}):C0;
  return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+picks.filter(k=>k&&C[k]).map(k=>C[k]()).join('');
 }
@@ -259,9 +269,11 @@ function bridgePair(ctx){
  return a!=null&&b!=null&&growthAllowed(a,b).ok?[a,b]:null;
 }
 // V72 R-01 / R-02: the bridge is drawn only when both period totals are measurable; otherwise the reason goes to "Not shown".
+// V72 R-02: single-year bridges compare the months both years record (2024 vs 2023 = Jan–Sep), like the KPI cards.
+const bridgeMonths=ctx=>ctx.yearMode==='single'?ctx.compareMonths:ctx.months;
 function bridgeGap(ctx){
- const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return null;const [a,b]=pair,key=JSON.stringify(['bridgeGap',ctx.yearMode,a,b,ui.metric,ctx.months,ctx.selection]);
- if(!cache.has(key)){const t=movementTotals(ctx.records,{a,b,months:ctx.months,metric:ui.metric,filters:ctx.selection}),gap=t.previous.dimensionGap?{...t.previous.dimensionGap,year:a}:t.current.dimensionGap?{...t.current.dimensionGap,year:b}:null,picked=gap&&ctx.selection[gap.key];
+ const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return null;const [a,b]=pair,key=JSON.stringify(['bridgeGap',ctx.yearMode,a,b,ui.metric,bridgeMonths(ctx),ctx.selection]);
+ if(!cache.has(key)){const t=movementTotals(ctx.records,{a,b,months:bridgeMonths(ctx),metric:ui.metric,filters:ctx.selection}),gap=t.previous.dimensionGap?{...t.previous.dimensionGap,year:a}:t.current.dimensionGap?{...t.current.dimensionGap,year:b}:null,picked=gap&&ctx.selection[gap.key];
   cache.set(key,t.delta!=null?null:gap?`${gap.year} does not record ${gap.word}, so the change for ${picked.length===1?picked[0]:'the selected '+gap.word+'s'} can’t be measured.`:`${a} → ${b} can’t be compared for this selection (${t.reason}).`)}
  return cache.get(key);
 }
@@ -270,18 +282,18 @@ function bridgeOptions(ctx){
  const opts=[];
  if(ctx.productMode!=='one'&&ctx.productCount>=2)opts.push('product');
  for(const k of ['line','distributor','channel'])if(ctx.dims[k].comparable&&ctx.dims[k].categories>=2&&!(k==='line'&&ctx.productMode==='one'))opts.push(k);
- if(ctx.monthCount>=2)opts.push('month');
+ if(bridgeMonths(ctx).length>=2)opts.push('month');
  return opts;
 }
 function bridgeResult(ctx,a,b,dimension,metric=ui.metric){
- const key=JSON.stringify(['bridge',ctx.yearMode,a,b,dimension,metric,ctx.months,ctx.selection]);if(cache.has(key))return cache.get(key);
+ const months=bridgeMonths(ctx),key=JSON.stringify(['bridge',ctx.yearMode,a,b,dimension,metric,months,ctx.selection]);if(cache.has(key))return cache.get(key);
  let result;
  if(dimension==='month'){
-  result=movement(ctx.records,{a,b,months:ctx.months,metric,dimension:'product',filters:ctx.selection});
-  if(result.delta!=null){const parts=ctx.months.map(m=>({m,r:movement(ctx.records,{a,b,months:[m],metric,dimension:'product',filters:ctx.selection})}));
+  result=movement(ctx.records,{a,b,months,metric,dimension:'product',filters:ctx.selection});
+  if(result.delta!=null){const parts=months.map(m=>({m,r:movement(ctx.records,{a,b,months:[m],metric,dimension:'product',filters:ctx.selection})}));
    if(parts.some(p=>p.r.delta==null))result={...result,delta:null,reason:'Monthly change needs comparable data in each selected month.'};
    else{const items=parts.map(p=>({name:ms[p.m-1],month:p.m,delta:p.r.delta,previous:p.r.previous.value,current:p.r.current.value,ppg:p.r.ppg})),residual=result.delta-items.reduce((s,r)=>s+r.delta,0);if(Math.abs(residual)>Math.max(1e-4,Math.abs(result.delta)*1e-12))items.push({name:'Unallocated monthly detail',delta:residual,residual:true});result={...result,items,ordered:true}}}
- }else result=movement(ctx.records,{a,b,months:ctx.months,dimension,metric,filters:ctx.selection});
+ }else result=movement(ctx.records,{a,b,months,dimension,metric,filters:ctx.selection});
  cache.set(key,result);return result;
 }
 function renderBridge(ctx){
@@ -291,8 +303,9 @@ function renderBridge(ctx){
  $('movement-dimension').innerHTML=opts.map(o=>`<option value="${o}">${DIM_LABEL[o]}</option>`).join('');$('movement-dimension').value=dimension;
  const yearPick=$('bridge-years');yearPick.hidden=ctx.yearMode!=='multi';
  if(ctx.yearMode==='multi'){const ok=ctx.years;$('bridge-from').innerHTML=ok.filter(y=>y<b).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-from').value=String(a);$('bridge-to').innerHTML=ok.filter(y=>ok.some(x=>x<y)).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-to').value=String(b)}
+ if(result.delta==null)return {empty:result.reason||'Comparable periods unavailable.'};
  drawBridge('movement-chart',result,metric,dimension);
- $('movement-context').textContent=`${a} → ${b} · ${periodLabel()} in both years · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated?' · Estimated value included':''}${result.approximate?' · Recorded subtotals included':''}`;
+ $('movement-context').textContent=`${a} → ${b} · ${ctx.yearMode==='single'&&ctx.comparePartial?ctx.compareNote:periodLabel()+' in both years'} · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated?' · Estimated value included':''}${result.approximate?' · Recorded subtotals included':''}`;
  $('movement-unmatched').hidden=!result.unmatched?.length;$('movement-unmatched-list').innerHTML=(result.unmatched||[]).map(name=>`<p>${e(name)} — a comparable amount is unavailable in one of the periods; no zero baseline is assumed.</p>`).join('');
  $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Blue: period totals. Green/red: signed change. New: absent activity in a complete prior report counts as zero sales. Grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.';
  $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
@@ -307,25 +320,27 @@ function rankedHTML(items,metric,click=true,chartId=null){
 // V69 U-07: the composition row (Distributor mix · Sales-type mix · Sales by line) for one year, in the global measure.
 // E-rule 2: a panel needs 2+ known categories and 50%+ of selected sales in known categories (the registry checks ctx.dims).
 function compositionYear(ctx){if(ctx.yearMode==='single')return ctx.focusYear;const withData=compositionYears(ctx);return withData.includes(ui.compositionYear)?ui.compositionYear:withData.includes(bridgePair(ctx)?.[1])?bridgePair(ctx)[1]:withData.includes(ctx.focusYear)?ctx.focusYear:withData.at(-1)??ctx.focusYear}
-function compositionYears(ctx){return ctx.years.filter(y=>['distributor','channel','line'].some(k=>!ctx.dims[k].notRecorded.includes(y)&&new Set(ctx.records.filter(r=>r.dataset==='actual'&&r.year===y&&ctx.months.includes(r.month)&&knownCategory(r[k])).map(r=>r[k])).size>=2))}
+function compositionYears(ctx){return ctx.years.filter(y=>['distributor','channel','line'].some(k=>!ctx.dims[k].notRecorded.includes(y)&&new Set(ctx.records.filter(r=>r.dataset==='actual'&&r.year===y&&ctx.dataMonths.includes(r.month)&&knownCategory(r[k])).map(r=>r[k])).size>=2))}
+function mixPeriod(ctx,year){return ctx.missingNote&&ctx.yearMode==='single'?`${monthRange(ctx.dataMonths)} ${year} · ${ctx.missingNote}`:periodLabel(dashboard(),ctx.months,year)}
 function mixItems(ctx,key,year,metric=ui.metric){
- const scoped=scopeRecords(ctx.records,ctx.selection).filter(r=>r.dataset==='actual'&&r.year===year&&ctx.months.includes(r.month)),names=[...new Set(scoped.map(r=>r[key]||'NOT PROVIDED'))];
- return names.map(name=>({name,value:ctxSummary(ctx,year,ctx.months,metric,{...ctx.selection,[key]:[name]}).value})).filter(r=>r.value!=null).sort((a,b)=>b.value-a.value);
+ const scoped=scopeRecords(ctx.records,ctx.selection).filter(r=>r.dataset==='actual'&&r.year===year&&ctx.dataMonths.includes(r.month)),names=[...new Set(scoped.map(r=>r[key]||'NOT PROVIDED'))];
+ return names.map(name=>({name,value:ctxSummary(ctx,year,ctx.dataMonths,metric,{...ctx.selection,[key]:[name]}).value})).filter(r=>r.value!=null).sort((a,b)=>b.value-a.value);
 }
 function renderMixChart(id,key,ctx){
- const year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.months,metric).value,items=mixItems(ctx,key,year,metric);
+ const year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.dataMonths,metric).value,items=mixItems(ctx,key,year,metric);
+ if(!items.length||total==null)return {empty:`${key==='distributor'?'Distributor':'Sales type'} amounts are not available for ${periodLabel(dashboard(),ctx.dataMonths,year)}.`};
  $(id).innerHTML=productMixDonut(items,metric,total,id,key);
- const ctxLine=$(id).closest('article').querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${periodLabel(dashboard(),ctx.months,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
+ const ctxLine=$(id).closest('article').querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${mixPeriod(ctx,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
 }
 function renderLineMix(ctx){
- const year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.months,metric).value,items=mixItems(ctx,'line',year,metric),W=plotWidth('line-mix',520),mobile=W<420,cap=isMobile()?5:8,shown=items.slice(0,cap),rest=items.slice(cap);
+ const year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.dataMonths,metric).value,items=mixItems(ctx,'line',year,metric);if(!items.length)return {empty:`Line amounts are not available for ${periodLabel(dashboard(),ctx.dataMonths,year)}.`};const W=plotWidth('line-mix',520),mobile=W<420,cap=isMobile()?5:8,shown=items.slice(0,cap),rest=items.slice(cap);
  if(rest.length)shown.push({name:`Other (${rest.length})`,value:rest.reduce((a,r)=>a+r.value,0),other:true});
  const max=Math.max(1,...shown.map(r=>Math.abs(r.value))),labelW=mobile?0:Math.min(170,Math.round(W*.36)),rowH=mobile?46:30,H=shown.length*rowH+6,valueW=mobile?0:118,L=mobile?4:labelW+8,R=W-(mobile?4:valueW);
  let svg=svgPlot(W,H,'Sales by line in '+(metric==='value'?'EGP':'units'));
  shown.forEach((r,i)=>{const y=i*rowH+4,share=total>0?r.value/total*100:null,tip=`${r.name} · ${amt(r.value,metric)} · ${share==null?'—':share.toFixed(1)+'%'} of selected sales`,w=Math.max(.5,Math.abs(r.value)/max*(R-L)),name=truncate(r.name,mobile?40:Math.floor(labelW/6.6)),barY=mobile?y+18:y+6,color=knownCategory(r.name)?'#5e85c9':'#9aa5b4';
   svg+=`<g tabindex="0" ${r.other||!knownCategory(r.name)?'role="img"':`role="button" data-mix-focus="line" data-key="${e(r.name)}"`} data-tip="${e(tip)}" aria-label="${e(tip)}"><rect x="0" y="${y}" width="${W}" height="${rowH-2}" fill="transparent"/><text x="${mobile?L:0}" y="${mobile?y+12:y+16}" font-size="12" fill="#38516f">${e(name)}</text><rect x="${L}" y="${barY}" width="${w}" height="14" rx="3" fill="${r.value<0?'#bb7764':color}"/><text x="${W-4}" y="${mobile?y+12:y+16}" text-anchor="end" font-size="12" fill="#304b6f">${e(short(r.value))}<tspan fill="#5b6b7f"> · ${share==null?'—':share.toFixed(1)+'%'}</tspan></text></g>`});
  $('line-mix').innerHTML=svg+'</svg>';
- const ctxLine=$('panel-mixLine').querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${periodLabel(dashboard(),ctx.months,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
+ const ctxLine=$('panel-mixLine').querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${mixPeriod(ctx,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
 }
 function productMixDonut(items,metric,total,chartId=null,focusKey=null){
  if(!items.length||total==null)return '<p class="empty-chart">Mix unavailable for this selection.</p>';

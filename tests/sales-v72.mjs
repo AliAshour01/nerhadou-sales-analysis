@@ -40,4 +40,17 @@ const seed = JSON.parse(fs.readFileSync('private/seed.json', 'utf8')),
   assert.match(ctx.filterCompareGap.sentence, /2025 does not record distributor, so the change for PHARMA can’t be measured/);
   assert.equal(resolveViewContext(records, { years: [2026], months: YTD, measure: 'value', selection: none }).filterCompareGap, null);
 }
+// ── R-02: one month rule for 2023 / 2024 comparisons ──
+{
+  const c24 = resolveViewContext(records, { years: [2024], months: FY, measure: 'value', selection: none });
+  assert.deepEqual(c24.compareMonths, [1, 2, 3, 4, 5, 6, 7, 8, 9], '2024 vs 2023 compares Jan–Sep');
+  assert.equal(c24.compareNote, 'Jan–Sep only, Oct–Dec 2023 not recorded');
+  assert.notEqual(movementTotals(records, { a: 2023, b: 2024, months: c24.compareMonths, metric: 'value' }).delta, null, 'bridge 2023 → 2024 is measurable on Jan–Sep');
+  const c23 = resolveViewContext(records, { years: [2023], months: FY, measure: 'value', selection: none });
+  assert.deepEqual(c23.dataMonths, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(c23.missingNote, 'Oct–Dec not recorded');
+  const c26 = resolveViewContext(records, { years: [2026], months: YTD, measure: 'value', selection: none });
+  assert.equal(c26.comparePartial, false);
+  assert.deepEqual(c26.compareMonths, YTD);
+}
 console.log('sales-v72 logic checks passed');

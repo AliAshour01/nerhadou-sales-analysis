@@ -41,7 +41,7 @@ export function rowSpans(spans) {
   return spans.map((_, i) => base + (i < 12 - base * n ? 1 : 0));
 }
 
-export function layout(tab, ctx, api, { mobile = false } = {}) {
+export function layout(tab, ctx, api, { mobile = false, excluded = null } = {}) {
   const entries = PANELS.filter((p) => p.tab === tab && (!api.renderers || api.renderers[p.id])),
     visible = [],
     hidden = [];
@@ -51,6 +51,11 @@ export function layout(tab, ctx, api, { mobile = false } = {}) {
       show = !!entry.show(ctx, api);
     } catch (err) {
       show = false;
+    }
+    // V72 R-02: a renderer reported it had nothing to draw ({empty: reason}); list it under "Not shown".
+    if (show && excluded?.has(entry.id)) {
+      hidden.push({ id: entry.id, title: entry.title, reason: excluded.get(entry.id) });
+      continue;
     }
     if (show) visible.push(entry);
     else {

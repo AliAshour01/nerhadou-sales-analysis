@@ -559,3 +559,8 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
  margin-top: 4px;
  box-shadow: none;
 }
+/* V72 review fixes */
+#kpis .kpi .label .kpi-provisional{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#fff3d6;color:#7a4b00;font-size:9.5px;letter-spacing:.03em;vertical-align:1px;text-transform:none}
+#kpis .kpi small.kpi-compare-note{font-style:italic;opacity:.85}
+.compare-gap-note{color:#5b6b7f}
+#kpis .kpi:has(.kpi-compare-note){max-height:none}

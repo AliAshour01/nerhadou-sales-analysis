@@ -1,7 +1,7 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
 import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap } from './management-core.js?v=sales-comparison-v71';
-import { knownCategory } from './view-context.js?v=sales-comparison-v71';
+import { knownCategory, monthSpan } from './view-context.js?v=sales-comparison-v71';
 
 const finite = Number.isFinite;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -28,8 +28,10 @@ export function tableColumns(ctx, measures, period = '') {
     if (!multi) {
       add('sales', 'Sales', `Sales ${unit} · ${period || ctx.focusYear}`);
       add('share', 'Share', `Share of company ${unit} (%)`);
-      if (ctx.compareYear != null) add('py', String(ctx.compareYear), `Sales ${unit} · ${ctx.compareYear}`);
-      if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) add('ppg', 'PPG', `Growth vs ${ctx.compareYear} (%)`);
+      // V72 R-02: when the two years record different months, PY and PPG use the months both record (same as the KPIs).
+      const part = ctx.comparePartial ? ' ' + monthSpan(ctx.compareMonths) : '';
+      if (ctx.compareYear != null) add('py', String(ctx.compareYear) + part, `Sales ${unit} · ${ctx.compareYear}${part}${ctx.comparePartial ? ' (' + ctx.compareNote + ')' : ''}`);
+      if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) add('ppg', 'PPG' + part, `Growth vs ${ctx.compareYear}${part} (%)`);
       if (ctx.hasTargets) {
         add('target', 'Target', `Target ${unit}`);
         add('ach', 'Ach.', 'Achievement (%)');
@@ -70,6 +72,13 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
       if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.months, m, filters));
       return memo.get(k);
     },
+    partial = ctx.yearMode === 'single' && ctx.comparePartial,
+    sumC = (year, m) => {
+      if (!partial) return sum(year, m);
+      const k = 'c' + year + m;
+      if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.compareMonths, m, filters));
+      return memo.get(k);
+    },
     // V72 R-01: a year that does not record the filtered dimension is unknown, not "not sold".
     gapFor = (year) => (s) => (!s.rows?.length ? dimensionGap(ctx.records, year, ctx.months, ctx.selection) : null),
     salesReason = (s, year) => {
@@ -88,16 +97,17 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
       if (v == null) r = salesReason(cur, fy);
     } else if (c.kind === 'year' || c.kind === 'py') {
       const y = c.kind === 'py' ? cy : c.year,
-        s = sum(y, m);
+        s = c.kind === 'py' ? sumC(y, m) : sum(y, m);
       v = s.value;
       if (v == null) r = salesReason(s, y);
     } else if (c.kind === 'share') {
       v = cur.value != null && company[m] > 0 ? (cur.value / company[m]) * 100 : null;
       if (v == null) r = cur.value == null ? salesReason(cur, fy) : 'Company total unavailable for this period.';
     } else if (c.kind === 'ppg' || c.kind === 'growth' || c.kind === 'change') {
-      const prev = sum(cy, m);
-      if (cur.value != null && prev.value != null) v = c.kind === 'change' ? cur.value - prev.value : prev.value > 0 ? ((cur.value - prev.value) / prev.value) * 100 : null;
-      if (v == null) r = prev.value == null ? salesReason(prev, cy) : cur.value == null ? salesReason(cur, fy) : `No ${cy} sales to grow from.`;
+      const prev = sumC(cy, m),
+        now = sumC(fy, m);
+      if (now.value != null && prev.value != null) v = c.kind === 'change' ? now.value - prev.value : prev.value > 0 ? ((now.value - prev.value) / prev.value) * 100 : null;
+      if (v == null) r = prev.value == null ? salesReason(prev, cy) : now.value == null ? salesReason(now, fy) : `No ${cy} sales to grow from.`;
     } else if (c.kind === 'target' || c.kind === 'ach' || c.kind === 'gap') {
       const t = total ? targetSum(ctx.records, { year: fy }, products, ctx.months, m, ctx.selection, annual) : portfolioTarget(ctx.records, { year: fy }, product, ctx.months, m, ctx.selection, annual);
       if (c.kind === 'target') v = t;
@@ -136,7 +146,8 @@ export function sortRows(rows, ctx, sort, desc, measure) {
       ach: [key('ach'), true],
     };
   const list = rows.slice();
-  if (ctx.yearMode === 'single') for (const r of list) if (r.cells[key('sales')] != null && r.cells[`py:${m}`] != null) r.cells[key('change')] = r.cells[key('sales')] - r.cells[`py:${m}`];
+  // Same-months change: with partial comparison months (V72 R-02) it is derived from PPG over the common months.
+  if (ctx.yearMode === 'single') for (const r of list) if (r.cells[`py:${m}`] != null) r.cells[key('change')] = ctx.comparePartial ? (r.cells[key('ppg')] != null ? (r.cells[`py:${m}`] * r.cells[key('ppg')]) / 100 : null) : r.cells[key('sales')] != null ? r.cells[key('sales')] - r.cells[`py:${m}`] : null;
   if (sort === 'name') return list.sort((a, b) => (desc ? -1 : 1) * a.product.localeCompare(b.product));
   let [k, d] = byKey[sort] || [sort, true];
   if (!byKey[sort]) d = desc;
