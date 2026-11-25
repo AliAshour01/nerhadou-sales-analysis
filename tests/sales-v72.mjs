@@ -2,7 +2,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { effectiveRecords } from '../public/data-core.js';
-import { movement, movementTotals, dimensionRecorded, dimensionGap } from '../public/management-core.js';
+import { movement, movementTotals, dimensionRecorded, dimensionGap, tenderBase, isTenderVariant, TENDER_SUFFIX } from '../public/management-core.js';
+import { productsTableData, productsTableHTML } from '../public/products-table.js';
 import { resolveViewContext } from '../public/view-context.js';
 
 const seed = JSON.parse(fs.readFileSync('private/seed.json', 'utf8')),
@@ -52,5 +53,27 @@ const seed = JSON.parse(fs.readFileSync('private/seed.json', 'utf8')),
   const c26 = resolveViewContext(records, { years: [2026], months: YTD, measure: 'value', selection: none });
   assert.equal(c26.comparePartial, false);
   assert.deepEqual(c26.compareMonths, YTD);
+}
+// ── R-19: tender twins ──
+{
+  for (const [name, base] of [['NERHAPEZIL 5MG  - Tender', 'NERHAPEZIL 5MG'], ['TADANERFI 5MG - 30 FILM -Tender', 'TADANERFI 5MG - 30 FILM'], ['Methyltechno - TENDER', 'Methyltechno'], ['Methyltechno-Tender', 'Methyltechno'], ['ONDALENZ 8MG', 'ONDALENZ 8MG'], ['TENDER', 'TENDER']]) assert.equal(tenderBase(name), base, name);
+  assert.equal(isTenderVariant('CALCITRON - Tender'), true);
+  assert.equal(isTenderVariant('CALCITRON'), false);
+  assert(fs.readFileSync('public/app.js', 'utf8').includes('const TENDER_SUFFIX=' + TENDER_SUFFIX.toString() + ';'), 'app.js copy of TENDER_SUFFIX');
+  const ctx = resolveViewContext(records, { years: [2026], months: YTD, measure: 'units', selection: none }),
+    data = productsTableData(ctx, { measures: ['units'] }),
+    g = [...data.tender.values()].find((x) => x.product === 'Methyltechno');
+  assert(g, 'Methyltechno has a combined row');
+  assert.deepEqual(g.members.map((m) => m.product).sort(), ['Methyltechno', 'Methyltechno - TENDER']);
+  const sum = (k) => g.members.reduce((a, m) => a + m.cells[k], 0);
+  assert.equal(Math.round(g.cells['sales:units']), Math.round(sum('sales:units')), 'sales add up');
+  assert.equal(g.cells['target:units'], sum('target:units'), 'targets add up (two product-level targets, never allocated)');
+  assert.equal(g.cells['target:units'], 8000000);
+  assert(Math.abs(g.cells['ppg:units'] - ((g.cells['sales:units'] - g.cells['py:units']) / g.cells['py:units']) * 100) < 1e-9, 'PPG recomputed from combined amounts');
+  const html = productsTableHTML(data, ctx, { sort: 'sales', desc: true, measures: ['units'], showAll: true, combine: true, expanded: new Set([g.key]) });
+  assert.equal(html.sorted.filter((r) => /^Methyltechno/.test(r.product)).length, 1, 'one combined row');
+  assert(html.body.includes('member-row'), 'expand shows the two rows');
+  const plain = productsTableHTML(data, ctx, { sort: 'sales', desc: true, measures: ['units'], showAll: true });
+  assert.equal(plain.sorted.length, data.rows.length, 'off by default');
 }
 console.log('sales-v72 logic checks passed');

@@ -1,6 +1,6 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap } from './management-core.js?v=sales-comparison-v71';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-comparison-v71';
 import { knownCategory, monthSpan } from './view-context.js?v=sales-comparison-v71';
 
 const finite = Number.isFinite;
@@ -131,7 +131,45 @@ export function productsTableData(ctx, { measures = [ctx.measure], targetBasis =
   const rows = universe.map((u) => ({ product: u.product, line: u.line, ...cells(ctx, cols, { ...ctx.selection, product: [u.product] }, { product: u.product, annual, company }) }));
   const term = search.trim().toLowerCase(),
     view = term ? rows.filter((r) => r.product.toLowerCase().includes(term)) : rows;
-  return { cols, total, rows, view, count: names.length, company };
+  return { cols, total, rows, view, count: names.length, company, tender: tenderGroups(ctx, cols, rows, annual, company) };
+}
+
+// V72 R-19: "Combine tender with base product". Each base product and its tender twin(s) get one combined row computed
+// like the Total row (sales summed from records, targets summed per product with targetSum, never allocated), so
+// PPG / achievement are recomputed from the combined amounts.
+function tenderGroups(ctx, cols, rows, annual, company) {
+  const groups = new Map();
+  for (const r of rows) {
+    const key = productKey(tenderBase(r.product));
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
+  }
+  const out = new Map();
+  for (const [key, members] of groups) {
+    if (members.length < 2) continue;
+    const names = members.map((m) => m.product),
+      base = members.find((m) => tenderBase(m.product) === m.product.trim())?.product || tenderBase(members[0].product);
+    const combined = cells(ctx, cols, { ...ctx.selection, product: names }, { total: true, products: names, annual, company });
+    out.set(key, { product: base, line: members[0].line, combined: true, key, members, ...combined });
+  }
+  return out;
+}
+
+// Replace tender twins by their combined row (members stay available for the expand toggle).
+export function combineTender(rows, groups) {
+  if (!groups?.size) return rows;
+  const used = new Set(),
+    out = [];
+  for (const r of rows) {
+    const key = productKey(tenderBase(r.product)),
+      g = groups.get(key);
+    if (!g) out.push(r);
+    else if (!used.has(key)) {
+      used.add(key);
+      out.push(g);
+    }
+  }
+  return out;
 }
 
 export function sortRows(rows, ctx, sort, desc, measure) {
@@ -203,12 +241,12 @@ export function cellHTML(row, c, maxSales) {
   return `<td>${num(v)}</td>`;
 }
 
-export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = false, grouped = false }) {
+export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = false, grouped = false, combine = false, expanded = new Set() }) {
   const { cols, total } = data,
     primary = measures[0],
     barKey = ctx.yearMode === 'multi' ? `year:${primary}:${ctx.focusYear}` : `sales:${primary}`;
   for (const c of cols) c.bar = c.key === barKey;
-  const sorted = sortRows(data.view, ctx, sort, desc, primary),
+  const sorted = sortRows(combine ? combineTender(data.view, data.tender) : data.view, ctx, sort, desc, primary),
     capped = !showAll && !grouped && sorted.length > TOP_ROWS + 2,
     visible = capped ? sorted.slice(0, TOP_ROWS) : sorted,
     maxSales = Math.max(0, ...sorted.map((r) => r.cells[barKey]).filter(finite));
@@ -224,10 +262,15 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
   const row = (r) => {
     const first = r.total
       ? `<th scope="row" class="sticky-col">${esc(r.product)}</th>`
+      : r.combined
+        ? `<td class="sticky-col combined-name"><button type="button" class="pt-expand" data-pt-expand="${esc(r.key)}" aria-expanded="${expanded.has(r.key)}" title="${esc(r.members.map((m) => m.product).join(' + '))}"><span aria-hidden="true">${expanded.has(r.key) ? '▾' : '▸'}</span> ${esc(r.product)} <small>+ Tender</small></button></td>`
+      : r.member
+        ? `<td class="sticky-col member-name"><button data-select-product="${esc(r.product)}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button></td>`
       : r.subtotal
         ? `<th scope="row" class="sticky-col">${esc(r.product)} <small>subtotal</small></th>`
         : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button></td>`;
-    return `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ' class="subtotal-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
+    const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ' class="subtotal-row"' : r.combined ? ' class="combined-row"' : r.member ? ' class="member-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
+    return r.combined && expanded.has(r.key) ? own + r.members.map((m) => row({ ...m, member: true })).join('') : own;
   };
   let body = row(total);
   if (grouped) for (const g of groupByLine(sorted, cols)) body += row(g.sub) + g.rows.map(row).join('');
@@ -256,13 +299,13 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       .slice(0, 3);
   const card = (r) => {
     const s = r.cells[sk],
-      tag = r.total ? 'div' : 'button',
-      attrs = r.total ? '' : ` type="button" data-select-product="${esc(r.product)}"`,
+      tag = r.total || r.combined ? 'div' : 'button',
+      attrs = r.total || r.combined ? '' : ` type="button" data-select-product="${esc(r.product)}"`,
       cell = ([label, key, fmt]) => {
         const v = r.cells[key];
         return `<span class="pc-cell"><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
       };
-    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name">${esc(r.product)}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
+    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name">${esc(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };
   const cards = card(total) + (grouped ? sorted : visible).map(card).join('') || '<p class="chart-note">No matching products.</p>';
   const more = capped ? `<button type="button" class="link-button pt-show-all" data-pt-all="on">Show all ${sorted.length}</button>` : showAll && sorted.length > TOP_ROWS + 2 && !grouped ? `<button type="button" class="link-button pt-show-all" data-pt-all="off">Show top ${TOP_ROWS}</button>` : '';

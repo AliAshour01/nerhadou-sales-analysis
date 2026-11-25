@@ -585,3 +585,9 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 .portfolio-card .pc-cell b{font-size:14px;color:#1f3555;font-variant-numeric:tabular-nums}
 .portfolio-card .pc-cell b.ach{align-self:flex-start;padding:1px 8px;border-radius:999px;font-size:13px}
 .portfolio-card .pc-cell b.variance.positive{color:#146c43}.portfolio-card .pc-cell b.variance.negative{color:#a1261b}
+/* R-19: combined tender rows and their expandable members. */
+#view-portfolio .pt-expand{background:none;border:0;padding:0;font:inherit;font-weight:600;color:#1d4ed8;cursor:pointer;text-align:left}
+#view-portfolio .pt-expand small,.portfolio-card .pc-name small{font-weight:500;color:#5b6b7f}
+#view-portfolio tr.member-row td.sticky-col{padding-left:28px}
+#view-portfolio tr.member-row{background:#fafcff}
+.multi-option.tender-variant{padding-left:22px}

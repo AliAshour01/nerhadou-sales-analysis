@@ -49,6 +49,11 @@ export function changeBetween(current,previous){
  const delta=finite(current?.value)&&finite(previous?.value)?current.value-previous.value:null;
  return {delta,ppg:delta!=null&&previous.value>0?delta/previous.value*100:null,estimated:!!(current?.estimated||previous?.estimated),approximate:!!(current?.approximate||previous?.approximate)};
 }
+// V72 R-19: base product of a tender twin ("X - Tender", "X -Tender", "X  - TENDER", "X-Tender" → "X"); other names unchanged.
+// public/app.js keeps a byte-identical copy of the pattern for the product picker (tests/sales-v72.mjs checks parity).
+export const TENDER_SUFFIX=/\s*-\s*tender\s*$/i;
+export function tenderBase(name){const raw=String(name??''),base=raw.replace(TENDER_SUFFIX,'').trim();return base||raw.trim()}
+export const isTenderVariant=name=>TENDER_SUFFIX.test(String(name??''))&&tenderBase(name)!==String(name??'').trim();
 // V72 R-01: a filter dimension (distributor / line / sales type) is "recorded" in a year only when that year has
 // actual rows in the chosen months and every one of them carries a known value for it. NOT PROVIDED / NOT RECORDED
 // and the undivided "COMBINED / SOURCE" sales-type bucket are data gaps, not categories: while any sales sit in

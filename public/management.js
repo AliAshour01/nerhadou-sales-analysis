@@ -493,16 +493,18 @@ function renderProductsTable(ctx){
  const view={...data,view:term?data.rows.filter(r=>r.product.toLowerCase().includes(term)):data.rows};
  const opts=sortOptions(ctx);if(!ui.ptSort||(!ui.ptSort.startsWith('col:')&&!opts.some(([k])=>k===ui.ptSort))||(ui.ptSort.startsWith('col:')&&!data.cols.some(c=>'col:'+c.key===ui.ptSort))){ui.ptSort='sales';ui.ptDesc=true}
  const groupable=!ctx.selection.line.length&&ctx.dims.line.categories>=2,grouped=groupable&&!!ui.ptGroup&&!term;
- const html=productsTableHTML(view,ctx,{sort:ui.ptSort,desc:ui.ptDesc!==false,measures,showAll:!!ui.ptAll||!!term,grouped});
+ // V72 R-19: "Combine tender" merges each tender twin into its base product (expand to see both rows).
+ const tenderable=data.tender?.size>0,combine=tenderable&&!!ui.ptTender&&!term,expanded=ui.ptExpanded||(ui.ptExpanded=new Set());
+ const html=productsTableHTML(view,ctx,{sort:ui.ptSort,desc:ui.ptDesc!==false,measures,showAll:!!ui.ptAll||!!term,grouped,combine,expanded});
  $('detail-head').innerHTML=html.head;$('details').innerHTML=html.body;$('portfolio-cards').innerHTML=html.cards;$('pt-more').innerHTML=html.more;
  $('portfolio-sort').innerHTML=opts.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')+(ui.ptSort.startsWith('col:')?`<option value="${e(ui.ptSort)}">Column: ${e(data.cols.find(c=>'col:'+c.key===ui.ptSort)?.short||'')}</option>`:'');$('portfolio-sort').value=ui.ptSort;
- $('pt-basis-field').hidden=!(ctx.yearMode==='single'&&ctx.hasTargets);$('pt-target-basis').value=basis;$('pt-both').checked=measures.length>1;$('pt-group-field').hidden=!groupable;$('pt-group').checked=grouped;
+ $('pt-basis-field').hidden=!(ctx.yearMode==='single'&&ctx.hasTargets);$('pt-target-basis').value=basis;$('pt-both').checked=measures.length>1;$('pt-group-field').hidden=!groupable;$('pt-group').checked=grouped;$('pt-tender-field').hidden=!tenderable;$('pt-tender').checked=combine;
  $('portfolio-context').textContent=[periodLabel(d,ctx.months),ctx.yearMode==='single'&&ctx.hasTargets?'Target: '+(basis==='annual'?'full year '+ctx.focusYear:'selected period'):null,'Shares use full company sales for the period'].filter(Boolean).join(' · ');
  $('rowcount').textContent=`${html.shown} of ${data.count} products${term?' match the search':''}`;$('search-clear').hidden=!term;$('export').disabled=!data.rows.length;
  if(!$('search').dataset.v69){$('search').dataset.v69='1';$('search').oninput=()=>{clearTimeout(ptSearchTimer);ptSearchTimer=setTimeout(()=>renderProductsTable(viewContext()),150)}}
 }
-function exportProductsTable(){const ctx=viewContext(),d=dashboard(),{data,measures,basis}=productsData(ctx),term=($('search')?.value||'').trim().toLowerCase(),rows=productsTableHTML({...data,view:term?data.rows.filter(r=>r.product.toLowerCase().includes(term)):data.rows},ctx,{sort:ui.ptSort||'sales',desc:ui.ptDesc!==false,measures,showAll:true}).sorted;
- const pctKind=k=>['share','ach','ppg','growth'].includes(k),cols=[{label:'Product',width:30,kind:'text'},...data.cols.map(c=>({label:c.label,width:22,kind:pctKind(c.kind)?'percent':'number'}))],line=r=>[r.product,...data.cols.map(c=>{const v=r.cells[c.key];return v==null?null:pctKind(c.kind)?v/100:v})];
+function exportProductsTable(){const ctx=viewContext(),d=dashboard(),{data,measures,basis}=productsData(ctx),term=($('search')?.value||'').trim().toLowerCase(),rows=productsTableHTML({...data,view:term?data.rows.filter(r=>r.product.toLowerCase().includes(term)):data.rows},ctx,{sort:ui.ptSort||'sales',desc:ui.ptDesc!==false,measures,showAll:true,combine:!!ui.ptTender&&!term&&data.tender?.size>0}).sorted;
+ const pctKind=k=>['share','ach','ppg','growth'].includes(k),cols=[{label:'Product',width:30,kind:'text'},...data.cols.map(c=>({label:c.label,width:22,kind:pctKind(c.kind)?'percent':'number'}))],line=r=>[r.combined?r.product+' + Tender':r.product,...data.cols.map(c=>{const v=r.cells[c.key];return v==null?null:pctKind(c.kind)?v/100:v})];
  const bytes=tableWorkbook({title:'Nerhadou · Products',subtitle:[periodLabel(d,ctx.months),scopeText()].join(' · '),columns:cols,rows:[line(data.total),...rows.map(line)],notes:['Exported '+new Date().toISOString()+' · Revision '+(payload?.revision||''),'Shares use total company sales for the same period, before product, line, distributor and sales-type filters. Missing values stay blank.'+(ctx.hasTargets&&ctx.yearMode==='single'?' Target basis: '+(basis==='annual'?'full year.':'selected period.'):'')]}),url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),a=document.createElement('a');
  a.href=url;a.download=`nerhadou-products-${ctx.yearMode==='multi'?ctx.years[0]+'-'+ctx.focusYear:ctx.focusYear}-${measures.join('-')}.xlsx`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function wireDrilldowns(){
@@ -610,6 +612,7 @@ function onClick(ev){
  if(b.dataset.tabFix){const tab=b.dataset.tab;$('tab-message').hidden=true;(async()=>{if(b.dataset.tabFix==='latest-year')await window.actualDashboard.setYears([viewContext().latestYear]);else{const d=dashboard();await window.actualDashboard.apply({...capture(),selection:{...d.selection,product:[]}})}window.actualDashboard.showSection(tab)})();return}
  if(b.dataset.ptSort){const k=b.dataset.ptSort;ui.ptDesc=ui.ptSort===k?!ui.ptDesc:true;ui.ptSort=k;renderProductsTable(viewContext());$('detail-head').querySelector(`[data-pt-sort="${k}"]`)?.focus();return}
  if(b.dataset.ptAll){ui.ptAll=b.dataset.ptAll==='on';renderProductsTable(viewContext());return}
+ if(b.dataset.ptExpand){const x=ui.ptExpanded||(ui.ptExpanded=new Set());x.has(b.dataset.ptExpand)?x.delete(b.dataset.ptExpand):x.add(b.dataset.ptExpand);renderProductsTable(viewContext());$('details').querySelector(`[data-pt-expand="${CSS.escape?CSS.escape(b.dataset.ptExpand):b.dataset.ptExpand}"]`)?.focus();return}
  if(b.id==='search-clear'){$('search').value='';renderProductsTable(viewContext());$('search').focus();return}
  if(b.id==='export'&&dashboard()){exportProductsTable();return}
  let changed=true;
@@ -627,6 +630,7 @@ function onChange(ev){
  if(id==='pt-target-basis'){window.actualDashboard.setTargetBasis(ev.target.value);return}
  if(id==='pt-both'){window.actualDashboard.setBothMeasures(ev.target.checked);renderProductsTable(viewContext());return}
  if(id==='pt-group'){ui.ptGroup=ev.target.checked;renderProductsTable(viewContext());return}
+ if(id==='pt-tender'){ui.ptTender=ev.target.checked;renderProductsTable(viewContext());return}
  if(id==='forecast-cutoff')ui.forecastCutoff=Number(ev.target.value);
  else if(id==='bridge-from')ui.bridgeFrom=Number(ev.target.value);else if(id==='bridge-to')ui.bridgeTo=Number(ev.target.value);
  else if(id==='movement-dimension')ui.bridgeDimension=ev.target.value;
@@ -636,7 +640,7 @@ function onChange(ev){
 }
 // V69 U-16: one Sales page. Saved views and links carry years / period / growth / common months; old Historical
 // shapes (page 'comparison', a 'comparison' payload) open the multi-year state with all available years.
-function capture(){const d=dashboard(),{hiddenYears,attentionAll,factsAll,ptAll,...rest}=ui;return {years:[...d.years],focusYear:d.focusYear,year:d.focusYear,selection:d.selection,months:d.months,periodMode:d.periodMode,targetBasis:d.targetBasis,growthBasis:d.growthBasis,commonMonths:d.commonMonths,section:d.section,ui:rest,page:'sales'}}
+function capture(){const d=dashboard(),{hiddenYears,attentionAll,factsAll,ptAll,ptExpanded,...rest}=ui;return {years:[...d.years],focusYear:d.focusYear,year:d.focusYear,selection:d.selection,months:d.months,periodMode:d.periodMode,targetBasis:d.targetBasis,growthBasis:d.growthBasis,commonMonths:d.commonMonths,section:d.section,ui:rest,page:'sales'}}
 function fromHistorical(old={},base={}){const available=dashboard()?.snapshot.availableYears||[],years=available.slice().sort((a,b)=>a-b),mode=old.mode==='annual'?'full':old.mode==='month'?'selected':'ytd',through=Number.isInteger(old.month)?old.month:null,months=mode==='full'?Array.from({length:12},(_,i)=>i+1):mode==='selected'&&Array.isArray(old.selected)&&old.selected.length?old.selected.filter(m=>Number.isInteger(m)&&m>=1&&m<=12):through?Array.from({length:through},(_,i)=>i+1):base.months||[],scope=old.scope==='product'?'product':'company',metric=['units','value'].includes(old.metrics?.[scope])?old.metrics[scope]:base.ui?.metric||'units';
  return {years,year:years.at(-1),months,periodMode:mode,selection:{product:scope==='product'&&typeof old.product==='string'?[old.product]:[],line:typeof old.line==='string'&&old.line?[old.line]:[],distributor:[],channel:[]},targetBasis:'period',growthBasis:['selected','calendar'].includes(old.growthBasis)?old.growthBasis:'auto',commonMonths:true,section:'overview',ui:{...(base.ui||{}),metric},page:'sales'}}
 function openHistoricalRedirect(){const d=dashboard();if(!d)return;const product=d.selection.product.length===1?window.actualDashboard.translateProducts?.(d.selection.product,'multi',d.focusYear)||[]:[];const cfg={...capture(),...fromHistorical({},capture())};cfg.months=d.months;cfg.periodMode=d.periodMode;cfg.selection={...cfg.selection,product};restore(cfg)}
