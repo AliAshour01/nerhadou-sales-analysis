@@ -67,7 +67,7 @@ $('movement-dimension').dispatchEvent(new window.Event('change', { bubbles: true
   if (unmatched) assert(Math.abs(Number(unmatched.match(/EGP (-?[\d,]+)/)[1].replace(/,/g, ''))) < Math.max(...products), 'Unmatched bar smaller than the biggest product bar');
   assert(/Jan–Sep/.test($('movement-chart').querySelector('.bridge-span')?.textContent || ''), 'end bars say Jan–Sep');
   const sales = kpi('sales');
-  assert(/Jan–Sep: EGP 1\.03B vs EGP 789\.9M \(2023\)/.test(sales), sales);
+  assert(/Jan–Sep: EGP 1\.03B vs EGP 789\.9M \(2023, includes estimates\)/.test(sales), sales);
   assert(/Up 30\.4%/.test(sales));
   assert(/Jan–Sep avg: EGP 114\.5M vs EGP 87\.8M/.test(kpi('avg')), kpi('avg'));
 }

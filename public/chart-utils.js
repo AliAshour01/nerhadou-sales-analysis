@@ -17,7 +17,7 @@ export function axisTicks(a){return Array.from({length:Math.round((a.max-a.min)/
 // Tick labels carry as many decimals (max 2) as the step needs, so 1.25M never reads 1.3M.
 export function tickLabel(v,axis){const [d,suffix]=unit(Math.max(Math.abs(axis.min),Math.abs(axis.max)));if(!suffix)return Number(v.toFixed(2)).toLocaleString('en-US');const k=[0,1,2].find(k=>Math.abs(Math.round(axis.step/d*10**k)-axis.step/d*10**k)<1e-9)??2;return v===0?'0':String(Number((v/d).toFixed(k)))+suffix}
 // S-15: one colour per category everywhere. NOT PROVIDED is always neutral grey.
-export const CATEGORY_COLORS={'PHARMA':'#2f5fd0','IBN SINA':'#d9922e','EGY':'#1f9a8a','NERHADOU DIRECT':'#8a63c2','PRIVATE':'#2f5fd0','TENDER':'#1f9a8a','HOSPITALS':'#d9922e','NOT PROVIDED':'#9aa5b4','OTHERS':'#b7c0cc'};
+export const CATEGORY_COLORS={'PHARMA':'#2f5fd0','IBN SINA':'#d9922e','EGY':'#1f9a8a','NERHADOU DIRECT':'#8a63c2','PRIVATE':'#2f5fd0','TENDER':'#1f9a8a','HOSPITALS':'#d9922e','HOSPITALS / UPA':'#d9922e','COMBINED / SOURCE':'#b7c0cc','NOT PROVIDED':'#9aa5b4','OTHERS':'#b7c0cc'};
 const FALLBACK=['#c2577a','#5d7fa6','#a07a3c','#3f8f5a','#7a6cc4','#b0603e'];
 export function categoryColor(name){const key=String(name??'').trim().toUpperCase();if(!key||key==='NOT PROVIDED')return CATEGORY_COLORS['NOT PROVIDED'];return CATEGORY_COLORS[key]||FALLBACK[[...key].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7)%FALLBACK.length]}
 // S-12 / S-18 achievement status thresholds.
@@ -31,3 +31,7 @@ const NARROW=/[ilIjtf.,'’:;|!()\[\] ]/,WIDE=/[MWmw@%]/;
 export function textWidth(text,fontSize=12){let w=0;for(const c of String(text??''))w+=NARROW.test(c)?.32:WIDE.test(c)?.9:/[A-Z0-9]/.test(c)?.68:/[–—…+−]/.test(c)?.62:.56;return w*fontSize}
 export function fitLabel(text,maxWidth,fontSize=12){const s=String(text??'');if(textWidth(s,fontSize)<=maxWidth)return s;for(let n=s.length-1;n>0;n--){const t=s.slice(0,n).trimEnd()+'…';if(textWidth(t,fontSize)<=maxWidth)return t}return ''}
 if(typeof window!=='undefined')window.nerhadouChart={compact,niceStep,niceAxis,axisTicks,tickLabel,CATEGORY_COLORS,categoryColor,ACH_THRESHOLDS,achStatus,truncate,textWidth,fitLabel};
+// V74 V-05: keep the END of a name ("…8MG") when the start would make two labels identical.
+export function fitTail(text,maxWidth,fontSize=12){const s=String(text??'');if(textWidth(s,fontSize)<=maxWidth)return s;for(let n=s.length-1;n>0;n--){const t='…'+s.slice(s.length-n).trimStart();if(textWidth(t,fontSize)<=maxWidth)return t}return ''}
+// Up to two lines: whole words on the first line, the rest (shortened if needed) on the second.
+export function wrapLabel(text,maxWidth,fontSize=12){const s=String(text??'');if(textWidth(s,fontSize)<=maxWidth)return [s];const words=s.split(/\s+/);let first='',i=0;while(i<words.length){const c=first?first+' '+words[i]:words[i];if(textWidth(c,fontSize)<=maxWidth){first=c;i++}else break}if(!first)return [fitLabel(s,maxWidth,fontSize)];return [first,fitLabel(words.slice(i).join(' '),maxWidth,fontSize)]}

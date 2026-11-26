@@ -53,7 +53,7 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
   let labelTop=zero,label='';
   if(compare==='py'){
    const px=x-bw-1.5,cx=x+1.5;
-   svg+=known(d.previous)?bar(px,d.previous,'#b8cadd','py-bar'):'';
+   svg+=known(d.previous)?bar(px,d.previous,'#b8cadd','py-bar'):a&&d.previous==null&&!opts.noPyGap?`<rect class="unknown-slot py-unknown" x="${px}" y="${top+plot*.45}" width="${bw}" height="${plot*.55}" rx="3" fill="none" stroke="#b4bcc8" stroke-dasharray="3 3"/>`:'';
    svg+=a?bar(cx,d.actual,'#245fa7','cy-bar'):slot(cx,soloLabel);
    labelTop=Math.min(known(d.previous)?Y(Math.max(0,d.previous)):zero,a?Y(Math.max(0,d.actual)):top+plot*.45-14);
    label=d.ppg==null?'':(d.ppg>0?'+':'')+d.ppg.toFixed(0)+'%';
@@ -72,6 +72,7 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
   let ly=labelTop==null?null:labelTop-8;if(label&&ly!=null){const w=String(label).length*labelFont*.78;if(lastLab&&x-w/2<lastLab.r+8&&Math.abs(ly-lastLab.y)<labelFont+2)ly=lastLab.y-(labelFont+2);lastLab={r:x+w/2,y:ly}}
   if(i%stride===0||i===data.length-1)svg+=`${label&&labelTop!=null?`<text class="bar-pct${compare==='py'?' ppg-label':''}" x="${x}" y="${ly}" text-anchor="middle" font-size="${labelFont}" font-weight="600" fill="${compare==='py'&&d.ppg<0?'#a4483b':'#405b78'}">${label}</text>`:''}<text x="${x}" y="250" text-anchor="middle" font-size="${labelFont}" fill="#5b6b7f">${monthName(d.month)}</text>`;
  });
+ // V74 V-03: previous-year months with no record get a dashed ghost bar (the note under the legend names them).
  // One "unknown" label centred over each run of two or more consecutive unknown months (Oct–Dec), never one per slot.
  for(const r of runs)if(r.end>r.start)svg+=`<text class="unknown-label" x="${left+step*((r.start+r.end)/2+.5)}" y="${top+plot*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">unknown</text>`;
  if(!showLabels&&data.some(d=>labelOf(d)))svg+=`<text class="bar-label-note" x="${right}" y="266" text-anchor="end" font-size="10" fill="#5b6b7f">${compare==='py'?'Growth %':compare==='target'?'Achievement %':'Values'} in tooltip and table</text>`;
