@@ -19,7 +19,7 @@ function controls(panel){const state=states[panel],items=panel==='portfolio'?[['
 function missingReportingMonths(){const available=new Set(D.rows.map(r=>r.month)),incomplete=new Set(D.incompleteMonths||D.rows.filter(r=>r.reportingIncomplete).map(r=>r.month));return periodMonths().filter(m=>!available.has(m)||incomplete.has(m))}
 // V68 S-01: identical to public/chart-utils.js (classic script copy; tests/chart-utils.mjs asserts parity).
 const chartUnit=a=>a>=1e9?[1e9,'B']:a>=1e6?[1e6,'M']:a>=1e3?[1e3,'K']:[1,''];
-function compact(n,digits=1){if(n==null||!Number.isFinite(n))return '—';const [d,s]=chartUnit(Math.abs(n));if(!s)return fmt(n);return String(Number((n/d).toFixed(digits)))+s}
+function compact(n,digits=null){if(n==null||!Number.isFinite(n))return '—';const [d,s]=chartUnit(Math.abs(n));if(!s)return fmt(n);const k=digits??(Math.abs(n)/d<9.995?2:1);return String(Number((n/d).toFixed(k)))+s}
 function niceStep(n){const power=10**Math.floor(Math.log10(n||1)),f=n/power;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*power}
 function axisFor(values,targetTicks=4){const finite=values.filter(Number.isFinite);let lo=Math.min(0,...finite),hi=Math.max(0,...finite);if(lo===hi)hi=lo+1;const step=niceStep((hi-lo)/targetTicks);return {min:Math.floor(lo/step+1e-9)*step,max:Math.ceil(hi/step-1e-9)*step,step}}
 function axisTicks(a){return Array.from({length:Math.round((a.max-a.min)/a.step)+1},(_,i)=>+(a.min+i*a.step).toPrecision(12))}

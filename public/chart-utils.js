@@ -2,8 +2,9 @@
 // app.js is a classic script and keeps byte-identical copies of compact/niceStep/axisFor (tests/chart-utils.mjs checks parity).
 const fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const unit=a=>a>=1e9?[1e9,'B']:a>=1e6?[1e6,'M']:a>=1e3?[1e3,'K']:[1,''];
-// ≤ digits decimals, trailing zeros dropped (2.0M → 2M, 1.50M → 1.5M).
-export function compact(n,digits=1){if(n==null||!Number.isFinite(n))return '—';const [d,s]=unit(Math.abs(n));if(!s)return fmt(n);return String(Number((n/d).toFixed(digits)))+s}
+// V73 N-10: one precision rule for every compact number, the same as the KPI cards: 2 decimals below 10 of the unit
+// (2.03B, 1.46B, 7.34M), 1 decimal from 10 (229.7M, 14M); trailing zeros dropped. digits overrides (axes only).
+export function compact(n,digits=null){if(n==null||!Number.isFinite(n))return '—';const [d,s]=unit(Math.abs(n));if(!s)return fmt(n);const k=digits??(Math.abs(n)/d<9.995?2:1);return String(Number((n/d).toFixed(k)))+s}
 // Nice steps are 1 / 2 / 2.5 / 5 × 10ⁿ.
 export function niceStep(n){const power=10**Math.floor(Math.log10(n||1)),f=n/power;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*power}
 // includeZero:false lets a bridge truncate its baseline (S-17); callers must then mark the axis break.
