@@ -1,8 +1,8 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v74';
-import { knownCategory, monthSpan, comparisonRecords, productDisplayNames } from './view-context.js?v=sales-review-v74';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v74';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v75';
+import { knownCategory, monthSpan, comparisonRecords, productDisplayNames } from './view-context.js?v=sales-review-v75';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v75';
 
 // V74 V-14: the previous-year side of a single-year row is looked up by comparison name (price versions and renamed
 // packs of one product are one product). A row that stands for only some of the price versions the focus year has
@@ -149,7 +149,7 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
       const prev = sumC(cy, m),
         now = sumC(fy, m);
       if (now.value != null && prev.value != null) v = c.kind === 'change' ? now.value - prev.value : prev.value > 0 ? ((now.value - prev.value) / prev.value) * 100 : null;
-      if (v == null) r = prev.value == null ? salesReason(prev, cy) : now.value == null ? salesReason(now, fy) : `No ${cy} sales to grow from.`;
+      if (v == null) r = prev.value == null ? salesReason(prev, cy) : now.value == null ? salesReason(now, fy) : prev.value === 0 && now.value > 0 ? `New: no ${cy} sales to grow from.` : `No ${cy} sales to grow from.`;
     } else if (c.kind === 'target' || c.kind === 'ach' || c.kind === 'gap') {
       const t = total || sources ? targetSum(ctx.records, { year: fy }, sources || products, ctx.months, m, ctx.selection, annual) : portfolioTarget(ctx.records, { year: fy }, product, ctx.months, m, ctx.selection, annual);
       if (c.kind === 'target') v = t;
@@ -272,6 +272,7 @@ const achClass = (v) => (v == null ? 'unknown' : v >= 100 ? 'good' : v >= 90 ? '
 export function cellHTML(row, c, maxSales) {
   const v = row.cells[c.key],
     reason = row.reasons[c.key];
+  if (v == null && (c.kind === 'ppg' || c.kind === 'growth') && /^New:/.test(reason || '')) return `<td class="variance positive" title="${esc(reason)}" data-reason="${esc(reason)}">New</td>`;
   if (v == null) return `<td title="${esc(reason || 'Not available')}" data-reason="${esc(reason || 'Not available')}">—</td>`;
   if (c.kind === 'share') return `<td>${v.toFixed(1)}%</td>`;
   if (c.kind === 'ppg' || c.kind === 'growth') return `<td class="variance ${v < 0 ? 'negative' : 'positive'}">${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%</td>`;

@@ -29,7 +29,8 @@ await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, 
   const first = $('kpis').querySelector('.kpi');
   assert.match(first.querySelector('.label').textContent, /Sales Jan–Sep 2023/);
   assert(first.querySelector('.kpi-provisional'), 'Provisional chip');
-  assert(/Oct–Dec not recorded/.test(first.textContent));
+  // V74 V-06: the banner says Oct–Dec are missing; the card no longer repeats it (its label already reads Jan–Sep 2023).
+  assert(!/Oct–Dec not recorded/.test(first.textContent) && /Oct–Dec 2023 are not in the source/.test($('selection-status').textContent));
   assert.equal($('kpis').querySelectorAll('.kpi').length, 4);
   assert(!/Months selected/.test(kpiText()));
   for (const id of visible()) assert(!/unavailable for this selection/i.test($('panel-' + id).textContent), id + ' is not an empty panel');
