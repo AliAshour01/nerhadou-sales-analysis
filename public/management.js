@@ -1,10 +1,10 @@
-import {comparisonProduct} from './compare-core.js?v=sales-review-v74';
-import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v74';
-import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v74';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v74';
-import {PANELS,layout} from './panel-registry.js?v=sales-review-v74';
-import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v74';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel,fitTail,wrapLabel} from './chart-utils.js?v=sales-review-v74';
+import {comparisonProduct} from './compare-core.js?v=sales-review-v75';
+import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v75';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v75';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v75';
+import {PANELS,layout} from './panel-registry.js?v=sales-review-v75';
+import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v75';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel,fitTail,wrapLabel} from './chart-utils.js?v=sales-review-v75';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),
@@ -233,7 +233,7 @@ function kpiCandidates(ctx){
  const chg=(cur,prev)=>cy==null?{ppg:null,unavailable:null}:ctx.filterCompareGap?{delta:null,ppg:null,unavailable:null,gap:ctx.filterCompareGap.short}:ctx.growthOk?{...changeBetween({value:cur},{value:prev}),unavailable:null}:{delta:null,ppg:null,unavailable:ctx.growthReason};
  const cur=S(fy,m),prev=S(cy,m,cmp),oCur=S(fy,o),oPrev=S(cy,o,cmp),curC=partial?S(fy,m,cmp):cur,oCurC=partial?S(fy,o,cmp):oCur,label=missing?monthRange(chosen)+' '+fy:periodLabel(dashboard(),chosen),one=ctx.productMode==='one',aK=(v,metric)=>metric==='value'&&kpiCompactRow&&Math.abs(v)>=1e4?'EGP '+compact(v):amt(v,metric),vsText=(year,value,metric,extra='')=>`vs ${year}${partial?' '+monthRange(cmp):''}: ${aK(value,metric)}${extra}`,partialNote='',cA=(v,metric)=>v==null?'—':metric==='value'?'EGP '+compact(v):compact(v)+' units',likeText=(curV,prevV,metric,extra='',prefix='')=>`${monthRange(cmp)}${prefix}: ${cA(curV,metric)} vs ${cA(prevV,metric)} (${cy}${extra.replace(/^ \((.*)\)$/,', $1')})`,recordedLabel=missing?' '+monthRange(chosen)+' '+fy:'',provisionalChip=missing&&provisional(fy)?'<span class="kpi-provisional" title="'+e(provisionalNote())+'">Provisional</span>':'';
  const C={};
- C.sales=cur==null?null:()=>kpiCard('sales','Sales'+recordedLabel+' · '+unit(m),amt(cur,m),`<small>${missing?e(ctx.missingNote)+' · ':''}${e(prev!=null?(partial?likeText(curC,prev,m,cyLabel):vsText(cy,prev,m,cyLabel)):label)}${one&&oCur!=null&&ctx.slot4Price?' · '+e(amt(oCur,o)):''}</small>${missing?'':partialNote}${deltaChip(chg(curC,prev),cy)}`,' style="--kpi-accent:1"',provisionalChip);
+ C.sales=cur==null?null:()=>kpiCard('sales','Sales'+recordedLabel+' · '+unit(m),amt(cur,m),`<small>${e(prev!=null?(partial?likeText(curC,prev,m,cyLabel):vsText(cy,prev,m,cyLabel)):label)}${one&&oCur!=null&&ctx.slot4Price?' · '+e(amt(oCur,o)):''}</small>${missing?'':partialNote}${deltaChip(chg(curC,prev),cy)}`,' style="--kpi-accent:1"',provisionalChip);
  C.other=oCur==null?null:()=>kpiCard('other',(o==='value'?'Sales value':'Sales')+recordedLabel+(o==='value'?' · EGP':' · units'),amt(oCur,o),`<small>${e(oPrev!=null?(partial?likeText(oCurC,oPrev,o,estimateLabel(cy,o)):vsText(cy,oPrev,o,estimateLabel(cy,o))):label)}</small>${partialNote}${deltaChip(chg(oCurC,oPrev),cy)}`);
  if(ctx.yearMode==='single'){
   const t=ctx.hasTargets?tgt(ctx,ctx.products,m,chosen):null,annual=ctx.hasTargets?tgt(ctx,ctx.products,m,chosen,true):null,ach=cur!=null&&t>0?cur/t*100:null,fy100=cur!=null&&annual>0?cur/annual*100:null;

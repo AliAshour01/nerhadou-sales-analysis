@@ -89,3 +89,12 @@ for (const [year, n] of [[2022, 12], [2023, 12], [2024, 12], [2025, 12], [2026, 
   assert.deepEqual(wrapLabel('CALCITRON', 120, 12), ['CALCITRON']);
 }
 console.log('Sales V74 passed: product identity, one row per product, price-version safety, tender seasonality guard, labels.');
+// V74.1: a product with no previous-year sales but sales now shows "New", not a dash.
+{
+  const { productsTableHTML } = await import('../public/products-table.js');
+  const c = ctx(2024, 12), d = productsTableData(c, { measures: ['value'] }), v = d.rows.find((r) => r.product === 'VITATRON');
+  assert(v && v.cells['py:value'] === 0 && /^New:/.test(v.reasons['ppg:value']));
+  const h = productsTableHTML(d, c, { sort: 'sales', desc: true, measures: ['value'], showAll: true });
+  assert(/>New<\/td>/.test(h.body), 'New shown in the growth column');
+  console.log('Sales V74.1 passed: New for launches.');
+}
