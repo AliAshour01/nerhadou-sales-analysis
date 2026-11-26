@@ -559,10 +559,8 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
  #sales>.filters>.filter-bar-title{grid-column:1/-1}
  #sales>.filters>#years-field{grid-column:1}
  #sales>.filters>label,#sales>.filters>.filter-slot,#sales>.filters>.measure-field{min-width:0;width:auto;max-width:none;margin:0}
- #sales>.filters>#more-filters{grid-column:1;justify-self:start}
- #sales>.filters>#more-filters[open]{grid-column:1/-1}
- #sales>.filters>#reset{grid-column:2;justify-self:start}
- #sales>.filters>#active-filters{grid-column:3/-1;margin:0;padding:0;background:none;align-self:center}
+ #sales>.filters>#filter-actions{grid-column:1/-1}
+ #sales #filter-actions>#active-filters{margin:0;padding:0;background:none;align-self:center}
  #sales>.filters>#product-filter,#sales>.filters>#months-filter{display:flex;flex-direction:column;gap:6px}
  #sales>.filters>#product-filter::before{content:'Products'}
  #sales>.filters>#months-filter::before{content:'Months'}
@@ -570,7 +568,7 @@ html:not(.sales-ready) #sales .filters{min-height:136px}html:not(.sales-ready) #
  #sales>.filters>#product-filter .multi-select>summary>span:first-child,#sales>.filters>#months-filter .multi-select>summary>span:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
  #sales>.filters select{width:100%}
 }
-#sales>.filters>#active-filters:empty{display:none}
+#sales #active-filters:empty{display:none}
 /* R-14: one primary action (Meeting report). Full screen is a secondary icon button; the data state is shown once,
    in the status strip, so the header no longer repeats it on the Sales page. */
 .app-header #fullscreen-toggle.fullscreen-button{background:#fff!important;color:#5b6b7f!important;border:1px solid #dce5ef!important;box-shadow:none!important;padding:9px 10px;min-width:38px}
@@ -630,3 +628,11 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 @media(max-width:699px){#kpis .kpi strong{line-height:1.25}#kpis .kpi .kpi-label-unit{display:none}}
 /* N-05: phone bridge axis note is HTML above the chart */
 #movement-chart p.axis-break-note{margin:0 0 4px;font-size:12px;color:#5b6b7f}
+/* N-07: More filters, Reset filters and the active chips share one left-aligned row under the years; the Period
+   select is wide enough for "Selected months". */
+#sales #filter-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0}
+#sales #filter-actions>#more-filters[open]{flex-basis:100%;order:3}
+#sales #filter-actions>#reset{margin:0}
+#sales #filter-actions>#active-filters{flex:0 1 auto;width:auto;grid-column:auto;margin:0!important}
+#sales>.filters #period-mode-field{min-width:150px}
+#sales>.filters #period-mode{min-width:150px}
