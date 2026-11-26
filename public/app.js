@@ -37,22 +37,26 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
  const known=v=>v!=null&&Number.isFinite(v);
  const axis=axisFor([...data.map(d=>known(d.actual)?d.actual:0),...data.map(d=>compare==='target'&&known(d.target)?d.target:0),...data.map(d=>compare==='py'&&known(d.previous)?d.previous:0)]),width=chartPixels,left=62,right=width-16,top=34,bottom=222,plot=bottom-top,Y=v=>bottom-(v-axis.min)/(axis.max-axis.min)*plot,zero=Y(0),step=(right-left)/data.length,pair=compare==='py',bw=Math.min(pair?maxBar*.62:maxBar,step*(pair?.3:.52));
  // V72 R-22: up to 9 months every month keeps its label (11 px when the slots are narrow); only longer runs skip labels.
- const stride=data.length<=9?1:monthStride(data.length,right-left),labelFont=(right-left)/Math.max(1,data.length)<52?11:12;let svg=plotSVG(width,270,compare==='py'?'Monthly sales, current and previous year, with growth percentages':compare==='target'?'Monthly actual columns with monthly target markers':'Monthly sales columns');
+ // V73 N-06: never skip months unevenly: up to 12 months every bar keeps a label, as initials (J F M …) when slots are narrow.
+ const stride=data.length<=12?1:monthStride(data.length,right-left),labelFont=(right-left)/Math.max(1,data.length)<52?11:12,initials=data.length>9&&step<36,monthName=m=>initials?months[m-1][0]:months[m-1];
+ // Bar labels (growth % / achievement / value) print only when the widest one fits its slot; otherwise none, and a note says where to read them.
+ const labelOf=d=>compare==='py'?(d.ppg==null?'':(d.ppg>0?'+':'')+d.ppg.toFixed(0)+'%'):!known(d.actual)?'':compare==='target'&&d.pct!=null?d.pct.toFixed(0)+'%':compact(d.actual),showLabels=Math.max(0,...data.map(d=>String(labelOf(d)).length*labelFont*.62))<=step-2;
+ const runs=[];data.forEach((d,i)=>{if(known(d.actual))return;const last=runs.at(-1);if(last&&last.end===i-1)last.end=i;else runs.push({start:i,end:i})});let svg=plotSVG(width,270,compare==='py'?'Monthly sales, current and previous year, with growth percentages':compare==='target'?'Monthly actual columns with monthly target markers':'Monthly sales columns');
  axisTicks(axis).forEach(v=>svg+=`<line x1="${left}" y1="${Y(v)}" x2="${right}" y2="${Y(v)}" stroke="${v===0?'#a9bcc5':'#e9eff2'}"/><text x="${left-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`);
  const bar=(x,v,fill,cls='')=>`<rect class="${cls}" x="${x}" y="${Math.min(Y(v),zero)}" width="${bw}" height="${Math.max(.5,Math.abs(Y(v)-zero))}" rx="3" fill="${v<0?'#ba685d':fill}"/>`;
- const slot=(x,label='unknown')=>`<rect class="unknown-slot" x="${x}" y="${top+plot*.45}" width="${bw}" height="${plot*.55}" rx="3" fill="none" stroke="#9aa5b4" stroke-dasharray="4 3"/><text class="unknown-label" x="${x+bw/2}" y="${top+plot*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">${label}</text>`;
+ const slot=(x,label='unknown')=>`<rect class="unknown-slot" x="${x}" y="${top+plot*.45}" width="${bw}" height="${plot*.55}" rx="3" fill="none" stroke="#9aa5b4" stroke-dasharray="4 3"/>${label?`<text class="unknown-label" x="${x+bw/2}" y="${top+plot*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">${label}</text>`:''}`;
  let lastLab=null;data.forEach((d,i)=>{
-  const x=left+step*(i+.5),name=months[d.month-1],a=known(d.actual);
+  const x=left+step*(i+.5),name=months[d.month-1],a=known(d.actual),run=runs.find(r=>r.start<=i&&i<=r.end),soloLabel=run&&run.start===run.end?'unknown':'';
   const tip=name+': '+(a?amount(d.actual,c.metric):'unknown '+c.metric)+(compare==='py'?' · '+(opts.pyYear||'Previous year')+': '+(known(d.previous)?amount(d.previous,c.metric):'—')+(d.ppg==null?'':' · PPG '+(d.ppg>0?'+':'')+d.ppg.toFixed(1)+'%'):compare==='target'?(d.target==null?' · target unallocated':' · target '+amount(d.target,c.metric))+(d.pct==null?'':' · '+d.pct.toFixed(1)+'%'):'');
   svg+=`<g role="img" tabindex="0" aria-label="${esc(tip)}" data-tip="${esc(tip)}" data-month="${d.month}">`;
   let labelTop=zero,label='';
   if(compare==='py'){
    const px=x-bw-1.5,cx=x+1.5;
    svg+=known(d.previous)?bar(px,d.previous,'#b8cadd','py-bar'):'';
-   svg+=a?bar(cx,d.actual,'#245fa7','cy-bar'):slot(cx);
+   svg+=a?bar(cx,d.actual,'#245fa7','cy-bar'):slot(cx,soloLabel);
    labelTop=Math.min(known(d.previous)?Y(Math.max(0,d.previous)):zero,a?Y(Math.max(0,d.actual)):top+plot*.45-14);
    label=d.ppg==null?'':(d.ppg>0?'+':'')+d.ppg.toFixed(0)+'%';
-  }else if(!a){svg+=slot(x-bw/2);labelTop=null}
+  }else if(!a){svg+=slot(x-bw/2,soloLabel);labelTop=null}
   else{
    const capped=compare==='target'&&d.target>0?Math.min(d.actual,d.target):d.actual;
    svg+=bar(x-bw/2,capped,'#245fa7');
@@ -63,9 +67,13 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
   }
   svg+='</g>';
   // V72 R-22: a label that would touch its left neighbour at the same height moves up one line.
-  let ly=labelTop==null?null:labelTop-8;if(label&&ly!=null){const w=String(label).length*labelFont*.78;if(lastLab&&x-w/2<lastLab.r+4&&Math.abs(ly-lastLab.y)<labelFont+2)ly=lastLab.y-(labelFont+2);lastLab={r:x+w/2,y:ly}}
-  if(i%stride===0||i===data.length-1)svg+=`${label&&labelTop!=null?`<text class="bar-pct${compare==='py'?' ppg-label':''}" x="${x}" y="${ly}" text-anchor="middle" font-size="${labelFont}" font-weight="600" fill="${compare==='py'&&d.ppg<0?'#a4483b':'#405b78'}">${label}</text>`:''}<text x="${x}" y="250" text-anchor="middle" font-size="${labelFont}" fill="#5b6b7f">${name}</text>`;
+  if(!showLabels)label='';
+  let ly=labelTop==null?null:labelTop-8;if(label&&ly!=null){const w=String(label).length*labelFont*.78;if(lastLab&&x-w/2<lastLab.r+8&&Math.abs(ly-lastLab.y)<labelFont+2)ly=lastLab.y-(labelFont+2);lastLab={r:x+w/2,y:ly}}
+  if(i%stride===0||i===data.length-1)svg+=`${label&&labelTop!=null?`<text class="bar-pct${compare==='py'?' ppg-label':''}" x="${x}" y="${ly}" text-anchor="middle" font-size="${labelFont}" font-weight="600" fill="${compare==='py'&&d.ppg<0?'#a4483b':'#405b78'}">${label}</text>`:''}<text x="${x}" y="250" text-anchor="middle" font-size="${labelFont}" fill="#5b6b7f">${monthName(d.month)}</text>`;
  });
+ // One "unknown" label centred over each run of two or more consecutive unknown months (Oct–Dec), never one per slot.
+ for(const r of runs)if(r.end>r.start)svg+=`<text class="unknown-label" x="${left+step*((r.start+r.end)/2+.5)}" y="${top+plot*.45-6}" text-anchor="middle" font-size="11" fill="#5b6b7f">unknown</text>`;
+ if(!showLabels&&data.some(d=>labelOf(d)))svg+=`<text class="bar-label-note" x="${right}" y="266" text-anchor="end" font-size="10" fill="#5b6b7f">${compare==='py'?'Growth %':compare==='target'?'Achievement %':'Values'} in tooltip and table</text>`;
  return svg+'</svg>';
 }
 function renderSummary(){const c=context('summary');if(!c.months.length){$('summary-context').textContent='Select at least one month.';$('kpis').innerHTML=['Sales units','Sales value','Target units','Achievement'].map(label=>`<div class="kpi"><div class="label">${label}</div><strong>—</strong><small>No months selected</small></div>`).join('');return}const rows=panelRows('summary'),u=rows.reduce((s,r)=>s+r.units,0),v=rows.reduce((s,r)=>s+r.value,0),t=totalTarget(c,'units');$('summary-context').textContent=c.caption+' · Target: '+c.targetLabel;const a=t>0?u/t*100:null;$('kpis').innerHTML=[['Sales units',fmt(u),c.salesLabel],['Sales value','EGP '+fmt(v),c.salesLabel],['Target units',t===null?'—':fmt(t),c.targetLabel+' · Target2 provisional'],[c.scope==='year'?'Annual progress · units':'Achievement · units',a===null?'—':a.toFixed(0)+'%',t===null?'Target allocation unavailable':t===0?'No nonzero target':(u>=t?'Above target: ':'Remaining: ')+fmt(Math.abs(u-t))+' units']].map(a=>`<div class="kpi"><div class="label">${a[0]}</div><strong>${a[1]}</strong><small>${a[2]}</small></div>`).join('')}
