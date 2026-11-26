@@ -620,3 +620,11 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 #view-portfolio .src-name,.portfolio-card .src-name{display:block;font-size:11px;font-weight:400;color:#5b6b7f;text-transform:none;margin-top:2px}
 /* R-08 mix panels keep their own height instead of stretching to the tallest mix (no empty card bottoms) */
 #overview-grid .v69-panel[data-panel^="mix"],#overview-grid .v69-panel[data-panel="attention"]{align-self:start}
+
+/* V73 review fixes */
+/* N-04: the KPI label wraps as a flex row (chip included) and the value keeps room for its glyphs on every viewport. */
+#kpis .kpi{max-height:none}
+#kpis .kpi .label{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;line-height:1.3}
+#kpis .kpi strong{margin-top:0!important;line-height:1.25;padding-block:1px;flex-shrink:0}
+#kpis .kpi .label,#kpis .kpi small,#kpis .kpi .delta-chip{flex-shrink:0}
+@media(max-width:699px){#kpis .kpi strong{line-height:1.25}#kpis .kpi .kpi-label-unit{display:none}}

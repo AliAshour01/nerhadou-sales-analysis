@@ -215,7 +215,9 @@ function statusWord(status){return {good:'On or above target',warn:'Within 10% o
 // V72 R-04: a value longer than 14 characters is shown compact (EGP 1.75B, +EGP 215.7M) on every viewport;
 // the exact value stays in the title and in screen-reader text, and CSS ellipsis is only a safety net.
 function kpiValueHTML(value){const text=String(value),m=text.match(/^([+−-]?)(EGP )?([\d,]+(?:\.\d+)?)$/);if(!m||text.length<=14)return m&&m[2]?`${m[1]}<span class="kpi-unit">EGP</span> ${e(m[3])}`:e(text);const num=Number(m[3].replace(/,/g,'')),short=compact(num);return `<span class="kpi-value" aria-hidden="true">${m[1]}${m[2]?'<span class="kpi-unit">EGP</span> ':''}${e(short)}</span><span class="sr-only">${e(text)}</span>`}
-function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${e(label)}${labelHTML}</div><strong title="${e(value)}" data-exact="${e(value)}">${kpiValueHTML(value)}</strong>${body}</div>`}
+// V73 N-04: a trailing "· EGP" in the label is wrapped so phones can drop it (the value already shows EGP).
+function kpiLabelHTML(label){const m=String(label).match(/^(.*?)( · EGP)$/);return m?`<span>${e(m[1])}<span class="kpi-label-unit">${e(m[2])}</span></span>`:`<span>${e(label)}</span>`}
+function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${kpiLabelHTML(label)}${labelHTML}</div><strong title="${e(value)}" data-exact="${e(value)}">${kpiValueHTML(value)}</strong>${body}</div>`}
 function kpiCandidates(ctx){
  // V72 R-02: single-year cards use the focus year's recorded months (2023 Full year = Jan–Sep) and compare the months
  // both years record (ctx.compareMonths), the same months the Monthly chart and the bridge use.
