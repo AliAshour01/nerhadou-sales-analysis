@@ -221,7 +221,8 @@ function statusWord(status){return {good:'On or above target',warn:'Within 10% o
 // ── V69 U-12: KPI card sets (plan 4.1). Each slot has an ordered fallback list so no card is a bare "—". ──
 // V72 R-04: a value longer than 14 characters is shown compact (EGP 1.75B, +EGP 215.7M) on every viewport;
 // the exact value stays in the title and in screen-reader text, and CSS ellipsis is only a safety net.
-function kpiValueHTML(value){const text=String(value),u=text.match(/^EGP ([+−-])([\d,]+(?:\.\d+)?)$/),m=u?[text,u[1],'EGP ',u[2]]:text.match(/^([+−-]?)(EGP )?([\d,]+(?:\.\d+)?)$/);if(!m||text.length<=14)return m&&m[2]?`<span class="kpi-unit">EGP</span> ${m[1]}${e(m[3])}`:e(text);const num=Number(m[3].replace(/,/g,'')),short=compact(num);return `<span class="kpi-value" aria-hidden="true">${m[2]?'<span class="kpi-unit">EGP</span> ':''}${m[1]}${e(short)}</span><span class="sr-only">${e(text)}</span>`}
+let kpiCompactRow=false;
+function kpiValueHTML(value){const text=String(value),u=text.match(/^EGP ([+−-])([\d,]+(?:\.\d+)?)$/),m=u?[text,u[1],'EGP ',u[2]]:text.match(/^([+−-]?)(EGP )?([\d,]+(?:\.\d+)?)$/);if(!m||(text.length<=14&&!(kpiCompactRow&&m[2]&&Math.abs(Number(m[3].replace(/,/g,'')))>=1e4)))return m&&m[2]?`<span class="kpi-unit">EGP</span> ${m[1]}${e(m[3])}`:e(text);const num=Number(m[3].replace(/,/g,'')),short=compact(num);return `<span class="kpi-value" aria-hidden="true">${m[2]?'<span class="kpi-unit">EGP</span> ':''}${m[1]}${e(short)}</span><span class="sr-only">${e(text)}</span>`}
 // V73 N-04: a trailing "· EGP" in the label is wrapped so phones can drop it (the value already shows EGP).
 function kpiLabelHTML(label){const m=String(label).match(/^(.*?)( · EGP)$/);return m?`<span>${e(m[1])}<span class="kpi-label-unit">${e(m[2])}</span></span>`:`<span>${e(label)}</span>`}
 function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${kpiLabelHTML(label)}${labelHTML}</div><strong title="${e(value)}" data-exact="${e(value)}">${kpiValueHTML(value)}</strong>${body}</div>`}
@@ -284,7 +285,9 @@ function kpiCards(ctx){
  const slots=kpiSlots(ctx),probe={...ctx,slot4Price:false},C0=kpiCandidates(probe),used=new Set(),picks=[];
  for(const list of slots){const k=[...list,'products','months','avgMonth','bestMonth','other'].find(x=>C0[x]&&!used.has(x));if(k){used.add(k);picks.push(k)}}
  const C=picks[3]==='price'?kpiCandidates({...ctx,slot4Price:true}):C0;
- return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+picks.filter(k=>k&&C[k]).map(k=>C[k]()).join('');
+ // V73 N-16: when one EGP value in the row is compacted, every EGP value in the row is (exact value in title / sr-only).
+ const draw=()=>picks.filter(k=>k&&C[k]).map(k=>C[k]()).join('');let cards=draw();if(cards.includes('class="kpi-value"')){kpiCompactRow=true;try{cards=draw()}finally{kpiCompactRow=false}}
+ return `<div class="kpi-group-label sr-only">Performance · ${e(periodLabel(dashboard(),ctx.months))}</div>`+cards;
 }
 function drawBridge(id,result,metric,dimension='product',display=x=>x){const cap=isMobile()?6:8;
  const node=$(id);if(result.delta==null){node.innerHTML=`<p class="empty-chart">${e(result.reason||'Comparable periods unavailable.')}</p>`;return}
