@@ -565,7 +565,7 @@ function productFacts(ctx){
  if(u>0&&v!=null){const price=v/u;let note='EGP per unit';if(cy!=null&&ctx.growthOk){const pu=sum(cy,ctx.months,'units'),pv=sum(cy,ctx.months,'value');if(pu>0&&pv!=null){const pp=pv/pu,g=(price-pp)/pp*100;note=Math.abs(g)<0.05?`same as ${cy}`:`${g>=0?'+':'−'}${Math.abs(g).toFixed(1)}% vs ${cy} (${n(pp)})`}}items.push({label:'Average price',value:'EGP '+(price>=100?n(price):price.toFixed(1)),note})}
  if(ctx.hasTargets){let met=0,known=0;for(const month of ctx.months){const a=sum(fy,[month],m),t=tgt(ctx,[p],m,[month]);if(a==null||!(t>0))continue;known++;if(a>=t)met++}if(known)items.push({label:'Months on or above target',value:`${met} of ${known}`,note:'monthly target, '+unit})}
  for(const key of ['distributor','channel'])if(ctx.dims[key].categories===1)items.push({label:key==='distributor'?'Distributor':'Sales type',value:'100% '+ctx.dims[key].single});
- const trivial=new Set(['Largest contribution to decline','Largest growth driver','Largest target shortfall','Biggest beat vs target']);
+ const trivial=new Set(['Largest contribution to decline','Largest growth driver','Largest target shortfall','Biggest beat vs target','Growing, but below target','Growth driver above target','Declining and below target','Declining, but above target']);
  for(const a of attentionItems(ctx).filter(a=>!trivial.has(a.title)))items.push({label:a.title,value:a.chip,note:a.text,tone:a.tone});
  return items;
 }
@@ -576,6 +576,13 @@ function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return at
 // V69 U-05: one column, impact order, then 'Show all (n)' expands in place; the panel never sets the row height.
 // V72 R-07: top 3 shown in full (no inner scroll box); "Show all (n)" expands in place. R-21: 2 on phones.
 function renderAttention(){const all=attentionItems(),limit=isMobile()?2:3,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}"${r.source?` title="Source name: ${e(r.source)}"`:''} data-impact="${r.impact}" ${r.p?`data-select-product="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>${r.p?"Show this product →":"Show distributors →"}</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
+function mergeAttention(items,metric,py){
+ const change=items.filter(i=>['Largest growth driver','Largest contribution to decline'].includes(i.title)),vsPlan=items.filter(i=>['Largest target shortfall','Biggest beat vs target'].includes(i.title));
+ for(const c of change){const t=vsPlan.find(x=>x.p===c.p);if(!t)continue;const up=c.title==='Largest growth driver',short=t.title==='Largest target shortfall';
+  const merged={p:c.p,tone:up===!short?(up?'positive':'negative'):'neutral',impact:Math.max(c.impact,t.impact),chip:t.chip,title:up?(short?'Growing, but below target':'Growth driver above target'):(short?'Declining and below target':'Declining, but above target'),
+   text:`${c.p}: ${c.chip} vs ${py}, ${up===!short?'and':'but'} ${t.chip}${t.gapText?' ('+t.gapText+')':''}.`};
+  items.splice(items.indexOf(c),1,merged);items.splice(items.indexOf(t),1)}
+}
 function computeAttention(){
  // V68 S-35: balanced rules (positive and negative), a magnitude chip, sorted by absolute impact in the selected measure.
  const d=dashboard(),items=[],metric=ui.metric,unitWord=metric==='value'?'':' units',signed=v=>sAmt(v,metric)+unitWord;
@@ -585,8 +592,10 @@ function computeAttention(){
  if(driver)items.push({p:driver.product,tone:'positive',impact:driver.delta,chip:signed(driver.delta),title:'Largest growth driver',text:`${driver.product}: ${sAmt(driver.delta,metric)} vs same months ${d.snapshot.year-1}.`});
  const vsTarget=selectedProducts().map(p=>{const actual=summary(d.snapshot.year,d.months,metric,{...d.selection,product:[p]}).value,t=target([p],metric);return {product:p,actual,t,gap:actual!=null&&t!=null?t-actual:null}}).filter(r=>r.gap!=null&&r.t>0);
  const plan=d.targetBasis==='annual'?'full-year':'period',short=[...vsTarget].filter(r=>r.gap>0).sort((a,b)=>b.gap-a.gap)[0],beat=[...vsTarget].filter(r=>r.gap<0).sort((a,b)=>a.gap-b.gap)[0];
- if(short)items.push({p:short.product,tone:'negative',impact:short.gap,chip:`${n(short.actual/short.t*100)}% of target`,title:'Largest target shortfall',text:`${short.product}: ${amt(short.gap,metric)} remaining against the ${plan} plan.`});
- if(beat)items.push({p:beat.product,tone:'positive',impact:-beat.gap,chip:`${n(beat.actual/beat.t*100)}% of target`,title:'Biggest beat vs target',text:`${beat.product}: ${amt(-beat.gap,metric)} above the ${plan} plan.`});
+ if(short)items.push({p:short.product,tone:'negative',impact:short.gap,chip:`${n(short.actual/short.t*100)}% of target`,gapText:`${amt(short.gap,metric)} to go`,title:'Largest target shortfall',text:`${short.product}: ${amt(short.gap,metric)} remaining against the ${plan} plan.`});
+ if(beat)items.push({p:beat.product,tone:'positive',impact:-beat.gap,chip:`${n(beat.actual/beat.t*100)}% of target`,gapText:`${amt(-beat.gap,metric)} above plan`,title:'Biggest beat vs target',text:`${beat.product}: ${amt(-beat.gap,metric)} above the ${plan} plan.`});
+ // V73 N-15: one product that is both the biggest change and the biggest target gap gets one merged card, not two.
+ mergeAttention(items,metric,d.snapshot.year-1);
  const divergent=selectedProducts().map(p=>({product:p,u:pairs('units',{...d.selection,product:[p]}),v:pairs('value',{...d.selection,product:[p]})})).filter(r=>r.u.delta<0&&r.v.delta>0).sort((a,b)=>b.v.delta-a.v.delta)[0];if(divergent){const own=metric==='value'?divergent.v.delta:divergent.u.delta;items.push({p:divergent.product,tone:'neutral',impact:Math.abs(own),chip:signed(own),title:'Value up, units down',text:`${divergent.product}: value ${pct(divergent.v.ppg)}, units ${pct(divergent.u.ppg)}. Review price / mix; this does not establish the cause.`})}
  const end=Math.max(0,...d.months);if(end>=3&&[end-2,end-1,end].every(m=>d.months.includes(m))){const found=selectedProducts().map(p=>({p,vals:[end-2,end-1,end].map(m=>summary(d.snapshot.year,[m],metric,{...d.selection,product:[p]}).value)})).filter(x=>x.vals.every(Number.isFinite)&&x.vals[0]>x.vals[1]&&x.vals[1]>x.vals[2]).sort((a,b)=>(b.vals[0]-b.vals[2])-(a.vals[0]-a.vals[2]))[0];if(found)items.push({p:found.p,tone:'negative',impact:found.vals[0]-found.vals[2],chip:signed(found.vals[2]-found.vals[0]),title:'Three-month downward trend',text:`${found.p}: declining ${metric} in ${ms[end-3]}, ${ms[end-2]} and ${ms[end-1]}.`})}
  // Concentration is structural, not an impact amount: it ranks after the impact rules. NOT PROVIDED is a data gap, not a distributor.
