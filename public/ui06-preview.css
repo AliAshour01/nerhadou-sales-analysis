@@ -652,3 +652,17 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
  .risk-card dd{margin:0;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
  .risk-card dd.neg{color:#a1261b}
 }
+
+/* V74 review fixes */
+/* V-08: which forecast scenario a product misses in */
+.risk-scenario{display:block;margin:2px 0 0;font-size:11px;font-weight:600;line-height:1.3}
+.risk-scenario.both{color:#a1261b}.risk-scenario.avg{color:#8a5a12}.risk-scenario.unknown{color:#5b6b7f}
+th small.risk-scenario{font-weight:600}
+/* V-14: one product row with an expandable list of price versions */
+.pt-versions{margin-left:8px;font-size:12px;color:#33557a;background:none;border:0;padding:2px 4px;cursor:pointer;white-space:nowrap}
+.pt-versions:hover{text-decoration:underline}
+#details tr.member-row.version-row td,#details tr.member-row td.version-name{font-size:12.5px}
+#details td.version-name{padding-left:28px;color:#4a6078}
+#details td.version-name button{font-weight:500}
+/* V-03: dashed ghost bar for months the previous year did not record */
+.py-unknown{opacity:.85}

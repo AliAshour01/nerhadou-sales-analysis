@@ -37,9 +37,9 @@ await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, 
 // R-02 · acceptance 4: 2024 full year: KPI, monthly chart and bridge agree on vs-2023 Jan–Sep
 await window.actualDashboard.apply(cfg({ years: [2024], year: 2024, months: FY, periodMode: 'full' }));
 assert(/▲ Up|▼ Down/.test(kpiText()), 'KPI has a vs-2023 change');
-assert(/Jan–Sep only, Oct–Dec 2023 not recorded/.test(kpiText()));
+assert(/Jan–Sep only, Oct–Dec 2023 not recorded/.test([...document.querySelectorAll('#kpis .delta-chip')].map((x) => x.title).join(' ')), 'V74: the not-recorded note lives in the chip title, not repeated on the card');
 assert(visible().includes('bridge'), 'bridge shown');
-assert(/2023 → 2024 · Jan–Sep only/.test($('movement-context').textContent));
+assert(/2023 → 2024 · Jan–Sep in both years/.test($('movement-context').textContent));
 assert($('trend').querySelector('.ppg-label, .py-bar'), 'monthly chart compares with 2023');
 
 // R-03 · acceptance 5: March only
@@ -57,9 +57,15 @@ assert.match($('forecast-why').textContent, /19% apart\. Seasonality is higher b
 {
   const rows = [...$('forecast-risk').querySelectorAll('tbody tr')];
   assert(rows.length > 0 && rows.length <= 10, 'top 10 at most');
-  const gaps = rows.map((r) => -Number(r.children[5].textContent.replace(/[^0-9]/g, '')));
-  assert.deepEqual(gaps, [...gaps].sort((a, b) => a - b), 'largest gap first');
+  // V74 V-08: products that miss in every scenario that can be computed come first, YTD-average-only misses after; largest gap first within each.
+  const rank = (r) => ({ both: 0, unknown: 0, avg: 1 })[r.querySelector('.risk-scenario').className.split(' ').pop()];
+  assert.deepEqual(rows.map(rank), rows.map(rank).sort((x, y) => x - y), 'scenario order');
+  const gaps = rows.filter((r) => rank(r) === 0).map((r) => -Number(r.children[5].textContent.replace(/[^0-9]/g, '')));
+  assert.deepEqual(gaps, [...gaps].sort((x, y) => x - y), 'largest gap first within a scenario');
   assert.equal(rows[0].dataset.riskProduct, 'Methyltechno - TENDER');
+  // V74 V-02: the one-off tender has no reliable seasonal projection (only 1% of its 2025 sales came by August).
+  const tender = rows.find((r) => r.dataset.riskProduct === 'Methyltechno - TENDER');
+  assert(tender && tender.children[3].textContent.trim() === '—' && /not reliable/.test(tender.children[3].title), 'tender seasonality withheld ' + rows.map((r) => r.dataset.riskProduct).join('|') + (tender ? tender.children[3].outerHTML : ''));
 }
 await window.actualDashboard.apply(cfg({ section: 'forecast', selection: { ...none, distributor: ['PHARMA'] } }));
 assert($('forecast-risk-wrap').hidden);
@@ -101,10 +107,13 @@ await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, 
 {
   const head = document.querySelector('#view-portfolio thead').textContent;
   assert.match(head, /Sales Jan–Sep/);
-  const named = [...document.querySelectorAll('#view-portfolio tbody [data-select-product]')].find((b) => b.querySelector('.src-name'));
-  assert(named, 'source name shown under the display name');
-  assert.match(named.title, /^Source name: /);
-  assert.notEqual(named.dataset.selectProduct, named.firstChild.textContent, 'filter key stays the source name');
+  // V74 V-14: price versions are one product row with an expandable list of the source names.
+  const toggle = document.querySelector('#view-portfolio tbody .pt-versions');
+  assert(toggle, 'a product with price versions shows one row with a price-versions toggle');
+  assert.match(toggle.textContent, /\d+ price versions/);
+  toggle.click();
+  const sub = [...document.querySelectorAll('#view-portfolio tbody .version-name button')];
+  assert(sub.length >= 2 && sub.every((b) => b.dataset.selectProduct), 'expanding lists each source name');
 }
 await window.actualDashboard.apply(cfg());
 

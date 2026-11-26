@@ -18,11 +18,11 @@ let c = ctx({}),
 assert.deepEqual(d.cols.map((x) => x.kind), ['sales', 'share', 'py', 'ppg', 'target', 'ach', 'gap']);
 assert.equal(d.total.cells['sales:units'], comparableSummary(records, 2026, ytd(8), 'units', none).value);
 assert.equal(d.total.cells['target:units'], targetSum(records, { year: 2026 }, c.products, ytd(8), 'units', none, false));
-assert.equal(d.rows.length, c.productCount);
+assert.equal(d.rows.length, 65, 'one row per comparison product (V74: Tadanerfi 5MG 20/30 FILM and the tender twins are grouped)');
 assert.ok(Math.abs(d.total.cells['share:units'] - 100) < 1e-9, 'company scope share is 100%');
 let h = productsTableHTML(d, c, { sort: 'sales', desc: true, measures: ['units'] });
 assert.equal(h.shown, TOP_ROWS, 'top 15 then Show all');
-assert.match(h.more, /Show all 67/);
+assert.match(h.more, /Show all 65/);
 assert.deepEqual(sortOptions(c).map((x) => x[0]), ['sales', 'growth', 'increase', 'decline', 'shortfall', 'ach', 'name']);
 const sorted = sortRows(d.rows, c, 'shortfall', true, 'units').map((r) => r.cells['gap:units']).filter(Number.isFinite);
 assert.ok(sorted.every((v, i) => !i || v >= sorted[i - 1]), 'target shortfall sorts largest gap first');

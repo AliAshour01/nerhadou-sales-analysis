@@ -1,6 +1,22 @@
 export function monthsFor(mode,month=8,selected=[]){return mode==='annual'?Array.from({length:12},(_,i)=>i+1):mode==='month'?Array.from(new Set(selected)).filter(m=>Number.isInteger(m)&&m>=1&&m<=12).sort((a,b)=>a-b):Array.from({length:Math.max(0,Math.min(12,Number(month)))},(_,i)=>i+1)}
+// V74 V-13: reviewed corrections to the source-file product mapping (confirmed by the owner, 2026-11-27). The same rules
+// belong in scripts/refresh-history.py identity() at the next data refresh; source data is not edited here.
+const KEY_ALIASES=new Map([
+ ['NERDECONG','NERDECONG 2.5MG'], // 2026 file drops the strength; same product as 2023-24 "Nerdecong 2.5mg 20pouch"
+ ['NERCAFIX','NERCAFIX 40MG'], // 2021-24 "NERCAFIX 20/30 FILM" is the product sold as NERCAFIX 40MG from 2025
+ ['ZOLMASONE 2.5MG','ZOLMSOLAN 2.5MG'], // 2021 spelling of ZOLMSOLAN
+ ['ZOLMASONE 5MG','ZOLMSOLAN 5MG'],
+]);
+const SOURCE_ALIASES=[
+ [/^MELACRYST 20 FILM (OLD|NEW|N\.NEW) PRICE\s*$/i,'MELACRYST 1.5MG'], // 2023 rows without strength: 3MG had no 2023 sales, price matches 1.5MG
+ [/^NERHAPEZIL 10\s*$/i,'NERHAPEZIL 10MG'], // 2024 zero row
+ [/^FERROTRON FORT\s*$/i,'FERROTRON FORT'], // a separate product with its own target, not FERROTRON
+];
 export function comparisonProduct(r){
- const name=r.comparison_product||r.product;
+ let name=r.comparison_product||r.product;
+ const src=String(r.product??'').replace(/\s*[-–—]?\s*\(?\btender\b\)?\s*$/i,'').trim();
+ const bySource=SOURCE_ALIASES.find(([re])=>re.test(src));
+ if(bySource)name=bySource[1];else if(KEY_ALIASES.has(String(name).toUpperCase()))name=KEY_ALIASES.get(String(name).toUpperCase());
  // Preserve reviewed historical mapping, but never merge explicit Tender sales with regular sales.
  if(!/\btender\b/i.test([r.product,r.channel,name].join(' ')))return name;
  const base=String(name).replace(/\s*[-–—]?\s*\(?\bTENDER\b\)?\s*$/i,'').trim();

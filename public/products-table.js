@@ -1,18 +1,18 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v73';
-import { knownCategory, monthSpan, comparisonRecords } from './view-context.js?v=sales-review-v73';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v73';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v74';
+import { knownCategory, monthSpan, comparisonRecords, productDisplayNames } from './view-context.js?v=sales-review-v74';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v74';
 
-// V73 N-01: before the latest two years, source names are price versions that change every year, so the previous-year
-// side of a single-year row is looked up by comparison name. Only when the focus year has exactly the selected source
-// names under those comparison names (no other price version would be counted); otherwise the cell stays unknown.
+// V74 V-14: the previous-year side of a single-year row is looked up by comparison name (price versions and renamed
+// packs of one product are one product). A row that stands for only some of the price versions the focus year has
+// under that comparison name cannot be compared (last year's total belongs to all of them): it stays unknown.
 function previousLookup(ctx) {
-  if (ctx.yearMode !== 'single' || ctx.compareYear == null || !(ctx.compareYear < ctx.latestYear - 1)) return null;
+  if (ctx.yearMode !== 'single' || ctx.compareYear == null) return null;
   const keyOf = new Map(),
     srcOf = new Map();
   for (const r of ctx.records) {
-    if (r.dataset !== 'actual' || r.year !== ctx.focusYear || !(r.month > 0)) continue;
+    if (r.dataset !== 'actual' || r.year !== ctx.focusYear || !ctx.months.includes(r.month)) continue;
     const key = comparisonProduct(r),
       name = productKey(r.product);
     keyOf.set(name, key);
@@ -20,11 +20,11 @@ function previousLookup(ctx) {
     srcOf.get(key).add(name);
   }
   const recs = comparisonRecords(ctx.records);
-  return (filters) => {
+  return (filters, total = false) => {
     if (!filters.product?.length) return { recs: ctx.records, filters };
     const wanted = new Set(filters.product.map(productKey)),
       keys = [...new Set([...wanted].map((p) => keyOf.get(p)).filter(Boolean))];
-    if (!keys.length || keys.some((k) => [...srcOf.get(k)].some((s) => !wanted.has(s)))) return { recs: ctx.records, filters, shared: true };
+    if (!keys.length || keys.some((k) => [...srcOf.get(k)].some((sn) => !wanted.has(sn)))) return total ? { recs: ctx.records, filters } : { recs: ctx.records, filters, unknown: true };
     return { recs, filters: { ...filters, product: keys } };
   };
 }
@@ -77,29 +77,39 @@ export function tableColumns(ctx, measures, period = '') {
   return cols;
 }
 
+// V74 V-14: one entry per product. Multi-year records already carry comparison names; in a single year the source names
+// (price versions, packs) that share a comparison name are grouped into one entry with `sources`.
 function productUniverse(ctx) {
-  const wanted = new Set(ctx.years);
+  const wanted = new Set(ctx.years),
+    single = ctx.yearMode === 'single';
   const rows = scopeRecords(ctx.records, ctx.selection).filter((r) => r.dataset === 'actual' && wanted.has(r.year) && ctx.months.includes(r.month));
-  const byProduct = new Map();
+  const byKey = new Map();
   for (const r of rows) {
-    if (ctx.yearMode === 'single' && r.year !== ctx.focusYear) continue;
-    let p = byProduct.get(r.product);
-    if (!p) byProduct.set(r.product, (p = new Map()));
-    if (knownCategory(r.line)) p.set(r.line, (p.get(r.line) || 0) + Math.abs(Number(r[ctx.measure]) || 0));
+    if (single && r.year !== ctx.focusYear) continue;
+    const key = single ? comparisonProduct(r) : r.product;
+    let p = byKey.get(key);
+    if (!p) byKey.set(key, (p = { sources: new Map(), lines: new Map() }));
+    p.sources.set(productKey(r.product), (p.sources.get(productKey(r.product)) ?? r.product));
+    if (knownCategory(r.line)) p.lines.set(r.line, (p.lines.get(r.line) || 0) + Math.abs(Number(r[ctx.measure]) || 0));
   }
-  return [...byProduct.entries()].map(([product, lines]) => ({ product, line: [...lines.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'Not provided' }));
+  const display = single ? productDisplayNames(ctx.records) : null;
+  return [...byKey.entries()].map(([key, p]) => {
+    const sources = [...p.sources.values()].sort(),
+      line = [...p.lines.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'Not provided';
+    return sources.length > 1 ? { product: display.multi(key), key, sources, line, versions: true } : { product: sources[0], key, sources, line };
+  });
 }
 
 // One product (or the selection total) → cell values and "why unavailable" reasons.
-function cells(ctx, cols, filters, { total = false, product = null, products = [], annual = false, company, lookup = null }) {
-  const prevSide = lookup ? lookup(filters) : null;
+function cells(ctx, cols, filters, { total = false, product = null, products = [], sources = null, annual = false, company, lookup = null }) {
+  const prevSide = lookup ? lookup(filters, total) : null;
   const out = {},
     why = {},
     memo = new Map(),
     sum = (year, m) => {
       const k = year + m,
         side = prevSide && year === ctx.compareYear ? prevSide : { recs: ctx.records, filters };
-      if (!memo.has(k)) memo.set(k, comparableSummary(side.recs, year, ctx.dataMonths || ctx.months, m, side.filters));
+      if (!memo.has(k)) memo.set(k, side.unknown ? { value: null, rows: [], reason: null } : comparableSummary(side.recs, year, ctx.dataMonths || ctx.months, m, side.filters));
       return memo.get(k);
     },
     partial = ctx.yearMode === 'single' && ctx.comparePartial,
@@ -107,13 +117,13 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
       if (!partial) return sum(year, m);
       const k = 'c' + year + m,
         side = prevSide && year === ctx.compareYear ? prevSide : { recs: ctx.records, filters };
-      if (!memo.has(k)) memo.set(k, comparableSummary(side.recs, year, ctx.compareMonths, m, side.filters));
+      if (!memo.has(k)) memo.set(k, side.unknown ? { value: null, rows: [], reason: null } : comparableSummary(side.recs, year, ctx.compareMonths, m, side.filters));
       return memo.get(k);
     },
     // V72 R-01: a year that does not record the filtered dimension is unknown, not "not sold".
     gapFor = (year) => (s) => (!s.rows?.length ? dimensionGap(ctx.records, year, ctx.months, ctx.selection) : null),
     salesReason = (s, year) => {
-      if (prevSide?.shared && year === ctx.compareYear && !s.rows?.length) return `${ctx.focusYear} splits this product into several price versions; see What drove the change for ${year} → ${ctx.focusYear}.`;
+      if (prevSide?.unknown && year === ctx.compareYear) return `Price versions change every year, so ${year} can only be compared at product level (see the product row).`;
       const gap = gapFor(year)(s);
       return gap ? `${year} has no ${gap.word} data.` : !s.rows?.length ? (total ? 'No sales in this selection.' : `Not sold in ${year}`) : s.reason || 'Sales unavailable.';
     };
@@ -141,11 +151,11 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
       if (now.value != null && prev.value != null) v = c.kind === 'change' ? now.value - prev.value : prev.value > 0 ? ((now.value - prev.value) / prev.value) * 100 : null;
       if (v == null) r = prev.value == null ? salesReason(prev, cy) : now.value == null ? salesReason(now, fy) : `No ${cy} sales to grow from.`;
     } else if (c.kind === 'target' || c.kind === 'ach' || c.kind === 'gap') {
-      const t = total ? targetSum(ctx.records, { year: fy }, products, ctx.months, m, ctx.selection, annual) : portfolioTarget(ctx.records, { year: fy }, product, ctx.months, m, ctx.selection, annual);
+      const t = total || sources ? targetSum(ctx.records, { year: fy }, sources || products, ctx.months, m, ctx.selection, annual) : portfolioTarget(ctx.records, { year: fy }, product, ctx.months, m, ctx.selection, annual);
       if (c.kind === 'target') v = t;
       else if (c.kind === 'ach') v = cur.value != null && t > 0 ? (cur.value / t) * 100 : null;
       else v = cur.value != null && t != null ? cur.value - t : null;
-      if (v == null) r = t == null ? (total ? 'One or more selected products have no complete target.' : 'No target for this product and period.') : t === 0 && c.kind === 'ach' ? 'Zero target: achievement is undefined.' : salesReason(cur, fy);
+      if (v == null) r = t == null ? (total || sources ? 'One or more selected products have no complete target.' : 'No target for this product and period.') : t === 0 && c.kind === 'ach' ? 'Zero target: achievement is undefined.' : salesReason(cur, fy);
     }
     out[c.key] = v;
     if (r) why[c.key] = r;
@@ -158,19 +168,24 @@ export function productsTableData(ctx, { measures = [ctx.measure], targetBasis =
     annual = targetBasis === 'annual' && ctx.hasTargets,
     company = Object.fromEntries(measures.map((m) => [m, comparableSummary(ctx.records, ctx.focusYear, ctx.dataMonths || ctx.months, m, {}).value])),
     universe = productUniverse(ctx),
-    names = universe.map((u) => u.product);
+    names = universe.map((u) => u.key);
   const lookup = previousLookup(ctx);
   const total = { product: 'Total (selection)', total: true, ...cells(ctx, cols, ctx.selection, { total: true, products: ctx.products, annual, company, lookup }) };
-  const rows = universe.map((u) => ({ product: u.product, line: u.line, ...cells(ctx, cols, { ...ctx.selection, product: [u.product] }, { product: u.product, annual, company, lookup }) }));
+  const rows = universe.map((u) => {
+    const own = cells(ctx, cols, { ...ctx.selection, product: u.sources }, { product: u.product, sources: u.versions ? u.sources : null, annual, company, lookup });
+    // Price versions: expandable sub-rows (their previous year stays unknown: a price version has no own history).
+    const versions = u.versions ? u.sources.map((src) => ({ product: src, line: u.line, member: true, version: true, ...cells(ctx, cols, { ...ctx.selection, product: [src] }, { product: src, annual, company, lookup }) })).sort((a, b) => (b.cells[cols[0].key] ?? -Infinity) - (a.cells[cols[0].key] ?? -Infinity)) : null;
+    return { product: u.product, key: u.key, sources: u.sources, line: u.line, versions, ...own };
+  });
   const term = search.trim().toLowerCase(),
     view = term ? rows.filter((r) => r.product.toLowerCase().includes(term)) : rows;
-  return { cols, total, rows, view, count: names.length, company, tender: tenderGroups(ctx, cols, rows, annual, company) };
+  return { cols, total, rows, view, count: names.length, company, tender: tenderGroups(ctx, cols, rows, annual, company, lookup) };
 }
 
 // V72 R-19: "Combine tender with base product". Each base product and its tender twin(s) get one combined row computed
 // like the Total row (sales summed from records, targets summed per product with targetSum, never allocated), so
 // PPG / achievement are recomputed from the combined amounts.
-function tenderGroups(ctx, cols, rows, annual, company) {
+function tenderGroups(ctx, cols, rows, annual, company, lookup) {
   const groups = new Map();
   for (const r of rows) {
     const key = productKey(tenderBase(r.product));
@@ -180,9 +195,9 @@ function tenderGroups(ctx, cols, rows, annual, company) {
   const out = new Map();
   for (const [key, members] of groups) {
     if (members.length < 2) continue;
-    const names = members.map((m) => m.product),
+    const names = members.flatMap((m) => m.sources || [m.product]),
       base = members.find((m) => tenderBase(m.product) === m.product.trim())?.product || tenderBase(members[0].product);
-    const combined = cells(ctx, cols, { ...ctx.selection, product: names }, { total: true, products: names, annual, company });
+    const combined = cells(ctx, cols, { ...ctx.selection, product: names }, { total: true, products: names, annual, company, lookup });
     out.set(key, { product: base, line: members[0].line, combined: true, key, members, ...combined });
   }
   return out;
@@ -301,13 +316,19 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       ? `<th scope="row" class="sticky-col">${esc(r.product)}</th>`
       : r.combined
         ? `<td class="sticky-col combined-name"><button type="button" class="pt-expand" data-pt-expand="${esc(r.key)}" aria-expanded="${expanded.has(r.key)}" title="${esc(r.members.map((m) => m.product).join(' + '))}"><span aria-hidden="true">${expanded.has(r.key) ? '▾' : '▸'}</span> ${esc(r.product)} <small>+ Tender</small></button></td>`
+      : r.version
+        ? `<td class="sticky-col member-name version-name"><button data-select-product="${esc(r.product)}" title="Price version · show on Overview">${esc(r.product)}</button></td>`
       : r.member
-        ? `<td class="sticky-col member-name"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`
+        ? `<td class="sticky-col member-name">${r.sources?.length > 1 ? `<button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button>` : `<button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button>`}</td>`
+      : r.versions
+        ? `<td class="sticky-col"><button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button> <button type="button" class="pt-expand pt-versions" data-pt-expand="v:${esc(r.key)}" aria-expanded="${expanded.has('v:' + r.key)}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${expanded.has('v:' + r.key) ? '▾' : '▸'}</span> ${r.sources.length} price versions</button></td>`
       : r.subtotal
         ? `<th scope="row" class="sticky-col">${esc(r.product)} <small>subtotal</small></th>`
         : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`;
-    const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ' class="subtotal-row"' : r.combined ? ' class="combined-row"' : r.member ? ' class="member-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
-    return r.combined && expanded.has(r.key) ? own + r.members.map((m) => row({ ...m, member: true })).join('') : own;
+    const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ' class="subtotal-row"' : r.combined ? ' class="combined-row"' : r.version ? ' class="member-row version-row"' : r.member ? ' class="member-row"' : r.versions ? ' class="versions-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
+    if (r.combined && expanded.has(r.key)) return own + r.members.map((m) => row({ ...m, member: true })).join('');
+    if (r.versions && expanded.has('v:' + r.key)) return own + r.versions.map((v) => row(v)).join('');
+    return own;
   };
   let body = row(total);
   if (grouped) for (const g of groupByLine(sorted, cols)) body += row(g.sub) + g.rows.map(row).join('');
@@ -337,7 +358,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
   const card = (r) => {
     const s = r.cells[sk],
       tag = r.total || r.combined ? 'div' : 'button',
-      attrs = r.total || r.combined ? '' : ` type="button" data-select-product="${esc(r.product)}"`,
+      attrs = r.total || r.combined ? '' : r.sources?.length > 1 ? ` type="button" data-select-products="${esc(JSON.stringify(r.sources))}"` : ` type="button" data-select-product="${esc(r.product)}"`,
       cell = ([label, key, fmt]) => {
         const v = r.cells[key];
         return `<span class="pc-cell"><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
