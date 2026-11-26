@@ -1,7 +1,33 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v72';
-import { knownCategory, monthSpan } from './view-context.js?v=sales-review-v72';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v73';
+import { knownCategory, monthSpan, comparisonRecords } from './view-context.js?v=sales-review-v73';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v73';
+
+// V73 N-01: before the latest two years, source names are price versions that change every year, so the previous-year
+// side of a single-year row is looked up by comparison name. Only when the focus year has exactly the selected source
+// names under those comparison names (no other price version would be counted); otherwise the cell stays unknown.
+function previousLookup(ctx) {
+  if (ctx.yearMode !== 'single' || ctx.compareYear == null || !(ctx.compareYear < ctx.latestYear - 1)) return null;
+  const keyOf = new Map(),
+    srcOf = new Map();
+  for (const r of ctx.records) {
+    if (r.dataset !== 'actual' || r.year !== ctx.focusYear || !(r.month > 0)) continue;
+    const key = comparisonProduct(r),
+      name = productKey(r.product);
+    keyOf.set(name, key);
+    if (!srcOf.has(key)) srcOf.set(key, new Set());
+    srcOf.get(key).add(name);
+  }
+  const recs = comparisonRecords(ctx.records);
+  return (filters) => {
+    if (!filters.product?.length) return { recs: ctx.records, filters };
+    const wanted = new Set(filters.product.map(productKey)),
+      keys = [...new Set([...wanted].map((p) => keyOf.get(p)).filter(Boolean))];
+    if (!keys.length || keys.some((k) => [...srcOf.get(k)].some((s) => !wanted.has(s)))) return { recs: ctx.records, filters, shared: true };
+    return { recs, filters: { ...filters, product: keys } };
+  };
+}
 
 const finite = Number.isFinite;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -65,25 +91,29 @@ function productUniverse(ctx) {
 }
 
 // One product (or the selection total) → cell values and "why unavailable" reasons.
-function cells(ctx, cols, filters, { total = false, product = null, products = [], annual = false, company }) {
+function cells(ctx, cols, filters, { total = false, product = null, products = [], annual = false, company, lookup = null }) {
+  const prevSide = lookup ? lookup(filters) : null;
   const out = {},
     why = {},
     memo = new Map(),
     sum = (year, m) => {
-      const k = year + m;
-      if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.dataMonths || ctx.months, m, filters));
+      const k = year + m,
+        side = prevSide && year === ctx.compareYear ? prevSide : { recs: ctx.records, filters };
+      if (!memo.has(k)) memo.set(k, comparableSummary(side.recs, year, ctx.dataMonths || ctx.months, m, side.filters));
       return memo.get(k);
     },
     partial = ctx.yearMode === 'single' && ctx.comparePartial,
     sumC = (year, m) => {
       if (!partial) return sum(year, m);
-      const k = 'c' + year + m;
-      if (!memo.has(k)) memo.set(k, comparableSummary(ctx.records, year, ctx.compareMonths, m, filters));
+      const k = 'c' + year + m,
+        side = prevSide && year === ctx.compareYear ? prevSide : { recs: ctx.records, filters };
+      if (!memo.has(k)) memo.set(k, comparableSummary(side.recs, year, ctx.compareMonths, m, side.filters));
       return memo.get(k);
     },
     // V72 R-01: a year that does not record the filtered dimension is unknown, not "not sold".
     gapFor = (year) => (s) => (!s.rows?.length ? dimensionGap(ctx.records, year, ctx.months, ctx.selection) : null),
     salesReason = (s, year) => {
+      if (prevSide?.shared && year === ctx.compareYear && !s.rows?.length) return `${ctx.focusYear} splits this product into several price versions; see What drove the change for ${year} → ${ctx.focusYear}.`;
       const gap = gapFor(year)(s);
       return gap ? `${year} has no ${gap.word} data.` : !s.rows?.length ? (total ? 'No sales in this selection.' : `Not sold in ${year}`) : s.reason || 'Sales unavailable.';
     };
@@ -129,8 +159,9 @@ export function productsTableData(ctx, { measures = [ctx.measure], targetBasis =
     company = Object.fromEntries(measures.map((m) => [m, comparableSummary(ctx.records, ctx.focusYear, ctx.dataMonths || ctx.months, m, {}).value])),
     universe = productUniverse(ctx),
     names = universe.map((u) => u.product);
-  const total = { product: 'Total (selection)', total: true, ...cells(ctx, cols, ctx.selection, { total: true, products: ctx.products, annual, company }) };
-  const rows = universe.map((u) => ({ product: u.product, line: u.line, ...cells(ctx, cols, { ...ctx.selection, product: [u.product] }, { product: u.product, annual, company }) }));
+  const lookup = previousLookup(ctx);
+  const total = { product: 'Total (selection)', total: true, ...cells(ctx, cols, ctx.selection, { total: true, products: ctx.products, annual, company, lookup }) };
+  const rows = universe.map((u) => ({ product: u.product, line: u.line, ...cells(ctx, cols, { ...ctx.selection, product: [u.product] }, { product: u.product, annual, company, lookup }) }));
   const term = search.trim().toLowerCase(),
     view = term ? rows.filter((r) => r.product.toLowerCase().includes(term)) : rows;
   return { cols, total, rows, view, count: names.length, company, tender: tenderGroups(ctx, cols, rows, annual, company) };

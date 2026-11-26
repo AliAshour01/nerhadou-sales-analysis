@@ -44,7 +44,7 @@ PRODUCT CATALOG (CSV with headers):
 product_id,product,year,channel,distributor,line,default_dataset
 `+catalog().map(r=>[r.product_id,r.product,r.year,r.channel,r.distributor,r.line,r.default_dataset].map(csv).join(',')).join('\n')}
 
-function renderComparison(){if(!state)return;const payload={records,seed:state.seed,revision:state.revision,sourceVersion:state.seed.version,updatedAt:state.updatedAt};if(window.updateComparison)window.updateComparison(payload);window.commercialAnalysisData=payload;window.dispatchEvent?.(new CustomEvent('commercial:data',{detail:payload}))}
+function renderComparison(){if(!state)return;const payload={records,seed:state.seed,revision:state.revision,sourceVersion:state.seed.version,updatedAt:state.updatedAt,updatedBy:state.audit?.[0]?.actor||null};if(window.updateComparison)window.updateComparison(payload);window.commercialAnalysisData=payload;window.dispatchEvent?.(new CustomEvent('commercial:data',{detail:payload}))}
 
 let refreshing=false;
 window.refreshCommercialData=async()=>{if(busy||refreshing)return;refreshing=true;$('refresh-shared-data').disabled=true;try{await load();await window.refreshSalesSnapshot?.()}catch(e){$('shared-data-state').textContent='Refresh failed. Try again.';throw e}finally{refreshing=false;$('refresh-shared-data').disabled=false}};

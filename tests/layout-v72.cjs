@@ -1,4 +1,4 @@
-// V72 user-review layout checks in a real browser (Playwright + Chromium) against a local read-only harness.
+// V72 user-review layout checks (V73 adds N-04 / N-06 checks) in a real browser (Playwright + Chromium) against a local read-only harness.
 // Serves public/ and the baseline private/seed.json from memory; never writes data and never contacts the live site.
 // Usage: node tests/layout-v72.cjs [--shots DIR]
 const http = require('node:http');
@@ -54,6 +54,14 @@ function inspect({ mobile, strictGap }) {
   // R-04: KPI numbers are never clipped.
   for (const s of document.querySelectorAll('#kpis .kpi strong')) if (vis(s) && s.scrollWidth > s.clientWidth + 1) out.push(`KPI clipped: ${s.textContent.trim()}`);
   for (const k of document.querySelectorAll('#kpis .kpi')) if (vis(k) && k.scrollHeight > k.clientHeight + 1) out.push(`KPI card overflow: ${k.querySelector('.label')?.textContent.trim()}`);
+  // V73 N-04: the KPI value sits below its label and keeps its full line height (never shrunk or covered).
+  for (const k of document.querySelectorAll('#kpis .kpi')) {
+    const l = k.querySelector('.label'), s = k.querySelector('strong');
+    if (!vis(s) || !l) continue;
+    const lr = l.getBoundingClientRect(), sr = s.getBoundingClientRect(), fs = parseFloat(getComputedStyle(s).fontSize);
+    if (sr.top < lr.bottom - 1) out.push(`KPI value covered by its label: ${l.textContent.trim()}`);
+    if (sr.height < fs) out.push(`KPI value cut (${Math.round(sr.height)}px < ${fs}px): ${l.textContent.trim()}`);
+  }
   // R-07/R-08: no inner scrollbars in Needs attention or Product facts.
   for (const id of ['attention-list', 'product-facts']) { const n = document.getElementById(id); if (vis(n) && n.scrollHeight > n.clientHeight + 1) out.push(`${id} has an inner scrollbar`); }
   // R-05/R-06/R-09: axis and value labels in the bridge and Sales by year do not overlap.
@@ -71,6 +79,9 @@ function inspect({ mobile, strictGap }) {
   if (vis(trend) && !document.querySelector('#trend .cumulative')) {
     const months = trend.querySelectorAll('[data-month]').length, labels = [...trend.querySelectorAll('text[y="250"]')].filter((t) => /^[A-Z][a-z]{2}$/.test(t.textContent)).length;
     if (months && months <= 9 && labels < months) out.push(`monthly chart shows ${labels} of ${months} month labels`);
+    // V73 N-06: up to 12 months every month keeps a label (initials when narrow), and at most one "unknown" per run.
+    const any = [...trend.querySelectorAll('text[y="250"]')].filter((t) => /^[A-Z]([a-z]{2})?$/.test(t.textContent)).length;
+    if (months && months <= 12 && any < months) out.push(`monthly chart labels ${any} of ${months} months`);
   }
   // R-08: no panel ends with more than 120 px of empty space.
   if (!mobile) for (const p of document.querySelectorAll('#overview-grid .v69-panel:not([hidden])')) {
