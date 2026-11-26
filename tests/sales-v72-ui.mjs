@@ -57,7 +57,7 @@ assert.match($('forecast-why').textContent, /19% apart\. Seasonality is higher b
 {
   const rows = [...$('forecast-risk').querySelectorAll('tbody tr')];
   assert(rows.length > 0 && rows.length <= 10, 'top 10 at most');
-  const gaps = rows.map((r) => -Number(r.children[4].textContent.replace(/[^0-9]/g, '')));
+  const gaps = rows.map((r) => -Number(r.children[5].textContent.replace(/[^0-9]/g, '')));
   assert.deepEqual(gaps, [...gaps].sort((a, b) => a - b), 'largest gap first');
   assert.equal(rows[0].dataset.riskProduct, 'Methyltechno - TENDER');
 }

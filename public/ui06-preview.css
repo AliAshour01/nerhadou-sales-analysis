@@ -638,3 +638,17 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 #sales>.filters #period-mode{min-width:150px}
 /* N-13: Sales by line "Show all (n)" under the bars */
 .mix-show-all{margin-top:6px;font-size:12px}
+/* N-14: phone Forecast: end values under the chart; Products at risk as cards */
+.fc-end-row{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;margin:4px 0 0}
+.fc-end-row b{font-weight:650}
+.forecast-risk-cards{display:none}
+@media(max-width:699px){
+ #forecast-risk .table-scroll{display:none}
+ .forecast-risk-cards{display:grid;gap:10px}
+ .risk-card{border:1px solid #e3e9f1;border-radius:10px;padding:10px 12px;background:#fff}
+ .risk-card-name{margin:0 0 6px;font-weight:650;font-size:13px;color:#1f3555}
+ .risk-card dl{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:0}
+ .risk-card dt{font-size:11px;color:#5b6b7f}
+ .risk-card dd{margin:0;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+ .risk-card dd.neg{color:#a1261b}
+}
