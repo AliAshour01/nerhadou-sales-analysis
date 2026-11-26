@@ -1,7 +1,7 @@
 import {comparisonProduct} from './compare-core.js?v=sales-review-v72';
 import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v72';
 import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v72';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts} from './view-context.js?v=sales-review-v72';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v72';
 import {PANELS,layout} from './panel-registry.js?v=sales-review-v72';
 import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v72';
 import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v72';
@@ -292,7 +292,7 @@ function drawBridge(id,result,metric,dimension='product',display=x=>x){const cap
  let svg=svgPlot(W,H,`Contribution bridge from ${result.a} to ${result.b}; ${metric}${truncated?'; axis starts at '+tickLabel(axis.min,axis):''}`);
  if(truncated)svg+=`<path class="axis-break" d="M${L-7},${B-2} l4,-5 l4,5 l4,-5" fill="none" stroke="#1f3555" stroke-width="1.5"/><text class="axis-break-note" x="${L}" y="16" font-size="12" fill="#5b6b7f">Axis starts at ${tickLabel(axis.min,axis)} · bars are not drawn from zero</text>`;
  for(const v of axisTicks(axis)){svg+=`<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e5edf5"/><text class="axis-tick" data-tick="${v}" x="${L-10}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="#5b6b7f">${tickLabel(v,axis)}</text>`}
- bars.forEach((b,i)=>{const x=L+step*(i+.5),value=b.total?b.to:b.delta,displayName=dense?(b.total?b.name:String(i)):fitted[i],vLabel=dense||textWidth(valueText(b),12)>step-2?'':valueText(b),tip=`${nameOf(b)} · ${amt(value,metric)}${b.residual?' · Detail unavailable; not assigned to a product':b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"`:'role="img"'} data-tip="${e(tip)}" tabindex="0" aria-label="${e(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(b.from),Y(b.to))}" width="${bw}" height="${Math.max(.8,Math.abs(Y(b.to)-Y(b.from)))}" fill="${b.total?'#245fa7':b.residual?'#a1aebd':b.delta<0?'#bc665b':'#39836e'}"/><text x="${x}" y="${Math.min(Y(b.from),Y(b.to))-9}" text-anchor="middle" font-size="12" fill="#254365">${e(vLabel)}</text><text x="${x}" y="${B+22}" text-anchor="middle" font-size="12" fill="#536c86">${e(String(displayName))}</text></g>`;if(i&& !b.total)svg+=`<line x1="${x-step+bw/2}" x2="${x-bw/2}" y1="${Y(b.from)}" y2="${Y(b.from)}" stroke="#94a7b8" stroke-dasharray="3 3"/>`});
+ bars.forEach((b,i)=>{const x=L+step*(i+.5),value=b.total?b.to:b.delta,displayName=dense?(b.total?b.name:String(i)):fitted[i],vLabel=dense||textWidth(valueText(b),12)>step-2?'':valueText(b),tip=`${nameOf(b)} · ${amt(value,metric)}${b.residual?' · Detail unavailable; not assigned to a product':b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"${result.keyed?' data-bridge-keyed="1"':''}`:'role="img"'} data-tip="${e(tip)}" tabindex="0" aria-label="${e(tip)}"><rect x="${x-bw/2}" y="${Math.min(Y(b.from),Y(b.to))}" width="${bw}" height="${Math.max(.8,Math.abs(Y(b.to)-Y(b.from)))}" fill="${b.total?'#245fa7':b.residual?'#a1aebd':b.delta<0?'#bc665b':'#39836e'}"/><text x="${x}" y="${Math.min(Y(b.from),Y(b.to))-9}" text-anchor="middle" font-size="12" fill="#254365">${e(vLabel)}</text><text x="${x}" y="${B+22}" text-anchor="middle" font-size="12" fill="#536c86">${e(String(displayName))}</text></g>`;if(i&& !b.total)svg+=`<line x1="${x-step+bw/2}" x2="${x-bw/2}" y1="${Y(b.from)}" y2="${Y(b.from)}" stroke="#94a7b8" stroke-dasharray="3 3"/>`});
  node.innerHTML='<div class="chart-scroll bridge-fit" tabindex="0" role="region" aria-label="Contribution bridge">'+svg+'</svg></div>'+(dense?'<ol class="bridge-key">'+bars.filter(b=>!b.total).map(b=>'<li><span>'+e(nameOf(b))+'</span><strong>'+e(amt(b.delta,metric))+'</strong></li>').join('')+'</ol>':'')+(other.length?'<details class="bridge-other-detail"><summary>Other: '+other.length+' smaller contributions</summary>'+table(['Product / group','Change'],other.map(r=>[e(dimension==='product'?display(r.name):r.name),amt(r.delta,metric)]))+'</details>':'');
 }
 function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>'<tr'+(row[0]==='Total'?' class="total-row"':'')+'>'+row.map(v=>`<td>${v}</td>`).join('')+'</tr>').join('')}</tbody></table>`}
@@ -306,9 +306,13 @@ function bridgePair(ctx){
 // V72 R-01 / R-02: the bridge is drawn only when both period totals are measurable; otherwise the reason goes to "Not shown".
 // V72 R-02: single-year bridges compare the months both years record (2024 vs 2023 = Jan–Sep), like the KPI cards.
 const bridgeMonths=ctx=>ctx.yearMode==='single'?ctx.compareMonths:ctx.months;
+// V73 N-01: source product names change every year before the latest two (price versions), so a single-year bridge
+// that involves such a year matches products by their reviewed comparison name, like the multi-year views.
+function bridgeKeyed(ctx,a,b,dimension){return ctx.yearMode==='single'&&(dimension==='product'||dimension==='month')&&Math.min(a,b)<ctx.latestYear-1}
+function bridgeInputs(ctx,a,b,dimension){if(!bridgeKeyed(ctx,a,b,dimension))return {recs:ctx.records,filters:ctx.selection,keyed:false,display:ctx.displayName||(x=>x)};const names=productDisplayNames(records());return {recs:comparisonRecords(records()),filters:{...ctx.selection,product:translateProducts(records(),ctx.selection.product,'multi')},keyed:true,display:names.multi}}
 function bridgeGap(ctx){
  const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return null;const [a,b]=pair,key=JSON.stringify(['bridgeGap',ctx.yearMode,a,b,ui.metric,bridgeMonths(ctx),ctx.selection]);
- if(!cache.has(key)){const t=movementTotals(ctx.records,{a,b,months:bridgeMonths(ctx),metric:ui.metric,filters:ctx.selection}),gap=t.previous.dimensionGap?{...t.previous.dimensionGap,year:a}:t.current.dimensionGap?{...t.current.dimensionGap,year:b}:null,picked=gap&&ctx.selection[gap.key];
+ if(!cache.has(key)){const inp=bridgeInputs(ctx,a,b,ui.bridgeDimension),t=movementTotals(inp.recs,{a,b,months:bridgeMonths(ctx),metric:ui.metric,filters:inp.filters}),gap=t.previous.dimensionGap?{...t.previous.dimensionGap,year:a}:t.current.dimensionGap?{...t.current.dimensionGap,year:b}:null,picked=gap&&ctx.selection[gap.key];
   cache.set(key,t.delta!=null?null:gap?`${gap.year} does not record ${gap.word}, so the change for ${picked.length===1?picked[0]:'the selected '+gap.word+'s'} can’t be measured.`:`${a} → ${b} can’t be compared for this selection (${t.reason}).`)}
  return cache.get(key);
 }
@@ -322,14 +326,15 @@ function bridgeOptions(ctx){
 }
 function bridgeResult(ctx,a,b,dimension,metric=ui.metric){
  const months=bridgeMonths(ctx),key=JSON.stringify(['bridge',ctx.yearMode,a,b,dimension,metric,months,ctx.selection]);if(cache.has(key))return cache.get(key);
+ const {recs,filters,keyed}=bridgeInputs(ctx,a,b,dimension);
  let result;
  if(dimension==='month'){
-  result=movement(ctx.records,{a,b,months,metric,dimension:'product',filters:ctx.selection});
-  if(result.delta!=null){const parts=months.map(m=>({m,r:movement(ctx.records,{a,b,months:[m],metric,dimension:'product',filters:ctx.selection})}));
+  result=movement(recs,{a,b,months,metric,dimension:'product',filters});
+  if(result.delta!=null){const parts=months.map(m=>({m,r:movement(recs,{a,b,months:[m],metric,dimension:'product',filters})}));
    if(parts.some(p=>p.r.delta==null))result={...result,delta:null,reason:'Monthly change needs comparable data in each selected month.'};
    else{const items=parts.map(p=>({name:ms[p.m-1],month:p.m,delta:p.r.delta,previous:p.r.previous.value,current:p.r.current.value,ppg:p.r.ppg})),residual=result.delta-items.reduce((s,r)=>s+r.delta,0);if(Math.abs(residual)>Math.max(1e-4,Math.abs(result.delta)*1e-12))items.push({name:'Unallocated monthly detail',delta:residual,residual:true});result={...result,items,ordered:true}}}
- }else result=movement(ctx.records,{a,b,months,dimension,metric,filters:ctx.selection});
- cache.set(key,result);return result;
+ }else result=movement(recs,{a,b,months,dimension,metric,filters});
+ result={...result,keyed};cache.set(key,result);return result;
 }
 function renderBridge(ctx){
  const opts=bridgeOptions(ctx),pair=bridgePair(ctx);if(!opts.length||!pair)return;
@@ -339,11 +344,11 @@ function renderBridge(ctx){
  const yearPick=$('bridge-years');yearPick.hidden=ctx.yearMode!=='multi';
  if(ctx.yearMode==='multi'){const ok=ctx.years;$('bridge-from').innerHTML=ok.filter(y=>y<b).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-from').value=String(a);$('bridge-to').innerHTML=ok.filter(y=>ok.some(x=>x<y)).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-to').value=String(b)}
  if(result.delta==null)return {empty:result.reason||'Comparable periods unavailable.'};
- drawBridge('movement-chart',result,metric,dimension,ctx.displayName||(x=>x));
+ const display=bridgeInputs(ctx,a,b,dimension).display;drawBridge('movement-chart',result,metric,dimension,display);
  $('movement-context').textContent=`${a} → ${b} · ${ctx.yearMode==='single'&&ctx.comparePartial?ctx.compareNote:periodLabel()+' in both years'} · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated?' · Estimated value included':''}${result.approximate?' · Recorded subtotals included':''}`;
  $('movement-unmatched').hidden=!result.unmatched?.length;$('movement-unmatched-list').innerHTML=(result.unmatched||[]).map(name=>`<p>${e(name)} — a comparable amount is unavailable in one of the periods; no zero baseline is assumed.</p>`).join('');
  $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Blue: period totals. Green/red: signed change. New: absent activity in a complete prior report counts as zero sales. Grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.';
- $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(dimension==='product'&&!r.residual?ctx.displayName(r.name):r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
+ $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Growth (PPG%)'],result.items.map(r=>[e(dimension==='product'&&!r.residual?display(r.name):r.name),n(r.previous),n(r.current),n(r.delta),r.newSales?'New':pct(r.ppg)]));
 }
 
 // V69 U-07: the composition row (Distributor mix · Sales-type mix · Sales by line) for one year, in the global measure.
@@ -523,7 +528,7 @@ function wireDrilldowns(){
  document.querySelectorAll('#lines-chart [data-focus="line"]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter('line',b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('[data-mix-focus]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter(b.dataset.mixFocus,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('g[data-focus-year]').forEach(b=>{b.onclick=()=>window.actualDashboard.setFocusYear?.(Number(b.dataset.focusYear));b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
- document.querySelectorAll('g[data-bridge-dim]').forEach(b=>{b.onclick=()=>b.dataset.bridgeDim==='product'?selectProduct(b.dataset.key):window.actualDashboard.focusFilter(b.dataset.bridgeDim,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
+ document.querySelectorAll('g[data-bridge-dim]').forEach(b=>{b.onclick=()=>b.dataset.bridgeDim==='product'?selectProduct(b.dataset.bridgeKeyed?translateProducts(records(),[b.dataset.key],'single',viewContext().focusYear):b.dataset.key):window.actualDashboard.focusFilter(b.dataset.bridgeDim,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('g[data-select-product]').forEach(b=>b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectProduct(b.dataset.selectProduct)}});
 }
 // V69 U-02: attention items are computed once per context; the layout engine hides the panel when no rule fires.
