@@ -1,8 +1,8 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v72';
-import { knownCategory, monthSpan, comparisonRecords } from './view-context.js?v=sales-review-v72';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v72';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v73';
+import { knownCategory, monthSpan, comparisonRecords } from './view-context.js?v=sales-review-v73';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v73';
 
 // V73 N-01: before the latest two years, source names are price versions that change every year, so the previous-year
 // side of a single-year row is looked up by comparison name. Only when the focus year has exactly the selected source

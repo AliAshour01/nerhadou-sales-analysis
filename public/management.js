@@ -1,10 +1,10 @@
-import {comparisonProduct} from './compare-core.js?v=sales-review-v72';
-import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v72';
-import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v72';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v72';
-import {PANELS,layout} from './panel-registry.js?v=sales-review-v72';
-import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v72';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v72';
+import {comparisonProduct} from './compare-core.js?v=sales-review-v73';
+import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v73';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v73';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v73';
+import {PANELS,layout} from './panel-registry.js?v=sales-review-v73';
+import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v73';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v73';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),
