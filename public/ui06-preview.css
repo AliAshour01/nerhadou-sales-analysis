@@ -628,3 +628,5 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 #kpis .kpi strong{margin-top:0!important;line-height:1.25;padding-block:1px;flex-shrink:0}
 #kpis .kpi .label,#kpis .kpi small,#kpis .kpi .delta-chip{flex-shrink:0}
 @media(max-width:699px){#kpis .kpi strong{line-height:1.25}#kpis .kpi .kpi-label-unit{display:none}}
+/* N-05: phone bridge axis note is HTML above the chart */
+#movement-chart p.axis-break-note{margin:0 0 4px;font-size:12px;color:#5b6b7f}
