@@ -636,3 +636,5 @@ body:has(#sales:not([hidden])) #shared-data-state{display:none}
 #sales #filter-actions>#active-filters{flex:0 1 auto;width:auto;grid-column:auto;margin:0!important}
 #sales>.filters #period-mode-field{min-width:150px}
 #sales>.filters #period-mode{min-width:150px}
+/* N-13: Sales by line "Show all (n)" under the bars */
+.mix-show-all{margin-top:6px;font-size:12px}

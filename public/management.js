@@ -380,13 +380,16 @@ function renderLineMix(ctx){return renderMixBars('line',ctx)}
 function renderMixBars(key,ctx){
  const [id,panelId,word]=MIX_TARGET[key],year=compositionYear(ctx),metric=ui.metric,total=ctxSummary(ctx,year,ctx.dataMonths,metric).value,items=mixItems(ctx,key,year,metric);
  if(!items.length||total==null)return {empty:`${word} amounts are not available for ${periodLabel(dashboard(),ctx.dataMonths,year)}.`};
- const W=plotWidth(id,520),mobile=W<420,cap=isMobile()?5:8,shown=items.slice(0,cap),rest=items.slice(cap);
- if(rest.length)shown.push({name:`Other (${rest.length})`,value:rest.reduce((a,r)=>a+r.value,0),other:true});
- const max=Math.max(1,...shown.map(r=>Math.abs(r.value))),labelW=mobile?0:Math.min(170,Math.round(W*.36)),rowH=mobile?46:30,H=shown.length*rowH+6,valueW=mobile?0:118,L=mobile?4:labelW+8,R=W-(mobile?4:valueW);
+ // V73 N-13: one bar layout at every width (name and value on one line, bar under it). Sales by line shows its top 6
+ // on desktop with "Show all (n)", so the three mix cards end close together.
+ const W=plotWidth(id,520),lineCap=key==='line'&&!isMobile()&&items.length>6,cap=lineCap?(ui.mixLineAll?items.length:6):isMobile()?5:8,shown=items.slice(0,cap),rest=items.slice(cap);
+ if(rest.length&&!lineCap)shown.push({name:`Other (${rest.length})`,value:rest.reduce((a,r)=>a+r.value,0),other:true});
+ const max=Math.max(1,...shown.map(r=>Math.abs(r.value))),rowH=46,H=shown.length*rowH+6,L=4,R=W-4;
  let svg=svgPlot(W,H,`${word} mix in ${metric==='value'?'EGP':'units'}`);
- shown.forEach((r,i)=>{const y=i*rowH+4,share=total>0?r.value/total*100:null,tip=`${r.name} · ${amt(r.value,metric)} · ${share==null?'—':share.toFixed(1)+'%'} of selected sales`,w=Math.max(.5,Math.abs(r.value)/max*(R-L)),name=fitLabel(r.name,mobile?W-8:labelW-6,12),barY=mobile?y+18:y+6,color=r.other?'#b7c0cc':!knownCategory(r.name)?'#9aa5b4':key==='line'?'#5e85c9':categoryColor(r.name);
-  svg+=`<g tabindex="0" ${r.other||!knownCategory(r.name)?'role="img"':`role="button" data-mix-focus="${key}" data-key="${e(r.name)}"`} data-tip="${e(tip)}" aria-label="${e(tip)}" data-mix-name="${e(r.name)}" data-mix-color="${r.value<0?'#bb7764':color}"><rect x="0" y="${y}" width="${W}" height="${rowH-2}" fill="transparent"/><text x="${mobile?L:0}" y="${mobile?y+12:y+16}" font-size="12" fill="#38516f">${e(name)}</text><rect x="${L}" y="${barY}" width="${w}" height="14" rx="3" fill="${r.value<0?'#bb7764':color}"/><text x="${W-4}" y="${mobile?y+12:y+16}" text-anchor="end" font-size="12" fill="#304b6f">${e(short(r.value))}<tspan fill="#5b6b7f"> · ${share==null?'—':share.toFixed(1)+'%'}</tspan></text></g>`});
- $(id).innerHTML=svg+'</svg>';
+ shown.forEach((r,i)=>{const y=i*rowH+4,share=total>0?r.value/total*100:null,tip=`${r.name} · ${amt(r.value,metric)} · ${share==null?'—':share.toFixed(1)+'%'} of selected sales`,w=Math.max(.5,Math.abs(r.value)/max*(R-L)),name=fitLabel(r.name,Math.max(40,W-8-textWidth(short(r.value)+' · 100.0%',12)-12),12),barY=y+18,color=r.other?'#b7c0cc':!knownCategory(r.name)?'#9aa5b4':key==='line'?'#5e85c9':categoryColor(r.name);
+  svg+=`<g tabindex="0" ${r.other||!knownCategory(r.name)?'role="img"':`role="button" data-mix-focus="${key}" data-key="${e(r.name)}"`} data-tip="${e(tip)}" aria-label="${e(tip)}" data-mix-name="${e(r.name)}" data-mix-color="${r.value<0?'#bb7764':color}"><rect x="0" y="${y}" width="${W}" height="${rowH-2}" fill="transparent"/><text x="${L}" y="${y+12}" font-size="12" fill="#38516f">${e(name)}</text><rect x="${L}" y="${barY}" width="${w}" height="14" rx="3" fill="${r.value<0?'#bb7764':color}"/><text x="${W-4}" y="${y+12}" text-anchor="end" font-size="12" fill="#304b6f">${e(short(r.value))}<tspan fill="#5b6b7f"> · ${share==null?'—':share.toFixed(1)+'%'}</tspan></text></g>`});
+ $(id).innerHTML=svg+'</svg>'+(lineCap?`<button type="button" class="link-button mix-show-all" data-mix-all="1">${ui.mixLineAll?'Show top 6':`Show all (${items.length})`}</button>`:'');
+ const all=$(id).querySelector('[data-mix-all]');if(all)all.onclick=()=>{ui.mixLineAll=!ui.mixLineAll;renderMixBars('line',ctx);applyChartTables?.();wireDrilldowns()};
  const ctxLine=$(panelId).querySelector('.mix-context');if(ctxLine)ctxLine.textContent=`${mixPeriod(ctx,year)} · ${metric==='value'?'EGP':'Units'} · % of selected sales`;
 }
 // ── V69 U-04: the one Monthly chart (replaces Monthly performance, Sales trend, the PPG panel and the value timeline) ──
