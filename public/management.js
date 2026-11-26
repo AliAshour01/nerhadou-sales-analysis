@@ -7,7 +7,9 @@ import {productsTableData,productsTableHTML,sortOptions} from './products-table.
 import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,categoryColor,truncate,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v72';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),short=v=>compact(v);
+const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),
+ // V73 N-11: a signed amount puts the unit first, then the signed number (EGP +1,234 / EGP −1,234), as in the tables.
+ sAmt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+(v>0?'+':v<0?'−':'')+n(Math.abs(v)),short=v=>compact(v);
 let payload=window.commercialAnalysisData||null,cache=new Map(),contextKey='',restorePending=null,restored=false,storageKey=null;
 const ui={monthlyCumulative:false,monthlyCompare:null,monthlySplit:false,bridgeDimension:'product',forecastCutoff:null};
 // V69 U-03: ui.metric is the global Measure owned by app.js (filter bar); every panel reads it.
@@ -215,7 +217,7 @@ function statusWord(status){return {good:'On or above target',warn:'Within 10% o
 // ── V69 U-12: KPI card sets (plan 4.1). Each slot has an ordered fallback list so no card is a bare "—". ──
 // V72 R-04: a value longer than 14 characters is shown compact (EGP 1.75B, +EGP 215.7M) on every viewport;
 // the exact value stays in the title and in screen-reader text, and CSS ellipsis is only a safety net.
-function kpiValueHTML(value){const text=String(value),m=text.match(/^([+−-]?)(EGP )?([\d,]+(?:\.\d+)?)$/);if(!m||text.length<=14)return m&&m[2]?`${m[1]}<span class="kpi-unit">EGP</span> ${e(m[3])}`:e(text);const num=Number(m[3].replace(/,/g,'')),short=compact(num);return `<span class="kpi-value" aria-hidden="true">${m[1]}${m[2]?'<span class="kpi-unit">EGP</span> ':''}${e(short)}</span><span class="sr-only">${e(text)}</span>`}
+function kpiValueHTML(value){const text=String(value),u=text.match(/^EGP ([+−-])([\d,]+(?:\.\d+)?)$/),m=u?[text,u[1],'EGP ',u[2]]:text.match(/^([+−-]?)(EGP )?([\d,]+(?:\.\d+)?)$/);if(!m||text.length<=14)return m&&m[2]?`<span class="kpi-unit">EGP</span> ${m[1]}${e(m[3])}`:e(text);const num=Number(m[3].replace(/,/g,'')),short=compact(num);return `<span class="kpi-value" aria-hidden="true">${m[2]?'<span class="kpi-unit">EGP</span> ':''}${m[1]}${e(short)}</span><span class="sr-only">${e(text)}</span>`}
 // V73 N-04: a trailing "· EGP" in the label is wrapped so phones can drop it (the value already shows EGP).
 function kpiLabelHTML(label){const m=String(label).match(/^(.*?)( · EGP)$/);return m?`<span>${e(m[1])}<span class="kpi-label-unit">${e(m[2])}</span></span>`:`<span>${e(label)}</span>`}
 function kpiCard(key,label,value,body,extra='',labelHTML=''){return `<div class="kpi kpi-${key}" data-kpi="${key}"${extra}><div class="label">${kpiLabelHTML(label)}${labelHTML}</div><strong title="${e(value)}" data-exact="${e(value)}">${kpiValueHTML(value)}</strong>${body}</div>`}
@@ -248,10 +250,10 @@ function kpiCandidates(ctx){
   const range=multiYearRange(ctx,S),base=range?range.start:cy,baseCur=S(base,m);
   const unavailable=range?null:!ctx.growthOk?ctx.growthReason:null,prev=baseCur,delta=cur!=null&&prev!=null?cur-prev:null,ppg=delta!=null&&prev>0?delta/prev*100:null;
   const lastYear=range&&cy!=null?(ctx.growthOk?(()=>{const p=S(cy,m),d=cur!=null&&p!=null?cur-p:null;return d==null?null:{delta:d,ppg:p>0?d/p*100:null}})():{unavailable:ctx.growthReason}):null;
-  const vsLast=(kind)=>!lastYear?'':lastYear.unavailable?` · vs ${cy}: ${lastYear.unavailable}`:kind==='delta'?` · vs ${cy}: ${(lastYear.delta<0?'−':'+')+amt(Math.abs(lastYear.delta),m)}`:lastYear.ppg==null?'':` · ${cy} → ${fy}: ${pct(lastYear.ppg)}`;
+  const vsLast=(kind)=>!lastYear?'':lastYear.unavailable?` · vs ${cy}: ${lastYear.unavailable}`:kind==='delta'?` · vs ${cy}: ${sAmt(lastYear.delta,m)}`:lastYear.ppg==null?'':` · ${cy} → ${fy}: ${pct(lastYear.ppg)}`;
   C.salesFocus=cur==null?null:()=>kpiCard('sales',`Sales ${fy} · ${unit(m)}`,amt(cur,m),`<small>${e(label.replace(yearSpan(ctx.years),String(fy)))}</small>`,' style="--kpi-accent:1"');
   C.salesCompare=prev==null?null:()=>kpiCard('compare',`Sales ${base} · ${unit(m)}`,amt(prev,m),`<small>${e(range?(base===ctx.years[0]?'First selected year · same months':`First comparable year · ${ctx.years.filter(y=>y<base).join(', ')} unavailable for this period`):'Same months as '+fy)}</small>`);
-  C.change=base==null||(delta==null&&!unavailable)?null:()=>unavailable?kpiCard('change',`Change ${base} → ${fy}`,'Not comparable',`<small>${e(unavailable)}</small>`):kpiCard('change',`Change ${base} → ${fy}`,(delta<0?'−':'+')+amt(Math.abs(delta),m),`<small>${e(unit(m)+' · same months'+vsLast('delta'))}</small>`,range?` data-range="${base}-${fy}"`:'');
+  C.change=base==null||(delta==null&&!unavailable)?null:()=>unavailable?kpiCard('change',`Change ${base} → ${fy}`,'Not comparable',`<small>${e(unavailable)}</small>`):kpiCard('change',`Change ${base} → ${fy}`,(delta===0?'+':'')+sAmt(delta,m),`<small>${e(unit(m)+' · same months'+vsLast('delta'))}</small>`,range?` data-range="${base}-${fy}"`:'');
   if(range){
    const yrs=fy-base,cagr=cur>0&&prev>0?(Math.pow(cur/prev,1/yrs)-1)*100:null;
    C.growth=cagr==null&&ppg==null?null:()=>kpiCard('growth',cagr!=null?`Avg yearly growth ${base} → ${fy}`:`Growth ${base} → ${fy}`,pct(cagr??ppg),`<small>${e((cagr!=null&&ppg!=null?`Total ${pct(ppg)} over ${yrs} years`:`${yrs} years`)+vsLast('ppg'))}</small>`,` data-range="${base}-${fy}"`);
@@ -569,11 +571,11 @@ function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return at
 function renderAttention(){const all=attentionItems(),limit=isMobile()?2:3,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}"${r.source?` title="Source name: ${e(r.source)}"`:''} data-impact="${r.impact}" ${r.p?`data-select-product="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>${r.p?"Show this product →":"Show distributors →"}</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
 function computeAttention(){
  // V68 S-35: balanced rules (positive and negative), a magnitude chip, sorted by absolute impact in the selected measure.
- const d=dashboard(),items=[],metric=ui.metric,unitWord=metric==='value'?'':' units',signed=v=>(v>0?'+':v<0?'−':'')+(metric==='value'?'EGP ':'')+n(Math.abs(v))+unitWord;
+ const d=dashboard(),items=[],metric=ui.metric,unitWord=metric==='value'?'':' units',signed=v=>sAmt(v,metric)+unitWord;
  const changes=selectedProducts().map(p=>({product:p,...pairs(metric,{...d.selection,product:[p]})})).filter(x=>Number.isFinite(x.delta));
  const decline=[...changes].filter(x=>x.delta<0).sort((a,b)=>a.delta-b.delta)[0],driver=[...changes].filter(x=>x.delta>0).sort((a,b)=>b.delta-a.delta)[0];
  if(decline)items.push({p:decline.product,tone:'negative',impact:Math.abs(decline.delta),chip:signed(decline.delta),title:'Largest contribution to decline',text:`${decline.product}: ${amt(decline.delta,metric)} vs same months ${d.snapshot.year-1}.`});
- if(driver)items.push({p:driver.product,tone:'positive',impact:driver.delta,chip:signed(driver.delta),title:'Largest growth driver',text:`${driver.product}: +${amt(driver.delta,metric)} vs same months ${d.snapshot.year-1}.`});
+ if(driver)items.push({p:driver.product,tone:'positive',impact:driver.delta,chip:signed(driver.delta),title:'Largest growth driver',text:`${driver.product}: ${sAmt(driver.delta,metric)} vs same months ${d.snapshot.year-1}.`});
  const vsTarget=selectedProducts().map(p=>{const actual=summary(d.snapshot.year,d.months,metric,{...d.selection,product:[p]}).value,t=target([p],metric);return {product:p,actual,t,gap:actual!=null&&t!=null?t-actual:null}}).filter(r=>r.gap!=null&&r.t>0);
  const plan=d.targetBasis==='annual'?'full-year':'period',short=[...vsTarget].filter(r=>r.gap>0).sort((a,b)=>b.gap-a.gap)[0],beat=[...vsTarget].filter(r=>r.gap<0).sort((a,b)=>a.gap-b.gap)[0];
  if(short)items.push({p:short.product,tone:'negative',impact:short.gap,chip:`${n(short.actual/short.t*100)}% of target`,title:'Largest target shortfall',text:`${short.product}: ${amt(short.gap,metric)} remaining against the ${plan} plan.`});
