@@ -929,3 +929,14 @@ body{font-size:var(--text-body)}
 @media (max-width:699px){
   #portfolio-cards .pc-packs{width:100%;margin:0;padding:10px 0;min-height:44px;text-align:left;font-size:var(--text-small);color:var(--accent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
 }
+
+/* G-18: Price increases as divider rows (no cards, no pill chips) */
+#sales .price-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px;margin:8px 0}
+#sales .price-list li{border-bottom:1px solid var(--border)}
+#sales .price-item{background:transparent!important;border:0!important;border-radius:0!important;padding:12px 6px!important;gap:4px}
+#sales .price-item:hover{background:var(--accent-soft)!important}
+#sales .price-head b{font-size:var(--text-body);font-weight:500;color:var(--ink)}
+#sales .price-chip{background:transparent!important;padding:0!important;border-radius:0!important;font-size:var(--text-small);font-weight:500;color:var(--ink-2)}
+#sales .price-units{font-size:var(--text-small);font-weight:500;color:var(--ink-2)}
+#sales .price-units.positive{color:var(--good)}
+#sales .price-units.negative{color:var(--decrease)}

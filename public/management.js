@@ -107,7 +107,7 @@ const PANEL_BODIES={
  shareByYear:()=>panel('Share of company by year','<p class="chart-note">Product sales ÷ company sales, same months each year.</p><div id="share-by-year"></div>'),
  mixLine:()=>panel('Sales by line','<p class="mix-context chart-note"></p><div id="line-mix"></div>'),
  productFacts:()=>panel('Product facts','<ul id="product-facts" class="facts-list"></ul>'),
- priceChanges:()=>panel('Price increases','<p id="price-context" class="chart-note"></p><ul id="price-list" class="price-list"></ul><p class="chart-note">A price increase is when the price per unit is 5% or more above the previous 3 months and stays there the next month (one unusual month, such as a bulk order, is ignored). Units can also move for other reasons, so this does not prove the price caused it. Tap a product to see it on Overview.</p>')
+ priceChanges:()=>panel('Price increases','<p id="price-context" class="chart-note"></p><ul id="price-list" class="price-list"></ul><p class="chart-note">Select a product to open it on Overview.</p>','',' <details class="copy-help title-help"><summary aria-label="How price increases are detected">ⓘ</summary><p>A price increase is when the price per unit is 5% or more above the previous 3 months and stays there the next month (one unusual month, such as a bulk order, is ignored). Units can also move for other reasons, so this does not prove the price caused it.</p></details>')
 };
 const RENDERERS={
  productsTable:ctx=>renderProductsTable(ctx),
@@ -698,10 +698,10 @@ function priceSelect(ctx,product){return ctx.yearMode==='single'?translateProduc
 function renderPriceChanges(ctx){
  const rows=priceRows(ctx);if(!rows.length)return {empty:'No price increases in the selected months.'};
  const disp=priceDisplay(ctx);
- $('price-context').textContent=`${periodLabel(dashboard(),ctx.months,ctx.focusYear)} · regular sales (tenders excluded) · ${scopeText()}`;
- $('price-list').innerHTML=rows.map(r=>{const u=r.units,down=u.vsLastYear!=null&&u.vsLastYear<=-10,py=r.year-1,span=u.months===1?ms[r.month-1]:`${ms[r.month-1]}–${ms[(r.month+u.months-2)%12]}`;
-  const units=u.vsLastYear==null?`Units since then: ${n(u.since)} (no ${py} sales to compare)`:`Units since then (${span}): ${pct(u.vsLastYear)} vs same months ${py}`;
-  return `<li><button type="button" class="price-item${down?' negative':''}" data-select-products="${e(JSON.stringify(priceSelect(ctx,r.product)))}"><span class="price-head"><b>${e(disp(r.product))}</b><span class="price-chip">+${r.change.toFixed(1)}%</span></span><span>Price went up in ${e(monthName(r.year,r.month))}: EGP ${r.before.toFixed(1)} → ${r.after.toFixed(1)} per unit</span><span class="price-units${down?' negative':''}">${e(units)}${down?' · units fell':''}</span><small>${n(u.perMonthBefore)} units a month in the 3 months before, ${n(u.perMonthAfter)} since</small></button></li>`}).join('');
+ $('price-context').textContent='Regular sales (tenders excluded)';
+ $('price-list').innerHTML=rows.map(r=>{const u=r.units,py=r.year-1,up=u.vsLastYear!=null&&u.vsLastYear>=0,down=u.vsLastYear!=null&&u.vsLastYear<0;
+  const unitsHTML=u.vsLastYear==null?`<span class="price-units">Units since then: ${n(u.since)} (no ${py} sales to compare)</span>`:`<span class="price-units ${up?'positive':'negative'}">Units since then: ${up?'▲':'▼'} ${Math.abs(u.vsLastYear).toFixed(1)}% vs same months ${py}</span>`;
+  return `<li><button type="button" class="price-item${down&&u.vsLastYear<=-10?' negative':''}" data-select-products="${e(JSON.stringify(priceSelect(ctx,r.product)))}"><span class="price-head"><b>${e(disp(r.product))}</b><span class="price-chip">Price +${r.change.toFixed(1)}%</span></span><span>EGP ${r.before.toFixed(1)} → ${r.after.toFixed(1)} per unit since ${e(monthName(r.year,r.month))}</span>${unitsHTML}<small>${n(u.perMonthBefore)} units a month before, ${n(u.perMonthAfter)} after</small></button></li>`}).join('');
 }
 
 function renderPlanning(){
