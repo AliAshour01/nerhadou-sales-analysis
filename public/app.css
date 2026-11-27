@@ -944,3 +944,11 @@ body{font-size:var(--text-body)}
 /* G-19: Forecast chart header with Show monthly path toggle */
 .forecast-chart-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
 .forecast-chart-head h3{margin:0;font-size:var(--text-body);font-weight:600;color:var(--ink)}
+
+/* G-21: Risk table Status column and plain % of target */
+.forecast-risk-table td.risk-status{text-align:left}
+.forecast-risk-table .risk-scenario{display:inline;margin:0;font-weight:500}
+.forecast-risk-table .risk-scenario.both{color:var(--decrease)}
+.forecast-risk-table .risk-scenario.avg{color:var(--warning)}
+.forecast-risk-table .risk-scenario.unknown{color:var(--ink-2)}
+.forecast-risk-table .ach,.forecast-risk-cards .ach{background:transparent!important;padding:0!important;border-radius:0!important;font-weight:500}
