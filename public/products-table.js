@@ -1,10 +1,10 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v76';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v77';
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   ALL_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v76';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v76';
+import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v77';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v77';
 
 // V74 V-14: the previous-year side of a single-year row is looked up by comparison name (price versions and renamed
 // packs of one product are one product). A row that stands for only some of the price versions the focus year has

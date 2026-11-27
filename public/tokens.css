@@ -1,0 +1,58 @@
+/* Nerhadou Sales design tokens (V77, design review D-01 / D-04 / D-07).
+   Every colour, font size, weight, radius and shadow in app.css comes from this file.
+   Accent = the Nerhadou logo navy (#174A8D); see docs/SALES-UX-V77-HANDOFF.md. */
+
+/* D-01: Inter is self-hosted (latin subset, OFL, see fonts/LICENSE-Inter.txt). The Worker CSP only allows
+   same-origin fonts, so the old Google Fonts @import never loaded on the live site. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:400;font-display:swap;src:url("fonts/inter-400.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter";font-style:normal;font-weight:500;font-display:swap;src:url("fonts/inter-500.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter";font-style:normal;font-weight:600;font-display:swap;src:url("fonts/inter-600.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  /* Type: three weights (400 / 500 / 600) and six sizes. Nothing smaller than 12px. */
+  --font:"Inter",system-ui,"Segoe UI",Arial,sans-serif;
+  --text-caption:12px;  /* axis ticks, footnotes, legends */
+  --text-small:13px;    /* table cells, chart subtitles, filter labels, buttons */
+  --text-body:14px;     /* paragraphs, list items */
+  --text-title:16px;    /* card and section titles */
+  --text-page:24px;     /* the page title */
+  --text-figure:28px;   /* KPI and forecast values */
+
+  /* Neutrals */
+  --bg:#F6F7F9;         /* page background */
+  --surface:#FFFFFF;    /* cards */
+  --border:#E3E7ED;     /* card borders, table rules, gridlines */
+  --ink:#10233F;        /* primary text, values, target line (15.7:1) */
+  --ink-2:#4A5B70;      /* secondary text (7.0:1) */
+  --ink-3:#5E6C7E;      /* captions, axis ticks (5.4:1 on white, 4.8:1 on tinted rows) */
+  --on-accent:#FFFFFF;  /* text on an accent fill */
+
+  /* One accent: the logo navy */
+  --accent:#174A8D;     /* focus series, increases, primary button, links, selected state (8.8:1) */
+  --accent-strong:#123B72; /* hover / pressed accent */
+  --accent-soft:#E8EEF6;   /* selected chip, hover background */
+
+  /* Comparison series are greys, always with a label */
+  --context:#A9B4C2;    /* previous years, Other */
+  --context-2:#7C8BA1;  /* the second comparison year */
+
+  /* Change in bridges: --accent for an increase, --decrease for a decrease (passes protan / deutan / tritan) */
+  --decrease:#C0533F;
+  --decrease-soft:#F7E9E6;
+
+  /* Status only, always next to an icon or a word */
+  --good:#1F7A4D;      --good-soft:#E6F2EC;
+  --warning:#9A6212;   --warning-soft:#F6EEDF;
+  --critical:#B42318;  --critical-soft:#F9E6E4;
+
+  /* Radius and elevation */
+  --radius-xs:4px;      /* bars, swatches */
+  --radius-control:6px; /* buttons, inputs, chips */
+  --radius-card:10px;   /* cards */
+  --radius-pill:999px;  /* chips only */
+  --shadow-pop:0 8px 24px rgb(16 35 63 / .12); /* popovers, menus, tooltip only; cards have no shadow */
+  --focus-ring:0 0 0 3px rgb(23 74 141 / .2);
+
+  /* Spacing scale: 4 8 12 16 24 32 48 */
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;
+}
