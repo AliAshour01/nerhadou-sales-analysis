@@ -301,11 +301,11 @@ function drawBridge(id,result,metric,dimension='product',display=x=>x){const cap
  const nameOf=b=>b.total||b.residual||/^Other \(/.test(b.name)||dimension!=='product'?b.name:display(b.name);
  const valueText=b=>(!b.total&&b.delta>0?'+':'')+short(b.total?b.to:b.delta);
  const W=plotWidth(id,900),mobile=isMobile(),labelW=Math.round(Math.min(mobile?120:240,W*(mobile?.36:.28))),valueW=Math.max(...bars.map(b=>textWidth(valueText(b),12)))+10;
- const L=labelW+12,R=W-valueW,points=mobile?[0,...bars.filter(b=>!b.total).map(b=>b.delta)]:bars.flatMap(b=>[b.from,b.to,0]),axis=niceAxis(points,Math.max(2,Math.min(5,Math.floor((R-L)/72)))),lo=Math.min(0,axis.min),hi=axis.max,X=v=>L+(v-lo)/((hi-lo)||1)*(R-L);
+ const L=labelW+12,R=W-valueW,points=mobile?[0,...bars.filter(b=>!b.total).map(b=>b.delta)]:bars.flatMap(b=>[b.from,b.to,0]),axis=niceAxis(points,Math.max(2,Math.min(5,Math.floor((R-L)/72)))),lo=mobile?Math.min(0,...points):Math.min(0,axis.min),hi=mobile?Math.max(0,...points):axis.max,X=v=>L+(v-lo)/((hi-lo)||1)*(R-L);
  const lines=bars.map(b=>b.total&&result.span?[b.name,result.span]:wrapFull(nameOf(b),labelW,12)),rowH=lines.map(l=>Math.max(30,l.length*15+12)),T=8;
  const tops=[];let y=T;for(const h of rowH){tops.push(y);y+=h}const B=y,H=B+26,barH=16;
  let svg=svgPlot(W,H,`Contribution bridge from ${result.a} to ${result.b}; ${metric}`);
- for(const v of axisTicks(axis))if(v>=lo){svg+=`<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${B}" style="stroke:var(--border)"/><text class="axis-tick" data-tick="${v}" x="${X(v)}" y="${B+18}" text-anchor="middle" font-size="12" style="fill:var(--ink-3)">${tickLabel(v,axis)}</text>`}
+ for(const v of axisTicks(axis))if(v>=lo-1e-9&&v<=hi+1e-9){svg+=`<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${B}" style="stroke:var(--border)"/><text class="axis-tick" data-tick="${v}" x="${X(v)}" y="${B+18}" text-anchor="middle" font-size="12" style="fill:var(--ink-3)">${tickLabel(v,axis)}</text>`}
  bars.forEach((b,i)=>{const top=tops[i],mid=top+rowH[i]/2,x0=mobile?(b.total?L:X(Math.min(0,b.delta))):X(Math.min(b.from,b.to)),x1=mobile?(b.total?L:X(Math.max(0,b.delta))):X(Math.max(b.from,b.to)),value=b.total?b.to:b.delta,tip=`${nameOf(b)}${b.total&&result.span?' '+result.span:''} · ${amt(value,metric)}${b.residual?' · '+(b.note||'Detail unavailable; not assigned to a product'):b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';
   const tone=b.total?'total':b.residual?'residual':b.delta<0?'decrease':'increase',fill={total:'var(--ink-2)',residual:'var(--context)',decrease:'var(--decrease)',increase:'var(--accent)'}[tone];
   const l=lines[i],ly=mid-(l.length-1)*7.5+4;

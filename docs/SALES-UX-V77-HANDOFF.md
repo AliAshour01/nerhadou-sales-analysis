@@ -27,4 +27,4 @@ New `tests/sales-v77.mjs`. Updated for intended changes: `sales-v69.mjs` (no axi
 D-08–D-24 in ID order: header, scope repetition, filter bar, status strip, identical KPI tiles (the first tile is still filled navy), tabs, monthly chart, attention list, line styles, products table, forecast.
 
 ## Review fixes (after review of PR #29)
-F-01 phone bridge: on phones the driver bars are scaled by their change (decreases left of a zero line), totals are text rows, no connectors, label column 120 px; every bar is at least 3 px wide. F-02: Data management revision badge is accent text on accent-soft. F-03: the over-target segment and its legend swatch both use `--context-2`.
+F-01 phone bridge: on phones the driver bars are scaled by their change on a tight domain (smallest to largest change, not a rounded axis) (decreases left of a zero line), totals are text rows, no connectors, label column 120 px; every bar is at least 3 px wide. F-02: Data management revision badge is accent text on accent-soft. F-03: the over-target segment and its legend swatch both use `--context-2`.
