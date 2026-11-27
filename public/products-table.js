@@ -406,9 +406,16 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
         const v = r.cells[key];
         return `<span class="pc-cell"${v != null && r.reasons[key] ? ` title="${esc(r.reasons[key])}"` : ''}><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
       };
-    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.total ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
+    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.total || r.version ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };
-  const cards = card(total) + (grouped ? sorted : visible).map(card).join('') || '<p class="chart-note">No matching products.</p>';
+  // V78: on the phone a product with several packs (or price versions) gets the same "n packs" toggle as the table; each
+  // pack is its own card, and tapping it shows only that pack on Overview.
+  const withPacks = (r) => {
+    if (!r.versions) return card(r);
+    const open = expanded.has('v:' + r.key);
+    return card(r) + `<button type="button" class="pt-versions pc-packs" data-pt-expand="v:${esc(r.key)}" aria-expanded="${open}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${open ? '▾' : '▸'}</span> ${versionLabel(r.sources)}</button>` + (open ? r.versions.map((v) => card(v).replace('class="portfolio-card', 'class="portfolio-card pc-sub')).join('') : '');
+  };
+  const cards = card(total) + (grouped ? sorted : visible).map(withPacks).join('') || '<p class="chart-note">No matching products.</p>';
   const more = capped ? `<button type="button" class="link-button pt-show-all" data-pt-all="on">Show all ${sorted.length}</button>` : showAll && sorted.length > TOP_ROWS + 2 && !grouped ? `<button type="button" class="link-button pt-show-all" data-pt-all="off">Show top ${TOP_ROWS}</button>` : '';
   return { head, body, cards, more, shown: grouped ? sorted.length : visible.length, matched: sorted.length, sorted };
 }

@@ -16,6 +16,12 @@ Branch `claude/project-thread-ru7s87` from `main` 53a85dc (V77). Requested by th
 | Missing line filled from the product's single line in the same year | `dashboardRecords` | Same year only, tender separate, never across years (AGENTS.md: no historic line inference). `line_inferred: true`, `source_line` kept. Products with two lines in that year are left Not provided. |
 | New import series store `comparison_product` | `data-core.js` `previewImport` | `data-core.js` now imports `compare-core.js` (bare path, also bundled by the Worker; `npm run build` passes). |
 
+## Owner answers (2026-11-27)
+
+- Packs: product = all packs, packs listed under it and selectable one by one. `products-table.js` `withPacks` adds the "n packs" toggle and `pc-sub` cards on the phone; desktop sub-rows already existed (V74).
+- EGY fractional units: hide decimals in display, keep them in calculations. All dashboard formatters already round to 0; `data-manager.js` `fmt` now does too. Editable Data table inputs keep exact values on purpose.
+- Odd small-row prices are price increases; one-month spikes are bulk sales; TADANERFI 10MG target 0 because it is being discontinued. No change.
+
 ## Validation
 
 - `tests/sales-v78.mjs` (new): October spellings → keys, tender separation, PHARMA, line fill, import `comparison_product`, and no two keys share a spelling after an October-style import on the baseline.

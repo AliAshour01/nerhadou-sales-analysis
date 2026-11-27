@@ -1,7 +1,7 @@
 import {createDataEditors} from './data-table-editor.js?v=32';
 import {effectiveRecords,previewImport,METRICS,actualYears,periodTemplate,previewReportingCutoff} from './data-core.js?v=33';
 import {comparisonProduct,KNOWN_SPELLINGS} from './compare-core.js?v=33';
-const $=id=>document.getElementById(id),html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],fmt=n=>n==null?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:2});
+const $=id=>document.getElementById(id),html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],fmt=n=>n==null?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 let state,records=[],previewRaw='',pendingNewSeries=[],previewOptions=null,page=0,busy=false,registration=null,cutoffPreview=null,toolsInitialized=false;
 const editors=createDataEditors({getState:()=>state,getRecords:()=>records,getRawRecords:()=>effectiveRecords(state.seed,state.overrides,{includeExcluded:true}),isBusy:()=>busy,save,renderTable,status,html,fmt});
 function status(message,error=false){$('data-status').textContent=message;$('data-status').className=error?'data-error':'data-success'}

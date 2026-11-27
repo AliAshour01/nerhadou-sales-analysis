@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { comparisonProduct, canonicalProductName, dashboardRecords } from '../public/compare-core.js';
 import { effectiveRecords, previewImport } from '../public/data-core.js';
+import { resolveViewContext } from '../public/view-context.js';
+import { productsTableData, productsTableHTML } from '../public/products-table.js';
 
 const imported = (product, extra = {}) => ({ product, channel: 'COMBINED / SOURCE', distributor: 'NOT PROVIDED', line: 'NOT PROVIDED', dataset: 'actual', year: 2026, month: 10, ...extra });
 
@@ -78,4 +80,13 @@ for (const r of recs) {
   keysByTidy.get(t).add(k);
 }
 for (const [t, ks] of keysByTidy) assert.equal(ks.size, 1, t + ': ' + [...ks].join(' | '));
+// Packs: one product row, packs as sub-rows (table) and sub-cards (phone); a pack card selects only that pack.
+const packCtx = resolveViewContext(dashboardRecords(effectiveRecords(seed, overrides)), { years: [2026], months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], measure: 'units', selection: {} });
+const packData = productsTableData(packCtx, {});
+const tad = packData.rows.find((r) => r.key === 'TADANERFI 5MG');
+assert.deepEqual(tad.sources, ['TADANERFI 5MG - 20 FILM', 'TADANERFI 5MG - 30 FILM']);
+const closed = productsTableHTML(packData, packCtx, { sort: 'sales', desc: true, measures: ['units'], showAll: true });
+assert(closed.cards.includes('data-pt-expand="v:TADANERFI 5MG"') && !closed.cards.includes('pc-sub'));
+const open = productsTableHTML(packData, packCtx, { sort: 'sales', desc: true, measures: ['units'], showAll: true, expanded: new Set(['v:TADANERFI 5MG']) });
+assert(open.cards.includes('class="portfolio-card pc-sub" type="button" data-select-product="TADANERFI 5MG - 30 FILM"'));
 console.log('sales-v78 ok');
