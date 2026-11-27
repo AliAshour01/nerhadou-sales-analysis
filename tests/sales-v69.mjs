@@ -13,7 +13,7 @@ const tabs=()=>[...document.querySelectorAll('.section-tabs [role="tab"]')].filt
 const strip=()=>$('overview-not-shown').hidden?'':$('overview-not-shown').textContent;
 // A1 · 2026 YTD Aug, all products
 await window.actualDashboard.apply(cfg());
-assert.deepEqual(tabs(),['overview','portfolio','forecast']);assert.deepEqual(visible(),['monthly','attention','bridge','mixDistributor','mixChannel','mixLine']);
+assert.deepEqual(tabs(),['overview','portfolio','forecast']);assert.deepEqual(visible(),['monthly','attention','bridge','mixDistributor','mixChannel','mixLine','priceChanges']); // V80: Price increases (Calcitron, Ferrotron, Vitatron)
 {const t=$('kpis').textContent;for(const v of ['21,599,730','22,310,000','97%','710,270','15,476,653','39.6%','33,465,000','65%'])assert(t.includes(v),'KPI shows '+v);assert.equal($('kpis').querySelectorAll('.kpi').length,4);assert($('kpis').querySelector('.pace-marker'))}
 assert.equal($('company-ppg-chart'),null,'PPG panel removed');assert.equal(document.querySelector('[id$="-achievement-chart"]'),null);
 {const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'#10233F');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
@@ -64,7 +64,7 @@ await window.actualDashboard.apply(cfg({years:ALL}));let c=cards();assert.equal(
 assert(c[1].startsWith('Sales 2021'),'card 2 = first selected year');assert(c[2].startsWith('Change 2021 → 2026')&&c[2].includes('+13,357,562'),'change first → last');assert(c[2].includes('vs 2025: +6,123,077'),'previous-year change kept as subtitle');
 assert(c[3].startsWith('Avg yearly growth 2021 → 2026')&&c[3].includes('+21.2%')&&c[3].includes('Total +162.1% over 5 years')&&c[3].includes('2025 → 2026: +39.6%'),'CAGR + total + last-year growth');
 const p=window.actualDashboard.translateProducts(['ONDALENZ 8MG'],'multi',Y);await window.actualDashboard.apply(cfg({years:ALL,selection:{...none,product:p}}));c=cards();
-assert(/vs 2021/.test(c[1])&&c[1].startsWith('Share of company 2026'),'one product: share vs first year');assert(c[2].includes('Change 2021 → 2026')&&c[2].includes('+1,089,160'));assert(c[3].includes('Avg yearly growth 2021 → 2026')&&c[3].includes('+60.0%')&&c[3].includes('2025 → 2026: +100.9%'));
+assert(/was [\d.]+% in 2021/.test(c[1])&&c[1].startsWith('Share of company 2026'),'one product: share vs first year');assert(c[2].includes('Change 2021 → 2026')&&c[2].includes('+1,089,160'));assert(c[3].includes('Avg yearly growth 2021 → 2026')&&c[3].includes('+60.0%')&&c[3].includes('2025 → 2026: +100.9%'));
 // A range starting in 2023 uses the recorded 2023 baseline.
 await window.actualDashboard.apply(cfg({years:[2023,2024,2025,2026]}));c=cards();assert(c[1].startsWith('Sales 2023'));assert(c[3].includes('2023 → 2026'));
 // 2023 can also be used as the previous-year comparison inside the range.

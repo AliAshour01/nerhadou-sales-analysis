@@ -715,3 +715,17 @@ h1,#kpis .kpi strong,.projection-number{letter-spacing:-.01em}
 #view-portfolio tr.subtotal-row:not(.open) th,#view-portfolio tr.subtotal-row:not(.open) td{border-bottom:1px solid var(--border)}
 .portfolio-card.pc-line{width:100%;text-align:left;font:inherit;color:inherit;background:var(--bg);cursor:pointer}.portfolio-card.pc-line .pc-name{font-weight:600}
 .portfolio-card.pc-child{margin-left:12px}.portfolio-card.pc-child.pc-sub{margin-left:28px}.portfolio-card.pc-child~.pc-packs{margin-left:16px}
+/* V80: price-increase tracker list and the plain "% = share of last year's total" line in What drove the change. */
+.bridge-pct-note{margin:0 0 var(--space-2)}
+.price-list{list-style:none;margin:var(--space-2) 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3)}
+.price-list li{margin:0}
+.price-item{display:flex;flex-direction:column;gap:var(--space-1);width:100%;height:100%;padding:var(--space-3);text-align:left;font:inherit;font-size:var(--text-small);color:var(--ink-2);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);cursor:pointer}
+.price-item:hover{background:var(--bg);border-color:var(--accent-soft)}
+.price-item:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.price-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2);color:var(--ink);font-size:var(--text-body)}
+.price-head b{font-weight:600}
+.price-chip{flex:none;font-size:var(--text-caption);font-weight:600;padding:2px 8px;border-radius:var(--radius-pill);background:var(--bg);color:var(--ink-2);white-space:nowrap}
+.price-units{color:var(--ink)}
+.price-units.negative{color:var(--critical)}
+.price-item small{color:var(--ink-3);font-size:var(--text-caption)}
+@media (max-width:640px){.price-list{grid-template-columns:1fr}}
