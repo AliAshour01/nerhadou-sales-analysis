@@ -816,3 +816,6 @@ body{font-size:var(--text-body)}
 @media (max-width:699px){
   #sales .heading-icon-btn{display:none}
 }
+
+/* G-09: Partial-year notice under scope line */
+#sales .scope-partial-notice{flex-basis:100%;order:4;margin:4px 0 0;font-size:var(--text-small);color:var(--warning);font-weight:500}
