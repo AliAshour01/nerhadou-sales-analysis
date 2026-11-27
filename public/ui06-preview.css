@@ -666,3 +666,8 @@ th small.risk-scenario{font-weight:600}
 #details td.version-name button{font-weight:500}
 /* V-03: dashed ghost bar for months the previous year did not record */
 .py-unknown{opacity:.85}
+
+/* V76 review fixes */
+.pt-note{font-size:.7em;margin-left:2px;color:var(--muted,#5b6b7f);cursor:help}
+.ai-prompt-tools{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ai-prompt-tools select{min-height:36px}

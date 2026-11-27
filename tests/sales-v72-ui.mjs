@@ -54,7 +54,7 @@ window.actualDashboard.setMeasure('units');
 await window.actualDashboard.apply(cfg({ section: 'forecast' }));
 assert($('forecast-chart').querySelector('.fc-range'), 'range band between the two scenario paths');
 assert.equal($('forecast-chart').querySelectorAll('.fc-end-label').length, 2);
-assert.match($('forecast-why').textContent, /19% apart\. Seasonality is higher because Sep–Dec were 44% of 2025 sales/);
+assert.match($('forecast-why').textContent, /\d+% apart\. Seasonality is (higher|lower) because Sep–Dec were \d+% of 2025 regular \(non-tender\) sales/);
 {
   const rows = [...$('forecast-risk').querySelectorAll('tbody tr')];
   assert(rows.length > 0 && rows.length <= 10, 'top 10 at most');

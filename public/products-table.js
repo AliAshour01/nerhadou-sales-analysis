@@ -1,8 +1,10 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey } from './management-core.js?v=sales-review-v75';
-import { knownCategory, monthSpan, comparisonRecords, productDisplayNames } from './view-context.js?v=sales-review-v75';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v75';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v76';
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  ALL_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v76';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v76';
 
 // V74 V-14: the previous-year side of a single-year row is looked up by comparison name (price versions and renamed
 // packs of one product are one product). A row that stands for only some of the price versions the focus year has
@@ -58,6 +60,8 @@ export function tableColumns(ctx, measures, period = '') {
       add('share', 'Share', `Share of company ${unit} (%)`);
       // V72 R-02: when the two years record different months, PY and PPG use the months both record (same as the KPIs).
       const part = ctx.comparePartial ? ' ' + monthSpan(ctx.compareMonths) : '';
+      // V76 W-06: when the comparison covers fewer months than Sales, show the focus year over those months too.
+      if (ctx.compareYear != null && ctx.comparePartial) add('cur', String(ctx.focusYear) + part, `Sales ${unit} · ${ctx.focusYear}${part} (same months as ${ctx.compareYear})`);
       if (ctx.compareYear != null) add('py', String(ctx.compareYear) + part, `Sales ${unit} · ${ctx.compareYear}${part}${ctx.comparePartial ? ' (' + ctx.compareNote + ')' : ''}`);
       if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) add('ppg', 'PPG' + part, `Growth vs ${ctx.compareYear}${part} (%)`);
       if (ctx.hasTargets) {
@@ -137,6 +141,10 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
     if (c.kind === 'sales' || (c.kind === 'year' && c.year === fy)) {
       v = cur.value;
       if (v == null) r = salesReason(cur, fy);
+    } else if (c.kind === 'cur') {
+      const s = sumC(fy, m);
+      v = s.value;
+      if (v == null) r = salesReason(s, fy);
     } else if (c.kind === 'year' || c.kind === 'py') {
       const y = c.kind === 'py' ? cy : c.year,
         s = c.kind === 'py' ? sumC(y, m) : sum(y, m);
@@ -150,8 +158,39 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
         now = sumC(fy, m);
       if (now.value != null && prev.value != null) v = c.kind === 'change' ? now.value - prev.value : prev.value > 0 ? ((now.value - prev.value) / prev.value) * 100 : null;
       if (v == null) r = prev.value == null ? salesReason(prev, cy) : now.value == null ? salesReason(now, fy) : prev.value === 0 && now.value > 0 ? `New: no ${cy} sales to grow from.` : `No ${cy} sales to grow from.`;
+      if (c.kind !== 'change') {
+        const cmpMonths = partial ? ctx.compareMonths : ctx.dataMonths || ctx.months,
+          lastM = MONTHS_SHORT[Math.max(...cmpMonths) - 1],
+          span = cmpMonths.length > 1 ? `Jan–${lastM}` : lastM;
+        if (now.value != null && now.value < 0) {
+          // V76 W-03: negative current sales are returns; a growth rate below −100% means nothing.
+          v = null;
+          r = 'Returns larger than sales in this period, so growth is not meaningful.';
+        } else if (v != null && !total && ctx.yearMode === 'single' && (sources || [product]).some((n) => /\btender\b/i.test(String(n)))) {
+          // V76 W-05: a tender whose previous-year order came mostly after the period has no meaningful growth rate.
+          const side = prevSide || { recs: ctx.records, filters },
+            full = side.unknown ? null : comparableSummary(side.recs, cy, ALL_MONTHS, m, side.filters).value;
+          if (full > 0 && prev.value < 0.25 * full) {
+            v = null;
+            r = `${cy} tender orders came mostly after ${lastM} (${Math.round((prev.value / full) * 100)}% by ${lastM}), so growth is not meaningful.`;
+          }
+        }
+        if (v != null) {
+          // V76 W-03: say when the previous-period base includes returns (a negative month).
+          const byMonth = new Map();
+          for (const row of prev.rows || []) if (Number.isFinite(row[m])) byMonth.set(row.month, (byMonth.get(row.month) || 0) + row[m]);
+          const neg = [...byMonth.entries()].filter(([, val]) => val < 0).sort((a, b) => a[0] - b[0]);
+          if (neg.length) r = `${cy} ${span} includes returns of ${neg.map(([mo, val]) => shortAmount(val, m) + ' (' + MONTHS_SHORT[mo - 1] + ')').join(', ')}.`;
+        }
+      }
     } else if (c.kind === 'target' || c.kind === 'ach' || c.kind === 'gap') {
       const t = total || sources ? targetSum(ctx.records, { year: fy }, sources || products, ctx.months, m, ctx.selection, annual) : portfolioTarget(ctx.records, { year: fy }, product, ctx.months, m, ctx.selection, annual);
+      // V76 W-07: a product with a zero target has no target: no achievement and no variance (totals unchanged).
+      if (!total && t === 0) {
+        out[c.key] = null;
+        why[c.key] = 'No target for this product.';
+        continue;
+      }
       if (c.kind === 'target') v = t;
       else if (c.kind === 'ach') v = cur.value != null && t > 0 ? (cur.value / t) * 100 : null;
       else v = cur.value != null && t != null ? cur.value - t : null;
@@ -253,7 +292,7 @@ export function groupByLine(rows, cols) {
     if (!groups.has(r.line)) groups.set(r.line, []);
     groups.get(r.line).push(r);
   }
-  const additive = new Set(['sales', 'year', 'py', 'target', 'gap', 'change', 'share']);
+  const additive = new Set(['sales', 'year', 'cur', 'py', 'target', 'gap', 'change', 'share']);
   return [...groups.entries()]
     .map(([line, list]) => {
       const sub = { product: line, subtotal: true, cells: {}, reasons: {} };
@@ -269,13 +308,16 @@ export function groupByLine(rows, cols) {
 }
 
 const achClass = (v) => (v == null ? 'unknown' : v >= 100 ? 'good' : v >= 90 ? 'warn' : 'bad');
+// V76 W-10: say "packs" when the grouped source names differ by pack only, "price versions" when a price word is involved.
+const PRICE_WORD = /\b(old|new|n\.\s*new)\s+price\b|\bprice\s+20\d\d\b|\bnew\s+price\b/i;
+export const versionLabel = (sources) => `${sources.length} ${sources.some((n) => PRICE_WORD.test(n)) ? 'price versions' : 'packs'}`;
 export function cellHTML(row, c, maxSales) {
   const v = row.cells[c.key],
     reason = row.reasons[c.key];
   if (v == null && (c.kind === 'ppg' || c.kind === 'growth') && /^New:/.test(reason || '')) return `<td class="variance positive" title="${esc(reason)}" data-reason="${esc(reason)}">New</td>`;
   if (v == null) return `<td title="${esc(reason || 'Not available')}" data-reason="${esc(reason || 'Not available')}">—</td>`;
   if (c.kind === 'share') return `<td>${v.toFixed(1)}%</td>`;
-  if (c.kind === 'ppg' || c.kind === 'growth') return `<td class="variance ${v < 0 ? 'negative' : 'positive'}">${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%</td>`;
+  if (c.kind === 'ppg' || c.kind === 'growth') return `<td class="variance ${v < 0 ? 'negative' : 'positive'}"${reason ? ` title="${esc(reason)}" data-reason="${esc(reason)}"` : ''}>${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%${reason ? '<sup class="pt-note" aria-hidden="true">ⓘ</sup>' : ''}</td>`;
   if (c.kind === 'ach') {
     const k = achClass(v);
     return `<td><span class="ach ach-${k}">${v.toFixed(0)}%</span><span class="ach-bar ach-${k}" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, v))}%"></i></span></td>`;
@@ -293,7 +335,7 @@ export function cellHTML(row, c, maxSales) {
 export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = false, grouped = false, combine = false, expanded = new Set() }) {
   // V72 R-23: rows show the display name used across years; the source name stays in the tooltip. Display only.
   const shown = (name) => (typeof ctx?.displayName === 'function' ? ctx.displayName(name) : name),
-    label = (name) => (shown(name) !== name ? `${esc(shown(name))}<small class="src-name">${esc(name)}</small>` : esc(name)),
+    label = (name) => (!sameName(shown(name), name) ? `${esc(shown(name))}<small class="src-name">${esc(name)}</small>` : esc(shown(name))),
     tip = (name) => (shown(name) !== name ? `Source name: ${esc(name)} · ` : '') + `Show ${esc(shown(name))} on Overview`;
   const { cols, total } = data,
     primary = measures[0],
@@ -322,7 +364,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       : r.member
         ? `<td class="sticky-col member-name">${r.sources?.length > 1 ? `<button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button>` : `<button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button>`}</td>`
       : r.versions
-        ? `<td class="sticky-col"><button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button> <button type="button" class="pt-expand pt-versions" data-pt-expand="v:${esc(r.key)}" aria-expanded="${expanded.has('v:' + r.key)}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${expanded.has('v:' + r.key) ? '▾' : '▸'}</span> ${r.sources.length} price versions</button></td>`
+        ? `<td class="sticky-col"><button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button> <button type="button" class="pt-expand pt-versions" data-pt-expand="v:${esc(r.key)}" aria-expanded="${expanded.has('v:' + r.key)}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${expanded.has('v:' + r.key) ? '▾' : '▸'}</span> ${versionLabel(r.sources)}</button></td>`
       : r.subtotal
         ? `<th scope="row" class="sticky-col">${esc(r.product)} <small>subtotal</small></th>`
         : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`;
@@ -348,7 +390,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
     signedPct = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%',
     signedNum = (v) => (v < 0 ? '−' : '+') + num(Math.abs(v)),
     cellDefs = [
-      has(gk) && [ctx.yearMode === 'multi' ? 'Growth' : `vs ${ctx.compareYear}`, gk, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedPct(v)}</b>`],
+      has(gk) && [ctx.yearMode === 'multi' ? 'Growth' : `vs ${ctx.compareYear}${ctx.comparePartial ? ' ' + monthSpan(ctx.compareMonths) : ''}`, gk, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedPct(v)}</b>`],
       has(ak) && ['Ach.', ak, (v) => `<b class="ach ach-${achClass(v)}">${v.toFixed(0)}%</b>`],
       has(gapK) && ['Variance', gapK, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedNum(v)}</b>`],
       has(share) && ['Share', share, (v) => `<b>${v.toFixed(1)}%</b>`],
@@ -362,7 +404,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       attrs = r.total || r.combined ? '' : r.sources?.length > 1 ? ` type="button" data-select-products="${esc(JSON.stringify(r.sources))}"` : ` type="button" data-select-product="${esc(r.product)}"`,
       cell = ([label, key, fmt]) => {
         const v = r.cells[key];
-        return `<span class="pc-cell"><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
+        return `<span class="pc-cell"${v != null && r.reasons[key] ? ` title="${esc(r.reasons[key])}"` : ''}><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
       };
     return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.total ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };

@@ -53,7 +53,7 @@ for (const [year, n] of [[2022, 12], [2023, 12], [2024, 12], [2025, 12], [2026, 
 {
   const c = ctx(2024, 12), d = productsTableData(c, { measures: ['value'] }), by = (name) => d.rows.find((r) => r.product === name);
   assert.equal(d.rows.filter((r) => /^methyltechno/i.test(r.product)).length, 1, 'Methyltechno is one row');
-  const m = by('Methyltechno');
+  const m = by('METHYLTECHNO');
   assert(Math.abs(m.cells['py:value'] - 289946712) <= 1 && Math.abs(m.cells['ppg:value'] - 9.46) < 0.1, 'Methyltechno Jan–Sep 2023 and growth');
   assert(Math.abs(by('CALCITRON').cells['ppg:value'] - 40.5) < 0.2, 'Calcitron +40.5% (was +55,913% on an "Old Price" row)');
   assert(Math.abs(d.total.cells['sales:value'] - 1767914133) < 1 && Math.abs(d.total.cells['ppg:value'] - 30.4) < 0.1, 'Total row unchanged');

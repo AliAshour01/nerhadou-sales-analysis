@@ -63,6 +63,8 @@ function inspect({ mobile, strictGap }) {
     if (sr.height < fs) out.push(`KPI value cut (${Math.round(sr.height)}px < ${fs}px): ${l.textContent.trim()}`);
   }
   // R-07/R-08: no inner scrollbars in Needs attention or Product facts.
+  // V76 W-11: forecast scenario amounts stay on one line (compact on phones).
+  for (const n of document.querySelectorAll('#view-forecast .projection-number')) if (vis(n)) { const lh = parseFloat(getComputedStyle(n).lineHeight) || parseFloat(getComputedStyle(n).fontSize) * 1.3; if (n.getBoundingClientRect().height > lh * 1.6) out.push(`forecast amount wraps: ${n.textContent.trim()}`); }
   for (const id of ['attention-list', 'product-facts']) { const n = document.getElementById(id); if (vis(n) && n.scrollHeight > n.clientHeight + 1) out.push(`${id} has an inner scrollbar`); }
   // R-05/R-06/R-09: axis and value labels in the bridge and Sales by year do not overlap.
   for (const id of ['movement-chart', 'sales-by-year']) {

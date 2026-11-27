@@ -1,7 +1,7 @@
 // V69 U-01: one selection context for the whole Sales page. Pure module (no DOM).
 // Every renderer reads this frozen object instead of re-deriving year / product / target / dimension conditions.
-import { comparableSummary, commonAvailableMonths, growthAllowed, scopeRecords, targetSum, productName, productKey, PROVISIONAL_YEARS, dimensionGap } from './management-core.js?v=sales-review-v75';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v75';
+import { comparableSummary, commonAvailableMonths, growthAllowed, scopeRecords, targetSum, productName, productKey, PROVISIONAL_YEARS, dimensionGap } from './management-core.js?v=sales-review-v76';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v76';
 
 export const DIMENSIONS = ['distributor', 'channel', 'line'];
 const UNKNOWN = new Set(['NOT PROVIDED', 'NOT RECORDED', '']);
@@ -23,6 +23,16 @@ export function comparisonRecords(records) {
 // upper case) shows as its source name in the latest year it sold, when that year has exactly one such source name.
 // Historical single-year views (before the latest year) show that same name for each source pack / price version
 // (the source name stays in tooltips). Display only: selections, filters and records keep their own names.
+export function tidyName(name) {
+  return String(name ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+    .replace(/(\d(?:\.\d+)?)\s+(MG|MCG|G)\b/g, '$1$2')
+    .replace(/\s*[-–—]?\s*\(?\bTENDER\b\)?$/, ' - TENDER');
+}
+// Names that differ only by case, spacing or "1.5 MG" vs "1.5MG" are the same name (no source-name subline needed).
+export const sameName = (a, b) => tidyName(a) === tidyName(b);
 const displayCache = new WeakMap();
 export function productDisplayNames(records) {
   let out = displayCache.get(records);
@@ -36,7 +46,8 @@ export function productDisplayNames(records) {
     if (!cur || r.year > cur.year) latest.set(key, { year: r.year, names: new Set([src]) });
     else if (r.year === cur.year) cur.names.add(src);
   }
-  const multi = new Map([...latest].map(([key, v]) => [key, v.names.size === 1 ? [...v.names][0] : key]));
+  // V76 W-10: one style for every display name (upper case, single spaces, strength without a space, " - TENDER").
+  const multi = new Map([...latest].map(([key, v]) => [key, v.names.size === 1 ? tidyName([...v.names][0]) : key]));
   const byYear = new Map();
   for (const r of records) {
     if (r.dataset !== 'actual' || !(r.month > 0)) continue;
@@ -172,7 +183,7 @@ export function resolveViewContext(rawRecords, state) {
   const provisionalYears = years.filter((y) => PROVISIONAL_YEARS.has(y)),
     hasData = focusRows.length > 0;
   const names = productDisplayNames(rawRecords),
-    displayName = yearMode === 'multi' ? names.multi : focusYear < latestYear ? (name) => names.single(focusYear, name) : (name) => name;
+    displayName = yearMode === 'multi' ? names.multi : (name) => names.single(focusYear, name);
   const ctx = {
     displayName,
     years,

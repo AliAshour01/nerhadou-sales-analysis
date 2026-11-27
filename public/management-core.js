@@ -115,16 +115,34 @@ export function runRateProjection(records,year,metric='units',filters={}){
  const monthly=observed/end;
  return {value:observed+monthly*(12-end),observed,monthly,through:end,remaining:12-end,reason:null,method:'Actual YTD + average of all complete months from January through the selected cutoff × remaining months. No seasonality adjustment; scenario, not a commitment.'};
 }
-export function seasonalProjection(records,year,cutoff,metric='units',filters={}){
+export function seasonalProjection(records,year,cutoff,metric='units',filters={},priorFilters=filters){
  const fail=reason=>({value:null,reason});if(!Number.isInteger(cutoff)||cutoff<1||cutoff>=12)return fail('Choose an incomplete year with a YTD cutoff from January to November.');
  const allowed=growthAllowed(year-1,year);if(!allowed.ok)return fail(allowed.reason);
- const months=Array.from({length:12},(_,i)=>i+1),prior=months.map(m=>comparableSummary(records,year-1,[m],metric,filters)),current=months.slice(0,cutoff).map(m=>comparableSummary(records,year,[m],metric,filters));
+ const months=Array.from({length:12},(_,i)=>i+1),prior=months.map(m=>comparableSummary(records,year-1,[m],metric,priorFilters)),current=months.slice(0,cutoff).map(m=>comparableSummary(records,year,[m],metric,filters));
  const verified=s=>finite(s.value)&&s.value>=0&&!s.estimated&&!s.approximate&&!s.review;
  if(current.some(s=>!verified(s)))return fail('Needs complete nonnegative actual sales from January through the cutoff; estimated or unverified amounts are excluded.');
+ // V76 W-03: a complete prior year with returns larger than sales in a month gets its own reason.
+ const clean=s=>finite(s.value)&&!s.estimated&&!s.approximate&&!s.review;if(prior.every(clean)&&prior.some(s=>s.value<0)){const neg=prior.map((s,i)=>[i,s.value]).filter(([,v])=>v<0);return {...fail(`${year-1} has returns larger than sales in ${neg.map(([i,v])=>MONTHS_SHORT[i]+' ('+shortAmount(v,metric)+')').join(', ')}, so its seasonal shape is not usable.`),negativeMonths:neg.map(([i])=>i+1)}}
  if(prior.some(s=>!verified(s)))return fail('Needs a complete prior year for the same selection: 12 monthly actuals, without missing, estimated or unverified amounts. New products without a prior year cannot use this method.');
  const priorFull=prior.reduce((n,s)=>n+s.value,0),priorYTD=prior.slice(0,cutoff).reduce((n,s)=>n+s.value,0),observed=current.reduce((n,s)=>n+s.value,0);
  if(priorFull<=0||priorYTD<=0)return fail('Prior-year full sales and same-period YTD must both be positive.');
  const share=priorYTD/priorFull;return {value:observed/share,observed,priorFull,priorYTD,share,priorYear:year-1,through:cutoff,reason:null,method:'Current YTD actual divided by the share of prior-year annual sales earned in the same months. Assumes the prior-year seasonal pattern repeats; exceptional tenders, launches or other one-off sales can distort the result. Scenario, not a commitment.'};
+}
+// V76 W-01/W-03 helpers.
+const MONTHS_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+export function shortAmount(v,metric='units'){const a=Math.abs(v),sign=v<0?'−':'',t=a>=1e9?(a/1e9).toFixed(2).replace(/\.?0+$/,'')+'B':a>=1e6?(a/1e6).toFixed(1).replace(/\.0$/,'')+'M':a>=1e3?(a/1e3).toFixed(1).replace(/\.0$/,'')+'K':String(Math.round(a));return metric==='value'?'EGP '+sign+t:sign+t+(metric==='units'?' units':'')}
+export const isTenderRecord=r=>/\btender\b/i.test(String(r.product??'')+' '+String(r.channel??''));
+// V76 W-01: one-off tender orders (e.g. a single December delivery) must not be scaled up by the seasonal shape. When a
+// selection mixes tender and regular sales, project the regular sales seasonally and add tender sales so far unprojected.
+export function seasonalScenario(records,year,cutoff,metric='units',filters={}){
+ const scoped=scopeRecords(records.filter(r=>r.dataset==='actual'&&(r.year===year||r.year===year-1)),filters),hasTender=scoped.some(isTenderRecord),hasRegular=scoped.some(r=>!isTenderRecord(r));
+ if(!hasTender||!hasRegular)return seasonalProjection(records,year,cutoff,metric,filters);
+ const regular=records.filter(r=>!(r.dataset==='actual'&&isTenderRecord(r))),tender=records.filter(r=>!(r.dataset==='actual'&&!isTenderRecord(r)));
+ const base=seasonalProjection(regular,year,cutoff,metric,filters);if(base.value==null)return base;
+ const months=Array.from({length:cutoff},(_,i)=>i+1),t=comparableSummary(tender,year,months,metric,filters),tenderYTD=finite(t.value)?t.value:finite(t.total)?t.total:0;
+ let run=0;const priorCum=Array.from({length:12},(_,i)=>comparableSummary(regular,year-1,[i+1],metric,filters).value).map(v=>run+=v);
+ return {...base,value:base.value+tenderYTD,regularValue:base.value,tenderYTD,priorCum,excludesTender:true,
+  method:'Regular (non-tender) YTD actual divided by the share of prior-year regular sales earned in the same months, plus tender sales so far. Tender orders are one-off, so they are not projected forward. Assumes the prior-year seasonal pattern repeats. Scenario, not a commitment.'};
 }
 export function portfolioTarget(records,snapshot,product,chosen,metric,filters={},annual=false){
  const members=productRows(records,'actual',snapshot.year,product);
