@@ -1,3 +1,4 @@
+import {comparisonProduct} from './compare-core.js';
 export const METRICS=['units','value','target_units','target_value','stock'];
 const owns=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 export const lineProductKey=product=>String(product??'').replace(/\s+/g,'').toLowerCase();
@@ -89,7 +90,7 @@ export function previewImport(raw,seed,overrides={},options={}){
       if(!String(row.line??'').trim())throw Error('A new series also needs line. Use NOT PROVIDED if unknown.');
       const details=Object.fromEntries(['product','channel','distributor','line'].map(k=>[k,String(row[k]).trim()])),key=seriesKey(details),newId=newSeriesId(key);
       if(catalog.has(newId)&&seriesKey(catalog.get(newId))!==key)throw Error('Series identifier collision. Register this series in Data tables.');
-      template={...details,id:newId+'-catalog',series_id:newId,product_id:newId,year:0,month:0,dataset:'catalog',source:'Admin-reviewed import registration',units:null,value:null,estimated:[]};
+      template={...details,comparison_product:comparisonProduct(details),id:newId+'-catalog',series_id:newId,product_id:newId,year:0,month:0,dataset:'catalog',source:'Admin-reviewed import registration',units:null,value:null,estimated:[]};
      }
     }
 
