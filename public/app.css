@@ -804,3 +804,15 @@ body{font-size:var(--text-body)}
 #sales .attention-item,#sales .attention-item b,#sales .attention-item span,#sales .price-item,#sales .facts-list .fact,#sales .facts-list .fact b,#sales .methodology p,#sales .footnote,#sales .forecast-why,#sales .forecast-method p,#sales .forecast-sentence{font-size:var(--text-body)}
 #sales .legend,#sales .series-legend,#sales .analysis-legend,#sales .forecast-legend,#sales .fc-end-row,#sales svg text{font-size:var(--text-caption)}
 #sales .v69-grid{align-items:start}
+
+/* G-08: Hide desktop top header on Sales; show compact 36px icon buttons in heading */
+@media (min-width:700px){
+  body:has(#sales:not([hidden])) header.app-header{display:none}
+  body.is-expanded:has(#sales:not([hidden])) header.app-header{display:flex}
+  #sales .heading-icon-btn{width:36px;height:36px;min-width:36px;min-height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface);color:var(--ink-2);border-radius:var(--radius-control)}
+  #sales .heading-icon-btn:hover{background:var(--accent-soft);color:var(--ink)}
+  #sales .heading-icon-btn .chrome-icon{width:16px;height:16px}
+}
+@media (max-width:699px){
+  #sales .heading-icon-btn{display:none}
+}
