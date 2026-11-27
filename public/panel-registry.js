@@ -17,7 +17,7 @@ const mixShown = (ctx, key) => ctx.hasData && ctx.dims[key].categories >= 2 && c
 
 export const PANELS = [
   // ── Overview ──
-  { id: 'salesByYear', tab: 'overview', row: 2, title: 'Sales by year', span: (ctx) => (multiOne(ctx) ? 6 : 4), show: (ctx) => ctx.yearMode === 'multi' && ctx.hasData, reason: () => null },
+  { id: 'salesByYear', tab: 'overview', row: 2, title: 'Sales by year', span: (ctx) => (multiOne(ctx) ? 6 : 4), show: (ctx) => ctx.yearMode === 'multi' && ctx.years.length >= 3 && ctx.hasData, reason: () => null },
   { id: 'monthly', tab: 'overview', row: (ctx) => (multiOne(ctx) ? 3 : 2), title: 'Monthly sales', span: (ctx) => (multiOne(ctx) ? 12 : ctx.yearMode === 'single' && ctx.monthCount === 1 ? 6 : 8), show: (ctx) => ctx.hasData && ctx.monthCount > 0, reason: (ctx) => (ctx.monthCount ? null : 'Select at least one month.') },
   { id: 'attention', tab: 'overview', row: 2, title: 'Needs attention', span: () => 4, show: (ctx, api) => ctx.yearMode === 'single' && ctx.productMode !== 'one' && ctx.hasData && api.attentionCount(ctx) > 0, reason: (ctx) => (ctx.yearMode === 'single' && ctx.productMode !== 'one' && ctx.hasData ? 'No items need attention for this selection.' : null) },
   { id: 'productFacts', tab: 'overview', row: 2, title: 'Product facts', span: () => 4, show: (ctx, api) => ctx.yearMode === 'single' && ctx.productMode === 'one' && ctx.hasData && api.factCount(ctx) > 0, reason: () => null },
