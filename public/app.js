@@ -41,10 +41,10 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
  // V73 N-06: never skip months unevenly: up to 12 months every bar keeps a label, as initials (J F M …) when slots are narrow.
  const stride=data.length<=12?1:monthStride(data.length,right-left),labelFont=(right-left)/Math.max(1,data.length)<52?11:12,initials=data.length>9&&step<36,monthName=m=>initials?months[m-1][0]:months[m-1];
  // Bar labels (growth % / achievement / value) print only when the widest one fits its slot; otherwise none, and a note says where to read them.
- const labelOf=d=>compare==='py'?(d.ppg==null?'':(d.ppg>0?'+':'')+d.ppg.toFixed(0)+'%'):!known(d.actual)?'':compare==='target'&&d.pct!=null?d.pct.toFixed(0)+'%':compact(d.actual),showLabels=Math.max(0,...data.map(d=>String(labelOf(d)).length*labelFont*.62))<=step-2;
+ const labelOf=d=>compare==='py'?(d.ppg==null?'':(d.ppg>0?'+':'')+d.ppg.toFixed(0)+'%'):!known(d.actual)?'':compare==='target'?(d.pct!=null&&d.pct<100?d.pct.toFixed(0)+'%':''):compact(d.actual),showLabels=Math.max(0,...data.map(d=>String(labelOf(d)).length*labelFont*.62))<=step-2;
  const runs=[];data.forEach((d,i)=>{if(known(d.actual))return;const last=runs.at(-1);if(last&&last.end===i-1)last.end=i;else runs.push({start:i,end:i})});let svg=plotSVG(width,270,compare==='py'?'Monthly sales, current and previous year, with growth percentages':compare==='target'?'Monthly actual columns with monthly target markers':'Monthly sales columns');
  axisTicks(axis).forEach(v=>svg+=`<line x1="${left}" y1="${Y(v)}" x2="${right}" y2="${Y(v)}" stroke="${v===0?'var(--context)':'var(--border)'}"/><text x="${left-10}" y="${Y(v)+3}" text-anchor="end" font-size="12" fill="var(--ink-3)">${tickLabel(v,axis)}</text>`);
- const bar=(x,v,fill,cls='')=>`<rect class="${cls}" x="${x}" y="${Math.min(Y(v),zero)}" width="${bw}" height="${Math.max(.5,Math.abs(Y(v)-zero))}" rx="3" fill="${v<0?'var(--decrease)':fill}"/>`;
+ const bar=(x,v,fill,cls='')=>`<rect class="${cls}" x="${x}" y="${Math.min(Y(v),zero)}" width="${bw}" height="${Math.max(.5,Math.abs(Y(v)-zero))}" rx="4" fill="${v<0?'var(--decrease)':fill}"/>`;
  const slot=(x,label='unknown')=>`<rect class="unknown-slot" x="${x}" y="${top+plot*.45}" width="${bw}" height="${plot*.55}" rx="3" fill="none" stroke="var(--context)" stroke-dasharray="4 3"/>${label?`<text class="unknown-label" x="${x+bw/2}" y="${top+plot*.45-6}" text-anchor="middle" font-size="12" fill="var(--ink-3)">${label}</text>`:''}`;
  let lastLab=null;data.forEach((d,i)=>{
   const x=left+step*(i+.5),name=months[d.month-1],a=known(d.actual),run=runs.find(r=>r.start<=i&&i<=r.end),soloLabel=run&&run.start===run.end?'unknown':'';
@@ -61,10 +61,10 @@ function monthlyChartHTML(data,metric,chartPixels=chartWidth('trend'),opts={}){
   else{
    const capped=compare==='target'&&d.target>0?Math.min(d.actual,d.target):d.actual;
    svg+=bar(x-bw/2,capped,'var(--accent)');
-   if(compare==='target'&&d.target>0&&d.actual>d.target)svg+=`<rect x="${x-bw/2}" y="${Y(d.actual)}" width="${bw}" height="${Y(d.target)-Y(d.actual)}" rx="3" fill="var(--context-2)"/>`;
+   if(compare==='target'&&d.target>0&&d.actual>d.target)svg+=`<rect x="${x-bw/2}" y="${Y(d.actual)}" width="${bw}" height="${Y(d.target)-Y(d.actual)}" rx="4" fill="var(--context-2)"/>`;
    if(compare==='target'&&d.target>0)svg+=`<line class="target-marker" x1="${x-bw/2-6}" x2="${x+bw/2+6}" y1="${Y(d.target)}" y2="${Y(d.target)}" stroke="var(--ink)" stroke-width="2"/>`;
    labelTop=Y(Math.max(0,d.actual,compare==='target'&&d.target>0?d.target:-Infinity));
-   label=compare==='target'&&d.pct!=null?d.pct.toFixed(0)+'%':compact(d.actual);
+   label=compare==='target'?(d.pct!=null&&d.pct<100?d.pct.toFixed(0)+'%':''):compact(d.actual);
   }
   svg+='</g>';
   // V72 R-22: a label that would touch its left neighbour at the same height moves up one line.
