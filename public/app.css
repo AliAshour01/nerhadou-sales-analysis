@@ -940,3 +940,7 @@ body{font-size:var(--text-body)}
 #sales .price-units{font-size:var(--text-small);font-weight:500;color:var(--ink-2)}
 #sales .price-units.positive{color:var(--good)}
 #sales .price-units.negative{color:var(--decrease)}
+
+/* G-19: Forecast chart header with Show monthly path toggle */
+.forecast-chart-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.forecast-chart-head h3{margin:0;font-size:var(--text-body);font-weight:600;color:var(--ink)}
