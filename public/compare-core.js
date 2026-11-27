@@ -15,10 +15,21 @@ const SOURCE_ALIASES=[
 ];
 // V76 W-15: spellings the AI import prompt must treat as the same product. One list, so a new alias reaches the prompt.
 export const KNOWN_SPELLINGS=[['NERHAFLUX','NERHAFLUKS'],['ZOLMASONE','ZOLMSOLAN'],['FERRETRON','FERROTRON'],['TRIB GOLD','TRIBGOLD'],['HI POTENCY','HI-POTENCY'],['NERCAFIX 20/30 FILM','NERCAFIX 40MG'],['NERDECONG','NERDECONG 2.5MG'],['NOPYRETRON 125 MG 10 / 20 O.D. FILM','NOPYRETRON 125MG (one product; keep each pack as its own catalog series)']];
+// V77.1: one spelling per product name: upper case, single spaces, "3 MG" -> "3MG", known misspellings, and a trailing pack
+// size ("- 20 FILM", "-10 Film") dropped because pack sizes of one product are merged (owner rule, V74). Tender is handled by the caller.
+const CANON_SPELLINGS=[[/^NERHAFLUX\b/,'NERHAFLUKS'],[/^FERRETRON\b/,'FERROTRON'],[/^TRIB GOLD\b/,'TRIBGOLD'],[/^HI POTENCY\b/,'HI-POTENCY'],[/^ZOLMASONE\b/,'ZOLMSOLAN']];
+export function canonicalProductName(name){
+ let s=String(name??'').replace(/\s+/g,' ').trim().toUpperCase().replace(/(\d(?:\.\d+)?)\s+(MG|MCG|G)\b/g,'$1$2');
+ for(const [re,to] of CANON_SPELLINGS)s=s.replace(re,to);
+ return s.replace(/^(.*\d(?:\.\d+)?(?:MG|MCG|G))\s*-\s*\d+\s*(?:FILMS?|TABS?|TABLETS?|CAPS?|CAPSULES?|SACHETS?|AMPS?)$/,'$1').trim();
+}
 export function comparisonProduct(r){
  let name=r.comparison_product||r.product;
  const src=String(r.product??'').replace(/\s*[-–—]?\s*\(?\btender\b\)?\s*$/i,'').trim();
  const bySource=SOURCE_ALIASES.find(([re])=>re.test(src));
+ // V77.1: imported names without a reviewed comparison_product are keyed by their canonical spelling, so "Methyltechno",
+ // "MELACRYST 3 MG" or "NERHAFLUX 20MG-10 Film" join METHYLTECHNO, MELACRYST 3MG and NERHAFLUKS 20MG. Reviewed keys stay as they are.
+ if(!r.comparison_product&&!bySource)name=canonicalProductName(String(name).replace(/\s*[-–—]?\s*\(?\btender\b\)?\s*$/i,''))+(/\btender\b\)?\s*$/i.test(String(name))?' - TENDER':'');
  if(bySource)name=bySource[1];else if(KEY_ALIASES.has(String(name).toUpperCase()))name=KEY_ALIASES.get(String(name).toUpperCase());
  // Preserve reviewed historical mapping, but never merge explicit Tender sales with regular sales.
  if(!/\btender\b/i.test([r.product,r.channel,name].join(' ')))return name;
@@ -55,3 +66,21 @@ export function compareProducts(records,settings){
  return products.map(product=>{const a=summarize(records,{...settings,year:settings.a,products:[product]}),b=summarize(records,{...settings,year:settings.b,products:[product]});return {product,a,b,...deltaBetween(a,b)}});
 }
 export function monthlyComparison(records,settings){return monthsFor(settings.mode,settings.month,settings.selected).map(month=>{const a=summarize(records,{...settings,year:settings.a,mode:'month',selected:[month]}),b=summarize(records,{...settings,year:settings.b,mode:'month',selected:[month]});return {month,a,b,...deltaBetween(a,b)}})}
+// V77.1: tidy imported dimension spellings for the dashboard and fill a missing line from the product's own line in the same
+// year. "Pharma" and "PHARMA" are one distributor; "NOT PROVIDED" and "Not provided" are one unknown line. A missing line is
+// filled only when every other record of that product (tender kept separate) in that year has one and the same line; the record
+// keeps source_line and is marked line_inferred. Display-only: stored records and imports are unchanged.
+const UNKNOWN_DIM=/^(not provided|not recorded)?$/i;
+const lineCache=new WeakMap();
+export function dashboardRecords(records){
+ if(!Array.isArray(records))return records;
+ let out=lineCache.get(records);if(out)return out;
+ const tidy=r=>{const d=String(r.distributor??'').replace(/\s+/g,' ').trim().toUpperCase(),l=String(r.line??'').replace(/\s+/g,' ').trim();
+  return {...r,distributor:d||'NOT PROVIDED',line:UNKNOWN_DIM.test(l)?'Not provided':l}};
+ const tidied=records.map(r=>(r.dataset==='actual'||r.dataset==='target'?tidy(r):r));
+ const lines=new Map();
+ for(const r of tidied)if(r.dataset==='actual'&&r.line!=='Not provided'){const k=r.year+'|'+comparisonProduct(r);let s=lines.get(k);if(!s)lines.set(k,(s=new Set()));s.add(r.line)}
+ out=tidied.map(r=>{if(r.dataset!=='actual'||r.line!=='Not provided')return r;const s=lines.get(r.year+'|'+comparisonProduct(r));
+  return s?.size===1?{...r,source_line:r.source_line??r.line,line:[...s][0],line_inferred:true}:r});
+ lineCache.set(records,out);return out;
+}

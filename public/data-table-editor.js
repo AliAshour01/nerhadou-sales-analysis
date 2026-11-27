@@ -1,4 +1,4 @@
-import {METRICS,previewImport,previewLineAssignments,lineProductKey} from './data-core.js?v=32';
+import {METRICS,previewImport,previewLineAssignments,lineProductKey} from './data-core.js?v=33';
 
 export function createDataEditors({getState,getRecords,getRawRecords,isBusy,save,renderTable,status,html,fmt}){
  const $=id=>document.getElementById(id),labels={units:'Units',value:'Value',target_units:'Target units',target_value:'Target value',stock:'Stock'};

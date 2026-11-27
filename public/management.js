@@ -1,10 +1,10 @@
-import {comparisonProduct} from './compare-core.js?v=sales-review-v77';
-import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,seasonalScenario,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v77';
-import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v77';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v77';
-import {PANELS,layout} from './panel-registry.js?v=sales-review-v77';
-import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v77';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v77';
+import {comparisonProduct,dashboardRecords} from './compare-core.js?v=sales-review-v78';
+import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,seasonalScenario,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v78';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v78';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v78';
+import {PANELS,layout} from './panel-registry.js?v=sales-review-v78';
+import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v78';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v78';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),
@@ -20,7 +20,7 @@ const plotWidth=(id,fallback=640)=>window.actualDashboard.chartWidth(id,fallback
 const svgPlot=(w,h,label,extra='')=>window.actualDashboard.plotSVG(w,h,label,extra);
 const labelStride=(count,width)=>window.actualDashboard.monthStride(count,width);
 function dashboard(){return window.actualDashboard?.read()}
-function records(){return payload?.records||[]}
+function records(){return dashboardRecords(payload?.records||[])}
 function summary(year,chosen,metric,filters=dashboard()?.selection||{}){const key=JSON.stringify([year,chosen,metric,filters]);if(!cache.has(key))cache.set(key,comparableSummary(records(),year,chosen,metric,filters));return cache.get(key)}
 function selectedProducts(d=dashboard(),filters=d.selection){return [...new Set(scopeRecords(records(),filters).filter(r=>r.dataset==='actual'&&r.year===d.snapshot.year&&r.month>0).map(productName))].sort()}
 function target(products,metric,chosen=dashboard().months,annual=dashboard().targetBasis==='annual',filters=dashboard().selection){return targetSum(records(),dashboard().snapshot,products,chosen,metric,filters,annual)}
