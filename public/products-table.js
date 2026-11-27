@@ -1,10 +1,10 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v78';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v79';
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   ALL_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v78';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v78';
+import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v79';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v79';
 
 // V74 V-14: the previous-year side of a single-year row is looked up by comparison name (price versions and renamed
 // packs of one product are one product). A row that stands for only some of the price versions the focus year has
@@ -105,7 +105,7 @@ function productUniverse(ctx) {
 }
 
 // One product (or the selection total) → cell values and "why unavailable" reasons.
-function cells(ctx, cols, filters, { total = false, product = null, products = [], sources = null, annual = false, company, lookup = null }) {
+function cells(ctx, cols, filters, { total = false, product = null, products = [], sources = null, annual = false, company, lookup = null, line = false }) {
   const prevSide = lookup ? lookup(filters, total) : null;
   const out = {},
     why = {},
@@ -166,7 +166,8 @@ function cells(ctx, cols, filters, { total = false, product = null, products = [
           // V76 W-03: negative current sales are returns; a growth rate below −100% means nothing.
           v = null;
           r = 'Returns larger than sales in this period, so growth is not meaningful.';
-        } else if (v != null && !total && ctx.yearMode === 'single' && (sources || [product]).some((n) => /\btender\b/i.test(String(n)))) {
+        } else if (v != null && ctx.yearMode === 'single' && (!total ? (sources || [product]).some((n) => /\btender\b/i.test(String(n))) : line && products.length > 0 && products.every((n) => /\btender\b/i.test(String(n))))) {
+          // V79: a line made only of tender products (e.g. TENDER-ODF) follows the same rule as a tender product.
           // V76 W-05: a tender whose previous-year order came mostly after the period has no meaningful growth rate.
           const side = prevSide || { recs: ctx.records, filters },
             full = side.unknown ? null : comparableSummary(side.recs, cy, ALL_MONTHS, m, side.filters).value;
@@ -218,7 +219,15 @@ export function productsTableData(ctx, { measures = [ctx.measure], targetBasis =
   });
   const term = search.trim().toLowerCase(),
     view = term ? rows.filter((r) => r.product.toLowerCase().includes(term)) : rows;
-  return { cols, total, rows, view, count: names.length, company, tender: tenderGroups(ctx, cols, rows, annual, company, lookup) };
+  // V79: a line subtotal is computed like the Total row from all its products' records (sales, previous year, targets
+  // summed; PPG, achievement and variance recomputed from those sums), so it never shows a dash because one product is new.
+  const subMemo = new Map(),
+    subtotal = (sources) => {
+      const k = JSON.stringify([...sources].sort());
+      if (!subMemo.has(k)) subMemo.set(k, cells(ctx, cols, { ...ctx.selection, product: sources }, { total: true, products: sources, annual, company, lookup, line: true }));
+      return subMemo.get(k);
+    };
+  return { cols, total, rows, view, count: names.length, company, subtotal, tender: tenderGroups(ctx, cols, rows, annual, company, lookup) };
 }
 
 // V72 R-19: "Combine tender with base product". Each base product and its tender twin(s) get one combined row computed
@@ -286,7 +295,8 @@ export function sortRows(rows, ctx, sort, desc, measure) {
   });
 }
 
-export function groupByLine(rows, cols) {
+const rowSources = (r) => r.sources || r.members?.flatMap((m) => m.sources || [m.product]) || [r.product];
+export function groupByLine(rows, cols, subtotal = null) {
   const groups = new Map();
   for (const r of rows) {
     if (!groups.has(r.line)) groups.set(r.line, []);
@@ -295,7 +305,8 @@ export function groupByLine(rows, cols) {
   const additive = new Set(['sales', 'year', 'cur', 'py', 'target', 'gap', 'change', 'share']);
   return [...groups.entries()]
     .map(([line, list]) => {
-      const sub = { product: line, subtotal: true, cells: {}, reasons: {} };
+      if (subtotal) return { line, sub: { product: line, subtotal: true, count: list.length, ...subtotal(list.flatMap(rowSources)) }, rows: list };
+      const sub = { product: line, subtotal: true, count: list.length, cells: {}, reasons: {} };
       for (const c of cols) {
         if (!additive.has(c.kind)) continue;
         const vals = list.map((r) => r.cells[c.key]);
@@ -332,7 +343,8 @@ export function cellHTML(row, c, maxSales) {
   return `<td>${num(v)}</td>`;
 }
 
-export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = false, grouped = false, combine = false, expanded = new Set() }) {
+// V79: Group by line is a tree. `closedLines` holds the lines the user closed; every line is open the first time.
+export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = false, grouped = false, combine = false, expanded = new Set(), closedLines = new Set() }) {
   // V72 R-23: rows show the display name used across years; the source name stays in the tooltip. Display only.
   const shown = (name) => (typeof ctx?.displayName === 'function' ? ctx.displayName(name) : name),
     label = (name) => (!sameName(shown(name), name) ? `${esc(shown(name))}<small class="src-name">${esc(name)}</small>` : esc(shown(name))),
@@ -354,6 +366,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
     return `<th scope="col" aria-sort="${on ? (desc ? 'descending' : 'ascending') : 'none'}"><button data-pt-sort="col:${esc(c.key)}" title="${esc(c.label)}">${esc(c.short)}${on ? (desc ? ' ↓' : ' ↑') : ''}</button></th>`;
   };
   const head = groupsHead + `<tr class="sub-row">${measures.length > 1 ? '' : '<th scope="col" class="sticky-col">Product</th>'}${cols.map(sortHead).join('')}</tr>`;
+  const lineOpen = (line) => !closedLines.has(line);
   const row = (r) => {
     const first = r.total
       ? `<th scope="row" class="sticky-col">${esc(r.product)}</th>`
@@ -366,15 +379,16 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       : r.versions
         ? `<td class="sticky-col"><button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button> <button type="button" class="pt-expand pt-versions" data-pt-expand="v:${esc(r.key)}" aria-expanded="${expanded.has('v:' + r.key)}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${expanded.has('v:' + r.key) ? '▾' : '▸'}</span> ${versionLabel(r.sources)}</button></td>`
       : r.subtotal
-        ? `<th scope="row" class="sticky-col">${esc(r.product)} <small>subtotal</small></th>`
+        ? `<th scope="row" class="sticky-col"><button type="button" class="pt-line-toggle" data-pt-line="${esc(r.product)}" aria-expanded="${lineOpen(r.product)}" title="${lineOpen(r.product) ? 'Hide' : 'Show'} the ${r.count} product${r.count === 1 ? '' : 's'} in ${esc(r.product)}"><span class="pt-tree-icon" aria-hidden="true">${lineOpen(r.product) ? '▾' : '▸'}</span> ${esc(r.product)} <small>${r.count} product${r.count === 1 ? '' : 's'}</small></button></th>`
         : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`;
-    const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ' class="subtotal-row"' : r.combined ? ' class="combined-row"' : r.version ? ' class="member-row version-row"' : r.member ? ' class="member-row"' : r.versions ? ' class="versions-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
-    if (r.combined && expanded.has(r.key)) return own + r.members.map((m) => row({ ...m, member: true })).join('');
-    if (r.versions && expanded.has('v:' + r.key)) return own + r.versions.map((v) => row(v)).join('');
+    const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ` class="subtotal-row${lineOpen(r.product) ? ' open' : ''}"` : r.inLine ? ` class="line-child${r.version ? ' member-row version-row' : r.member ? ' member-row' : r.combined ? ' combined-row' : r.versions ? ' versions-row' : ''}"` : r.combined ? ' class="combined-row"' : r.version ? ' class="member-row version-row"' : r.member ? ' class="member-row"' : r.versions ? ' class="versions-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
+    if (r.combined && expanded.has(r.key)) return own + r.members.map((m) => row({ ...m, member: true, inLine: r.inLine })).join('');
+    if (r.versions && expanded.has('v:' + r.key)) return own + r.versions.map((v) => row({ ...v, inLine: r.inLine })).join('');
     return own;
   };
   let body = row(total);
-  if (grouped) for (const g of groupByLine(sorted, cols)) body += row(g.sub) + g.rows.map(row).join('');
+  const groups = grouped ? groupByLine(sorted, cols, data.subtotal) : null;
+  if (grouped) for (const g of groups) body += row(g.sub) + (lineOpen(g.line) ? g.rows.map((r) => row({ ...r, inLine: true })).join('') : '');
   else body += visible.map(row).join('');
   if (!sorted.length) body += `<tr><td colspan="${cols.length + 1}">No matching products.</td></tr>`;
   const sk = barKey,
@@ -400,13 +414,13 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       .slice(0, 3);
   const card = (r) => {
     const s = r.cells[sk],
-      tag = r.total || r.combined ? 'div' : 'button',
-      attrs = r.total || r.combined ? '' : r.sources?.length > 1 ? ` type="button" data-select-products="${esc(JSON.stringify(r.sources))}"` : ` type="button" data-select-product="${esc(r.product)}"`,
+      tag = r.total || r.combined || r.subtotal ? 'div' : 'button',
+      attrs = r.total || r.combined || r.subtotal ? '' : r.sources?.length > 1 ? ` type="button" data-select-products="${esc(JSON.stringify(r.sources))}"` : ` type="button" data-select-product="${esc(r.product)}"`,
       cell = ([label, key, fmt]) => {
         const v = r.cells[key];
         return `<span class="pc-cell"${v != null && r.reasons[key] ? ` title="${esc(r.reasons[key])}"` : ''}><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
       };
-    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.total || r.version ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
+    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && !r.subtotal && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.subtotal ? `<span class="pt-tree-icon" aria-hidden="true">${lineOpen(r.product) ? '▾' : '▸'}</span> ${esc(r.product)} <small>${r.count} product${r.count === 1 ? '' : 's'}</small>` : r.total || r.version ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };
   // V78: on the phone a product with several packs (or price versions) gets the same "n packs" toggle as the table; each
   // pack is its own card, and tapping it shows only that pack on Overview.
@@ -415,7 +429,12 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
     const open = expanded.has('v:' + r.key);
     return card(r) + `<button type="button" class="pt-versions pc-packs" data-pt-expand="v:${esc(r.key)}" aria-expanded="${open}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${open ? '▾' : '▸'}</span> ${versionLabel(r.sources)}</button>` + (open ? r.versions.map((v) => card(v).replace('class="portfolio-card', 'class="portfolio-card pc-sub')).join('') : '');
   };
-  const cards = card(total) + (grouped ? sorted : visible).map(withPacks).join('') || '<p class="chart-note">No matching products.</p>';
+  // V79: grouped phone cards: tapping a line card opens or closes it; its products follow it, indented.
+  const lineCard = (g) => {
+    const open = lineOpen(g.line);
+    return card(g.sub).replace(/^<div class="portfolio-card/, `<button type="button" data-pt-line="${esc(g.line)}" aria-expanded="${open}" class="portfolio-card pc-line${open ? ' open' : ''}`).replace(/<\/div>$/, '</button>');
+  };
+  const cards = card(total) + (grouped ? groups.map((g) => lineCard(g) + (lineOpen(g.line) ? g.rows.map((r) => withPacks(r).replace(/class="portfolio-card/g, 'class="portfolio-card pc-child')).join('') : '')).join('') : visible.map(withPacks).join('')) || '<p class="chart-note">No matching products.</p>';
   const more = capped ? `<button type="button" class="link-button pt-show-all" data-pt-all="on">Show all ${sorted.length}</button>` : showAll && sorted.length > TOP_ROWS + 2 && !grouped ? `<button type="button" class="link-button pt-show-all" data-pt-all="off">Show top ${TOP_ROWS}</button>` : '';
   return { head, body, cards, more, shown: grouped ? sorted.length : visible.length, matched: sorted.length, sorted };
 }

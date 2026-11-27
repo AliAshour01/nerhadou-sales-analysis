@@ -1,5 +1,12 @@
 # Nerhadou Commercial Hub releases
 
+## V79 · Growth points in "What drove the change", Group by line as a tree
+
+- "What drove the change": every bar shows its contribution to growth next to the amount, e.g. "+2.18M (+14.1 pts)". Points = the item's change ÷ the prior-year total, so the bars add up to the headline growth shown on the end bar ("21.6M (+39.6%)"). Each product's own growth % is deliberately not used (tender and small products give huge, misleading rates). Decreases show negative points in the decrease colour. On phones, when the full label does not fit, bars show only the points; the amount stays in the tooltip, the Table view and "View contribution numbers" (new "Contribution to growth" column and a Total row). No calculation changed.
+- Products → Group by line: each line row is a ▸/▾ toggle; closed shows only the line total, open shows its products indented (tender rows inside their line, the "n packs" toggle still works). The line row is now a real subtotal computed like the Total row from all its products: 2025, PPG, Target, Ach. and Variance are filled (no dashes because one product is new or has no target). A line made only of tender products follows the tender growth rule. Expand all / Collapse all sit next to the checkbox; all lines start open and closed lines are remembered for the session when filters or year change. Phone: tapping a line card opens or closes it. The Total row and Excel export do not depend on open/closed state.
+
+Files: `public/management.js`, `public/products-table.js`, `public/index.html`, `public/app.css`, release token files; test `tests/sales-v79.mjs`. Rollback: V78 `main` aad4ccd.
+
 ## V78 · October import fixes: no duplicate products, one PHARMA, line filled from the product (branch only, not deployed)
 
 The October 2026 import (one total per product, no distributor, sales type or line) registered 60 new catalog series without a comparison product. Names that differed only in case or spacing then showed as a second product: METHYLTECHNO, METHYLTECHNO - TENDER, MELACRYST 1.5MG, MELACRYST 3MG (+ Tender), MECLIZIGO 25MG (+ Tender), VITA D3 and TELITROPH appeared twice, and NERHAFLUX 20MG / 20MG-10 Film / 40MG and TADANERFI 5MG - 20 / 30 FILM (+ Tender) were kept apart from NERHAFLUKS and TADANERFI 5MG. Now:
