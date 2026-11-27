@@ -952,3 +952,12 @@ body{font-size:var(--text-body)}
 .forecast-risk-table .risk-scenario.avg{color:var(--warning)}
 .forecast-risk-table .risk-scenario.unknown{color:var(--ink-2)}
 .forecast-risk-table .ach,.forecast-risk-cards .ach{background:transparent!important;padding:0!important;border-radius:0!important;font-weight:500}
+
+/* G-22: Sidebar 216px, frameless logo, single accent-soft active highlight */
+:root{--sidebar-width:216px}
+#workspace-sidebar{width:216px;background:var(--surface);border-right:1px solid var(--border)}
+#workspace-sidebar .brand{background:transparent!important;border:0!important;box-shadow:none!important;padding:4px 8px 18px!important;margin-bottom:12px!important}
+#workspace-sidebar .nav{border:0!important;box-shadow:none!important;border-radius:var(--radius-control);color:var(--ink-2)}
+#workspace-sidebar .nav:hover:not(:disabled){background:var(--bg);color:var(--ink);transform:none!important}
+#workspace-sidebar .nav.active{background:var(--accent-soft)!important;color:var(--accent)!important;font-weight:600;border:0!important;box-shadow:none!important}
+#workspace-sidebar .nav.active::after,#workspace-sidebar .nav.active::before{display:none!important;content:none!important}
