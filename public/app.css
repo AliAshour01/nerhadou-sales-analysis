@@ -861,3 +861,25 @@ body{font-size:var(--text-body)}
 #sales #data-health .health-targets{margin-left:0}
 #sales #data-health .health-warning{color:var(--warning);font-weight:500}
 #sales #data-health .data-notes-link{font-weight:500;color:var(--accent)}
+
+/* G-12: Four uniform white KPI tiles, plain text deltas, 6px accent progress bars with ink target tick */
+#kpis .kpi,#kpis .kpi:first-child,#kpis .kpi.kpi-sales{background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:var(--radius-card);padding:20px!important;box-shadow:none!important;color:var(--ink)!important}
+#kpis .kpi:first-child::before,#kpis .kpi:first-child::after{display:none!important}
+#kpis .kpi .label,#kpis .kpi:first-child .label,#kpis .kpi.kpi-sales .label{color:var(--ink-2)!important;font-size:var(--text-small);font-weight:500}
+#kpis .kpi strong,#kpis .kpi:first-child strong,#kpis .kpi.kpi-sales strong{color:var(--ink)!important;font-size:var(--text-figure)!important;font-weight:600}
+#kpis .kpi small,#kpis .kpi:first-child small,#kpis .kpi.kpi-sales small{color:var(--ink-2)!important;font-size:var(--text-small)}
+#kpis .delta-chip{background:transparent!important;padding:0!important;border-radius:0!important;font-size:var(--text-small);font-weight:500}
+#kpis .delta-chip.up{color:var(--good)!important}
+#kpis .delta-chip.down{color:var(--decrease)!important}
+#kpis .delta-chip.neutral{color:var(--ink-2)!important}
+#kpis .kpi-progress{height:6px;background:var(--border);border-radius:var(--radius-pill)}
+#kpis .kpi-progress>span,#kpis .kpi-progress.good>span,#kpis .kpi-progress.warn>span,#kpis .kpi-progress.bad>span{background:var(--accent)!important;border-radius:var(--radius-pill)}
+#kpis .kpi-progress .pace-marker{top:-3px;height:12px;width:2px;background:var(--ink)}
+#kpis .status-word{font-size:var(--text-small);font-weight:500}
+#kpis .status-word.good{color:var(--good)}
+#kpis .status-word.warn{color:var(--warning)}
+#kpis .status-word.bad{color:var(--decrease)}
+@media (max-width:699px){
+  #kpis .kpi,#kpis .kpi:first-child,#kpis .kpi.kpi-sales{padding:14px!important}
+  #kpis .kpi strong,#kpis .kpi:first-child strong,#kpis .kpi.kpi-sales strong{font-size:var(--text-page)!important}
+}
