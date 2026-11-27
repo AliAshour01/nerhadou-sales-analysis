@@ -709,3 +709,63 @@ h1,#kpis .kpi strong,.projection-number{letter-spacing:-.01em}
 :where(button,a,select,input,summary,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 :where(.primary,.nav.active,.choice.chosen,#meeting-open,.actions-cluster>button.primary-action,#sales>.section-tabs button[aria-selected="true"]):focus-visible{outline-color:var(--ink);box-shadow:inset 0 0 0 2px var(--surface)}
 svg g:is([tabindex],[role=button]):focus-visible :is(rect,path){stroke:var(--ink);stroke-width:2px}
+
+/* G-03: Phone tap targets at least 44px */
+@media (max-width:699px){
+  #sales .section-tabs button,
+  #sales .chart-table-toggle,
+  #sales .choice,
+  #sales .data-notes-link,
+  #sales .show-all,
+  #sales .mix-show-all,
+  #sales .pt-versions,
+  #sales .pc-packs,
+  #sales .filters-toggle,
+  #sales .filter-summary button,
+  #sales .link-button,
+  #sales .actions-toggle,
+  #sales .actions-cluster>button,
+  #sales .views-menu>summary,
+  #sales .mix-switch button,
+  #sales .pt-line-toggle,
+  #sales .pt-expand,
+  #sales .copy-help>summary,
+  #sales .forecast-method summary,
+  #sales .not-shown summary,
+  #sales .methodology summary,
+  #sales .bridge-other-detail summary,
+  #sales .filter-chip,
+  #sales .year-chip,
+  #sales .year-presets button,
+  #sales select,
+  #sales input:not([type="checkbox"]):not([type="radio"]),
+  .app-header button{
+    min-height:44px;
+  }
+  .app-header .mobile-menu,
+  .app-header .icon-button,
+  .app-header #refresh-shared-data,
+  .app-header #fullscreen-toggle,
+  #sales .actions-toggle,
+  #sales .copy-help>summary{
+    min-width:44px;
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #sales .data-notes-link,
+  #sales .link-button{
+    display:inline-flex;
+    align-items:center;
+  }
+  #sales .target-definition summary{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:44px;
+    min-height:44px;
+    padding:12px 14px;
+    margin:-12px -14px;
+  }
+}
