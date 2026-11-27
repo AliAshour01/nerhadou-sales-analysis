@@ -883,3 +883,14 @@ body{font-size:var(--text-body)}
   #kpis .kpi,#kpis .kpi:first-child,#kpis .kpi.kpi-sales{padding:14px!important}
   #kpis .kpi strong,#kpis .kpi:first-child strong,#kpis .kpi.kpi-sales strong{font-size:var(--text-page)!important}
 }
+
+/* G-13: Underline text tabs without pill tray */
+#sales .section-tabs{display:flex;align-items:center;gap:24px;padding:0!important;margin:0;border:0!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+#sales .section-tabs button{min-height:40px;padding:8px 2px 10px!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;color:var(--ink-2)!important;font-size:var(--text-body)!important;font-weight:500!important;box-shadow:none!important}
+#sales .section-tabs button:hover:not(.tab-disabled){color:var(--ink)!important;background:transparent!important;border-bottom-color:var(--border)!important}
+#sales .section-tabs button.active,#sales .section-tabs button[aria-selected="true"]{background:transparent!important;color:var(--ink)!important;font-weight:600!important;border-bottom-color:var(--accent)!important;box-shadow:none!important}
+#sales-sticky-bar{border-bottom:0}
+@media (max-width:699px){
+  #sales .section-tabs{gap:18px}
+  #sales .section-tabs button{min-height:44px;padding:10px 2px!important}
+}
