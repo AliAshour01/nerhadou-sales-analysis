@@ -394,14 +394,14 @@ function renderBridge(ctx){
  const yearPick=$('bridge-years');yearPick.hidden=ctx.yearMode!=='multi';
  if(ctx.yearMode==='multi'){const ok=ctx.years;$('bridge-from').innerHTML=ok.filter(y=>y<b).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-from').value=String(a);$('bridge-to').innerHTML=ok.filter(y=>ok.some(x=>x<y)).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-to').value=String(b)}
  if(result.delta==null)return {empty:result.reason||'Comparable periods unavailable.'};
- $('movement-pct-note').textContent=result.previous.value>0?`% = share of the ${a} total`:'';
+ const totGrowth=result.previous.value>0?(result.current.value/result.previous.value-1)*100:null;$('movement-pct-note').textContent=totGrowth!=null?`Each % is the change as a share of the ${a} total, so they add up to ${(totGrowth>0?'+':totGrowth<0?'−':'')+Math.abs(totGrowth).toFixed(1)}%.`:'';
  const display=bridgeInputs(ctx,a,b,dimension).display;drawBridge('movement-chart',ctx.yearMode==='single'&&ctx.comparePartial?{...result,span:monthRange(bridgeMonths(ctx))}:result,metric,dimension,display);
  $('movement-context').textContent=`${a} → ${b} · ${ctx.yearMode==='single'&&ctx.comparePartial?monthRange(bridgeMonths(ctx)):periodNoYear(bridgeMonths(ctx))} in both years · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated||result.approximate?` · ${[a,b].filter(y=>PROVISIONAL_YEARS.has(y)).join(', ')||'Data'} includes estimates`:''}`;
  $('movement-unmatched').hidden=!result.unmatched?.length;$('movement-unmatched-list').innerHTML=(result.unmatched||[]).map(name=>`<p>${e(name)} — a comparable amount is unavailable in one of the periods; no zero baseline is assumed.</p>`).join('');
- $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Grey: period totals. Blue: increase. Red: decrease. New: absent activity in a complete prior report counts as zero sales. Light grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.'+(result.previous.value>0?' The % next to each bar is its change ÷ the '+a+' total, so they add up to the total growth.':'');
+ $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Blue bars added sales, red bars lost sales. New products count from zero; smaller items are grouped in Other.';
  if(pv){
   const early=Math.min(a,b)<PRICE_FIRST_YEAR;
-  $('movement-note').textContent=`Selling more / fewer units = change in units × the ${a} price. Higher / lower prices = change in price per unit × units sold in ${b}. New products, products not sold this period and tender orders are shown on their own (a tender has its own contract price). Tap a bar to list its products in “View contribution numbers”.`+(early?' Values before 2025 are estimated from average prices, so the price effect reflects price versions only.':'');
+  $('movement-note').textContent=`Units effect = change in units × ${a} price. Price effect = change in price × ${b} units. New products and tender orders are shown on their own. Select a bar to list its products in “View contribution numbers”.`+(early?' Values before 2025 are estimated from average prices, so the price effect reflects price versions only.':'');
   if(ui.metric!=='value')$('movement-context').textContent='Shown in EGP: price needs value. · '+$('movement-context').textContent;
   pvState={result,display,a,b};$('movement-table').innerHTML=pvTable();return;
  }
