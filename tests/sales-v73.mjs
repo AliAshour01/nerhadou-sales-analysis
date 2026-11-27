@@ -106,7 +106,7 @@ await window.actualDashboard.apply(cfg());
   const titles = [...$('attention-list').querySelectorAll('.attention-head b')].map((b) => b.textContent);
   const products = [...$('attention-list').querySelectorAll('[data-select-product]')].map((b) => b.dataset.selectProduct);
   assert.equal(new Set(products).size, products.length, 'no product twice: ' + products);
-  assert(titles.includes('Growing, but below target'), titles.join(' | '));
+  const chips = [...$('attention-list').querySelectorAll('.attention-chip')].map((c) => c.textContent); assert(chips.some((c) => /Below target/.test(c)), chips.join(' | '));
 }
 // N-17: leaving Forecast for an unavailable selection says why
 await window.actualDashboard.apply(cfg({ section: 'forecast' }));
