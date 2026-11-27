@@ -803,3 +803,4 @@ body{font-size:var(--text-body)}
 #sales .portfolio-card .pc-cell b,#sales .portfolio-card .pc-name{font-size:var(--text-small)}
 #sales .attention-item,#sales .attention-item b,#sales .attention-item span,#sales .price-item,#sales .facts-list .fact,#sales .facts-list .fact b,#sales .methodology p,#sales .footnote,#sales .forecast-why,#sales .forecast-method p,#sales .forecast-sentence{font-size:var(--text-body)}
 #sales .legend,#sales .series-legend,#sales .analysis-legend,#sales .forecast-legend,#sales .fc-end-row,#sales svg text{font-size:var(--text-caption)}
+#sales .v69-grid{align-items:start}

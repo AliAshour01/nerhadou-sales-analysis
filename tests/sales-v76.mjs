@@ -95,9 +95,9 @@ assert.equal(tidyName(' Methyltechno-Tender '), 'METHYLTECHNO - TENDER');
   assert.match(tad.reasons['ppg:value'], /^Returns larger than sales/);
 }
 
-// ── W-12: every sales line has its own colour ──
+// ── W-12 / V81 G-05: categoryColor returns design tokens (no raw hex) ──
 {
   const lines = ['Endocrinology line', 'Gyn line', 'Andrology line', 'TENDER-ODF', 'G.I.T Line', 'OTC Line', 'Nerkardou Line', 'Pedia line'];
-  assert.equal(new Set(lines.map(categoryColor)).size, lines.length);
+  for (const l of lines) assert(['var(--accent)', 'var(--context-2)', 'var(--context)'].includes(categoryColor(l)), categoryColor(l));
 }
 console.log('Sales V76 passed: tender-safe seasonality, returns reasons, NOPYRETRON packs, tender growth, matched base, no-target variance, names, line colours.');

@@ -16,7 +16,7 @@ await window.actualDashboard.apply(cfg());
 assert.deepEqual(tabs(),['overview','portfolio','forecast']);assert.deepEqual(visible(),['monthly','attention','bridge','mixDistributor','mixChannel','mixLine','priceChanges']); // V80: Price increases (Calcitron, Ferrotron, Vitatron)
 {const t=$('kpis').textContent;for(const v of ['21,599,730','22,310,000','97%','710,270','15,476,653','39.6%','33,465,000','65%'])assert(t.includes(v),'KPI shows '+v);assert.equal($('kpis').querySelectorAll('.kpi').length,4);assert($('kpis').querySelector('.pace-marker'))}
 assert.equal($('company-ppg-chart'),null,'PPG panel removed');assert.equal(document.querySelector('[id$="-achievement-chart"]'),null);
-{const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'#10233F');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
+{const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'var(--ink)');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
 checkTicks($('movement-chart'),'#movement-chart');// V77 D-03: horizontal bridge from zero: no axis break, every row has its full label.
 assert(!$('movement-chart').querySelector('.axis-break'));assert(!/Axis starts at/.test($('movement-chart').textContent));assert(!$('movement-chart').querySelector('.bridge-key'));
 // S-35 attention: balanced, ranked, magnitude chips
