@@ -15,7 +15,7 @@ const near = (a, b, tol, msg) => assert(Math.abs(a - b) <= tol, `${msg}: ${a} vs
 // ── A: no "pts" anywhere the user reads; % = share of the prior-year total ──
 const mgmt = fs.readFileSync('public/management.js', 'utf8');
 assert(!/ pts['`]/.test(mgmt) && !/\bpts vs\b|pts behind|pts ahead|Pts =/.test(mgmt), 'no pts wording left');
-assert(mgmt.includes('% = share of the ${a} total'), 'plain % line under the bridge title');
+assert(mgmt.includes('Each % is the change as a share of the ${a} total'), 'plain % line under the bridge title');
 
 // ── Idea 1: price vs volume, Jan–Aug 2026 vs 2025, total company ──
 const v = movement(recs, { a: 2025, b: 2026, months, metric: 'value' }), u = movement(recs, { a: 2025, b: 2026, months, metric: 'units' });

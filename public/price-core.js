@@ -1,6 +1,6 @@
 // V80: price vs volume split and price-increase tracker (pure helpers, no DOM).
 // Both work on comparison-product records (packs of one product are one product; tender is always its own product).
-import { scopeRecords, isTenderRecord } from './management-core.js?v=sales-review-v80';
+import { scopeRecords, isTenderRecord } from './management-core.js?v=sales-review-v81';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);

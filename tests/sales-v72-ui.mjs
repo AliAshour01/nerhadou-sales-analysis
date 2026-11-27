@@ -27,7 +27,7 @@ assert(/2024 does not record line/.test(strip()));
 await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, periodMode: 'full' }));
 {
   const first = $('kpis').querySelector('.kpi');
-  assert.match(first.querySelector('.label').textContent, /Sales Jan–Sep 2023/);
+  assert.match(first.querySelector('.label').textContent, /Sales value, EGP Jan–Sep 2023/);
   assert(first.querySelector('.kpi-provisional'), 'Provisional chip');
   // V74 V-06: the banner says Oct–Dec are missing; the card no longer repeats it (its label already reads Jan–Sep 2023).
   assert(!/Oct–Dec not recorded/.test(first.textContent) && /Oct–Dec 2023 are not in the source/.test($('selection-status').textContent));
@@ -37,7 +37,7 @@ await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, 
 }
 // R-02 · acceptance 4: 2024 full year: KPI, monthly chart and bridge agree on vs-2023 Jan–Sep
 await window.actualDashboard.apply(cfg({ years: [2024], year: 2024, months: FY, periodMode: 'full' }));
-assert(/▲ Up|▼ Down/.test(kpiText()), 'KPI has a vs-2023 change');
+assert(/[▲▼] \d+\.\d%/.test(kpiText()), 'KPI has a vs-2023 change');
 assert(/Jan–Sep only, Oct–Dec 2023 not recorded/.test([...document.querySelectorAll('#kpis .delta-chip')].map((x) => x.title).join(' ')), 'V74: the not-recorded note lives in the chip title, not repeated on the card');
 assert(visible().includes('bridge'), 'bridge shown');
 assert(/2023 → 2024 · Jan–Sep in both years/.test($('movement-context').textContent));
@@ -53,20 +53,20 @@ assert(/Full-year progress/.test(kpiText()), 'YTD keeps full-year progress');
 window.actualDashboard.setMeasure('units');
 await window.actualDashboard.apply(cfg({ section: 'forecast' }));
 assert($('forecast-chart').querySelector('.fc-range'), 'range band between the two scenario paths');
-assert.equal($('forecast-chart').querySelectorAll('.fc-end-label').length, 2);
-assert.match($('forecast-why').textContent, /\d+% apart\. Seasonality is (higher|lower) because Sep–Dec were \d+% of 2025 regular \(non-tender\) sales/);
+$('fc-path-toggle').click();assert.equal($('forecast-chart').querySelectorAll('.fc-end-label').length, 2);$('fc-path-toggle').click();
+assert.match($('forecast-why').textContent, /The scenarios are \d+% apart because Sep–Dec were \d+% of 2025 regular sales/);
 {
   const rows = [...$('forecast-risk').querySelectorAll('tbody tr')];
   assert(rows.length > 0 && rows.length <= 10, 'top 10 at most');
   // V74 V-08: products that miss in every scenario that can be computed come first, YTD-average-only misses after; largest gap first within each.
   const rank = (r) => ({ both: 0, unknown: 0, avg: 1 })[r.querySelector('.risk-scenario').className.split(' ').pop()];
   assert.deepEqual(rows.map(rank), rows.map(rank).sort((x, y) => x - y), 'scenario order');
-  const gaps = rows.filter((r) => rank(r) === 0).map((r) => -Number(r.children[5].textContent.replace(/[^0-9]/g, '')));
+  const gaps = rows.filter((r) => rank(r) === 0).map((r) => -Number(r.children[6].textContent.replace(/[^0-9]/g, '')));
   assert.deepEqual(gaps, [...gaps].sort((x, y) => x - y), 'largest gap first within a scenario');
   assert.equal(rows[0].dataset.riskProduct, 'Methyltechno - TENDER');
   // V74 V-02: the one-off tender has no reliable seasonal projection (only 1% of its 2025 sales came by August).
   const tender = rows.find((r) => r.dataset.riskProduct === 'Methyltechno - TENDER');
-  assert(tender && tender.children[3].textContent.trim() === '—' && /not reliable/.test(tender.children[3].title), 'tender seasonality withheld ' + rows.map((r) => r.dataset.riskProduct).join('|') + (tender ? tender.children[3].outerHTML : ''));
+  assert(tender && tender.children[4].textContent.trim() === '—' && /not reliable/.test(tender.children[4].title), 'tender seasonality withheld ' + rows.map((r) => r.dataset.riskProduct).join('|') + (tender ? tender.children[4].outerHTML : ''));
 }
 await window.actualDashboard.apply(cfg({ section: 'forecast', selection: { ...none, distributor: ['PHARMA'] } }));
 assert($('forecast-risk-wrap').hidden);

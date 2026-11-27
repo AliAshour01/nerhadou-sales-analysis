@@ -17,10 +17,9 @@ export function axisTicks(a){return Array.from({length:Math.round((a.max-a.min)/
 // Tick labels carry as many decimals (max 2) as the step needs, so 1.25M never reads 1.3M.
 export function tickLabel(v,axis){const [d,suffix]=unit(Math.max(Math.abs(axis.min),Math.abs(axis.max)));if(!suffix)return Number(v.toFixed(2)).toLocaleString('en-US');const k=[0,1,2].find(k=>Math.abs(Math.round(axis.step/d*10**k)-axis.step/d*10**k)<1e-9)??2;return v===0?'0':String(Number((v/d).toFixed(k)))+suffix}
 // S-15: one colour per category everywhere. NOT PROVIDED is always neutral grey.
-export const CATEGORY_COLORS={'PHARMA':'#2f5fd0','IBN SINA':'#d9922e','EGY':'#1f9a8a','NERHADOU DIRECT':'#8a63c2','PRIVATE':'#2f5fd0','TENDER':'#1f9a8a','HOSPITALS':'#d9922e','HOSPITALS / UPA':'#d9922e','COMBINED / SOURCE':'#b7c0cc','NOT PROVIDED':'#9aa5b4','OTHERS':'#b7c0cc',
- // V76 W-12: every sales line has its own colour (hash fallback gave TENDER-ODF, G.I.T and OTC the same one).
- 'ENDOCRINOLOGY LINE':'#5d7fa6','GYN LINE':'#3f8f5a','ANDROLOGY LINE':'#c2577a','TENDER-ODF':'#1f9a8a','TENDER LINE':'#1f9a8a','G.I.T LINE':'#d9922e','OTC LINE':'#7a6cc4','NERKARDOU LINE':'#b0603e','PEDIA LINE':'#a07a3c'};
-const FALLBACK=['#c2577a','#5d7fa6','#a07a3c','#3f8f5a','#7a6cc4','#b0603e'];
+export const CATEGORY_COLORS={'PHARMA':'var(--accent)','IBN SINA':'var(--context-2)','EGY':'var(--context)','NERHADOU DIRECT':'var(--context-2)','PRIVATE':'var(--accent)','TENDER':'var(--context-2)','HOSPITALS':'var(--context)','HOSPITALS / UPA':'var(--context)','COMBINED / SOURCE':'var(--context)','NOT PROVIDED':'var(--context)','OTHERS':'var(--context)',
+ 'ENDOCRINOLOGY LINE':'var(--accent)','GYN LINE':'var(--context-2)','ANDROLOGY LINE':'var(--context)','TENDER-ODF':'var(--context-2)','TENDER LINE':'var(--context-2)','G.I.T LINE':'var(--context)','OTC LINE':'var(--context-2)','NERKARDOU LINE':'var(--context)','PEDIA LINE':'var(--context)'};
+const FALLBACK=['var(--accent)','var(--context-2)','var(--context)'];
 export function categoryColor(name){const key=String(name??'').trim().toUpperCase();if(!key||key==='NOT PROVIDED')return CATEGORY_COLORS['NOT PROVIDED'];return CATEGORY_COLORS[key]||FALLBACK[[...key].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7)%FALLBACK.length]}
 // S-12 / S-18 achievement status thresholds.
 export const ACH_THRESHOLDS={good:100,warn:90};

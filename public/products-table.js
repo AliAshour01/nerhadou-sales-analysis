@@ -1,10 +1,10 @@
 // V69 U-09: the Products table (plan 4.8). Built from the view context so its pinned Total equals the KPIs
 // in every state. Pure data (productsTableData) + HTML (productsTableHTML); management.js wires events.
-import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v80';
+import { comparableSummary, portfolioTarget, targetSum, scopeRecords, dimensionGap, tenderBase, productKey, shortAmount } from './management-core.js?v=sales-review-v81';
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   ALL_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v80';
-import { comparisonProduct } from './compare-core.js?v=sales-review-v80';
+import { knownCategory, monthSpan, comparisonRecords, productDisplayNames, sameName } from './view-context.js?v=sales-review-v81';
+import { comparisonProduct } from './compare-core.js?v=sales-review-v81';
 
 // V74 V-14: the previous-year side of a single-year row is looked up by comparison name (price versions and renamed
 // packs of one product are one product). A row that stands for only some of the price versions the focus year has
@@ -63,10 +63,10 @@ export function tableColumns(ctx, measures, period = '') {
       // V76 W-06: when the comparison covers fewer months than Sales, show the focus year over those months too.
       if (ctx.compareYear != null && ctx.comparePartial) add('cur', String(ctx.focusYear) + part, `Sales ${unit} · ${ctx.focusYear}${part} (same months as ${ctx.compareYear})`);
       if (ctx.compareYear != null) add('py', String(ctx.compareYear) + part, `Sales ${unit} · ${ctx.compareYear}${part}${ctx.comparePartial ? ' (' + ctx.compareNote + ')' : ''}`);
-      if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) add('ppg', 'PPG' + part, `Growth vs ${ctx.compareYear}${part} (%)`);
+      if (ctx.compareYear != null && ctx.growthOk && !ctx.filterCompareGap) add('ppg', 'vs ' + ctx.compareYear + part, `Growth vs ${ctx.compareYear}${part} (%)`);
       if (ctx.hasTargets) {
         add('target', 'Target', `Target ${unit}`);
-        add('ach', 'Ach.', 'Achievement (%)');
+        add('ach', '% of target', 'Achievement (%)');
         add('gap', 'Variance', `Variance (sales − target) · ${unit}`);
       }
     } else {
@@ -321,17 +321,32 @@ export function groupByLine(rows, cols, subtotal = null) {
 const achClass = (v) => (v == null ? 'unknown' : v >= 100 ? 'good' : v >= 90 ? 'warn' : 'bad');
 // V76 W-10: say "packs" when the grouped source names differ by pack only, "price versions" when a price word is involved.
 const PRICE_WORD = /\b(old|new|n\.\s*new)\s+price\b|\bprice\s+20\d\d\b|\bnew\s+price\b/i;
-export const versionLabel = (sources) => `${sources.length} ${sources.some((n) => PRICE_WORD.test(n)) ? 'price versions' : 'packs'}`;
+export const isPriceVersions = (sources) => (sources || []).some((n) => PRICE_WORD.test(n));
+export const versionLabel = (sources) => `${sources.length} ${isPriceVersions(sources) ? 'price versions' : 'packs'}`;
+export function packShortName(full, parent) {
+  const f = String(full || '').trim(), p = String(parent || '').trim();
+  if (!p) return f;
+  const rx = new RegExp('^' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[-–—:/]?\\s*', 'i');
+  const rest = f.replace(rx, '').trim();
+  if (!rest || rest === f) return f;
+  return PRICE_WORD.test(rest) ? rest : rest.toLowerCase();
+}
 export function cellHTML(row, c, maxSales) {
   const v = row.cells[c.key],
     reason = row.reasons[c.key];
   if (v == null && (c.kind === 'ppg' || c.kind === 'growth') && /^New:/.test(reason || '')) return `<td class="variance positive" title="${esc(reason)}" data-reason="${esc(reason)}">New</td>`;
   if (v == null) return `<td title="${esc(reason || 'Not available')}" data-reason="${esc(reason || 'Not available')}">—</td>`;
-  if (c.kind === 'share') return `<td>${v.toFixed(1)}%</td>`;
+  if (c.kind === 'share') {
+    if (c.shareBar && maxSales > 0) {
+      const w = row.total || row.subtotal ? 0 : Math.max(0, Math.min(100, (v / maxSales) * 100));
+      return `<td class="sales-bar-cell"><span class="sales-num">${v.toFixed(1)}%</span><span class="sales-bar${row.total || row.subtotal ? ' empty' : ''}" aria-hidden="true"><i style="width:${w.toFixed(1)}%"></i></span></td>`;
+    }
+    return `<td>${v.toFixed(1)}%</td>`;
+  }
   if (c.kind === 'ppg' || c.kind === 'growth') return `<td class="variance ${v < 0 ? 'negative' : 'positive'}"${reason ? ` title="${esc(reason)}" data-reason="${esc(reason)}"` : ''}>${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%${reason ? '<sup class="pt-note" aria-hidden="true">ⓘ</sup>' : ''}</td>`;
   if (c.kind === 'ach') {
-    const k = achClass(v);
-    return `<td><span class="ach ach-${k}">${v.toFixed(0)}%</span><span class="ach-bar ach-${k}" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, v))}%"></i></span></td>`;
+    const k = achClass(v), ic = v >= 100 ? ' ▲' : ' ▼';
+    return `<td><span class="ach ach-${k}">${v.toFixed(0)}%${ic}</span></td>`;
   }
   if (c.kind === 'gap' || c.kind === 'change') return `<td class="variance ${v < 0 ? 'negative' : 'positive'}">${v < 0 ? '−' : '+'}${num(Math.abs(v))}</td>`;
   // V72 R-18: the share bar sits under the number (full cell width, 4 px, right-aligned); total and subtotal rows keep an
@@ -352,11 +367,12 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
   const { cols, total } = data,
     primary = measures[0],
     barKey = ctx.yearMode === 'multi' ? `year:${primary}:${ctx.focusYear}` : `sales:${primary}`;
-  for (const c of cols) c.bar = c.key === barKey;
+  const shareBarKey = `share:${primary}`;
+  for (const c of cols) { c.bar = false; c.shareBar = c.key === shareBarKey; }
   const sorted = sortRows(combine ? combineTender(data.view, data.tender) : data.view, ctx, sort, desc, primary),
     capped = !showAll && !grouped && sorted.length > TOP_ROWS + 2,
     visible = capped ? sorted.slice(0, TOP_ROWS) : sorted,
-    maxSales = Math.max(0, ...sorted.map((r) => r.cells[barKey]).filter(finite));
+    maxSales = Math.max(0, ...sorted.map((r) => r.cells[shareBarKey]).filter(finite));
   const groupsHead =
     measures.length > 1
       ? `<tr class="group-row"><th scope="col" rowspan="2" class="sticky-col">Product</th>${measures.map((m) => `<th scope="colgroup" colspan="${cols.filter((c) => c.metric === m).length}">${m === 'value' ? 'Value (EGP)' : 'Units'}</th>`).join('')}</tr>`
@@ -373,7 +389,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
       : r.combined
         ? `<td class="sticky-col combined-name"><button type="button" class="pt-expand" data-pt-expand="${esc(r.key)}" aria-expanded="${expanded.has(r.key)}" title="${esc(r.members.map((m) => m.product).join(' + '))}"><span aria-hidden="true">${expanded.has(r.key) ? '▾' : '▸'}</span> ${esc(r.product)} <small>+ Tender</small></button></td>`
       : r.version
-        ? `<td class="sticky-col member-name version-name"><button data-select-product="${esc(r.product)}" title="Price version · show on Overview">${esc(r.product)}</button></td>`
+        ? `<td class="sticky-col member-name version-name"><button data-select-product="${esc(r.product)}" title="${esc(r.product)} · ${r.isPriceVer ? 'Price version' : 'Pack'} · show on Overview">${esc(r.packDisplay || r.product)}</button></td>`
       : r.member
         ? `<td class="sticky-col member-name">${r.sources?.length > 1 ? `<button data-select-products="${esc(JSON.stringify(r.sources))}" title="Show ${esc(r.product)} on Overview">${esc(r.product)}</button>` : `<button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button>`}</td>`
       : r.versions
@@ -383,7 +399,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
         : `<td class="sticky-col"><button data-select-product="${esc(r.product)}" title="${tip(r.product)}">${label(r.product)}</button></td>`;
     const own = `<tr${r.total ? ' class="total-row pinned-total"' : r.subtotal ? ` class="subtotal-row${lineOpen(r.product) ? ' open' : ''}"` : r.inLine ? ` class="line-child${r.version ? ' member-row version-row' : r.member ? ' member-row' : r.combined ? ' combined-row' : r.versions ? ' versions-row' : ''}"` : r.combined ? ' class="combined-row"' : r.version ? ' class="member-row version-row"' : r.member ? ' class="member-row"' : r.versions ? ' class="versions-row"' : ''}>${first}${cols.map((c) => cellHTML(r, c, maxSales)).join('')}</tr>`;
     if (r.combined && expanded.has(r.key)) return own + r.members.map((m) => row({ ...m, member: true, inLine: r.inLine })).join('');
-    if (r.versions && expanded.has('v:' + r.key)) return own + r.versions.map((v) => row({ ...v, inLine: r.inLine })).join('');
+    if (r.versions && expanded.has('v:' + r.key)) { const pv = isPriceVersions(r.sources); return own + r.versions.map((v) => row({ ...v, inLine: r.inLine, isPriceVer: pv, packDisplay: pv ? v.product : packShortName(v.product, r.product) })).join(''); }
     return own;
   };
   let body = row(total);
@@ -405,7 +421,7 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
     signedNum = (v) => (v < 0 ? '−' : '+') + num(Math.abs(v)),
     cellDefs = [
       has(gk) && [ctx.yearMode === 'multi' ? 'Growth' : `vs ${ctx.compareYear}${ctx.comparePartial ? ' ' + monthSpan(ctx.compareMonths) : ''}`, gk, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedPct(v)}</b>`],
-      has(ak) && ['Ach.', ak, (v) => `<b class="ach ach-${achClass(v)}">${v.toFixed(0)}%</b>`],
+      has(ak) && ['% of target', ak, (v) => `<b class="ach ach-${achClass(v)}">${v.toFixed(0)}%${v >= 100 ? ' ▲' : ' ▼'}</b>`],
       has(gapK) && ['Variance', gapK, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedNum(v)}</b>`],
       has(share) && ['Share', share, (v) => `<b>${v.toFixed(1)}%</b>`],
       has(chK) && ['Change', chK, (v) => `<b class="variance ${v < 0 ? 'negative' : 'positive'}">${signedNum(v)}</b>`],
@@ -420,14 +436,14 @@ export function productsTableHTML(data, ctx, { sort, desc, measures, showAll = f
         const v = r.cells[key];
         return `<span class="pc-cell"${v != null && r.reasons[key] ? ` title="${esc(r.reasons[key])}"` : ''}><small>${esc(label)}</small>${v == null ? `<b title="${esc(r.reasons[key] || 'Not available')}">—</b>` : fmt(v)}</span>`;
       };
-    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && !r.subtotal && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.subtotal ? `<span class="pt-tree-icon" aria-hidden="true">${lineOpen(r.product) ? '▾' : '▸'}</span> ${esc(r.product)} <small>${r.count} product${r.count === 1 ? '' : 's'}</small>` : r.total || r.version ? esc(r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
+    return `<${tag} class="portfolio-card${r.total ? ' pinned-total' : ''}"${attrs}><span class="pc-name"${!r.total && !r.combined && !r.subtotal && shown(r.product) !== r.product ? ` title="Source name: ${esc(r.product)}"` : ''}>${r.subtotal ? `<span class="pt-tree-icon" aria-hidden="true">${lineOpen(r.product) ? '▾' : '▸'}</span> ${esc(r.product)} <small>${r.count} product${r.count === 1 ? '' : 's'}</small>` : r.total ? esc(r.product) : r.version ? esc(r.packDisplay || r.product) : label(r.product)}${r.combined ? ' <small>+ Tender</small>' : ''}</span><span class="pc-grid"><span class="pc-cell"><small>Sales · ${unit}</small><b>${s == null ? '—' : num(s)}</b></span>${cellDefs.map(cell).join('')}</span></${tag}>`;
   };
   // V78: on the phone a product with several packs (or price versions) gets the same "n packs" toggle as the table; each
   // pack is its own card, and tapping it shows only that pack on Overview.
   const withPacks = (r) => {
     if (!r.versions) return card(r);
     const open = expanded.has('v:' + r.key);
-    return card(r) + `<button type="button" class="pt-versions pc-packs" data-pt-expand="v:${esc(r.key)}" aria-expanded="${open}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${open ? '▾' : '▸'}</span> ${versionLabel(r.sources)}</button>` + (open ? r.versions.map((v) => card(v).replace('class="portfolio-card', 'class="portfolio-card pc-sub')).join('') : '');
+    const pv = isPriceVersions(r.sources); return card(r) + `<button type="button" class="pt-versions pc-packs" data-pt-expand="v:${esc(r.key)}" aria-expanded="${open}" title="${esc(r.sources.join(' · '))}"><span aria-hidden="true">${open ? '▾' : '▸'}</span> ${versionLabel(r.sources)}</button>` + (open ? r.versions.map((v) => card({ ...v, isPriceVer: pv, packDisplay: pv ? v.product : packShortName(v.product, r.product) }).replace('class="portfolio-card', 'class="portfolio-card pc-sub')).join('') : '');
   };
   // V79: grouped phone cards: tapping a line card opens or closes it; its products follow it, indented.
   const lineCard = (g) => {

@@ -16,7 +16,7 @@ await window.actualDashboard.apply(cfg());
 assert.deepEqual(tabs(),['overview','portfolio','forecast']);assert.deepEqual(visible(),['monthly','attention','bridge','mixDistributor','mixChannel','mixLine','priceChanges']); // V80: Price increases (Calcitron, Ferrotron, Vitatron)
 {const t=$('kpis').textContent;for(const v of ['21,599,730','22,310,000','97%','710,270','15,476,653','39.6%','33,465,000','65%'])assert(t.includes(v),'KPI shows '+v);assert.equal($('kpis').querySelectorAll('.kpi').length,4);assert($('kpis').querySelector('.pace-marker'))}
 assert.equal($('company-ppg-chart'),null,'PPG panel removed');assert.equal(document.querySelector('[id$="-achievement-chart"]'),null);
-{const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'#10233F');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
+{const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'var(--ink)');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
 checkTicks($('movement-chart'),'#movement-chart');// V77 D-03: horizontal bridge from zero: no axis break, every row has its full label.
 assert(!$('movement-chart').querySelector('.axis-break'));assert(!/Axis starts at/.test($('movement-chart').textContent));assert(!$('movement-chart').querySelector('.bridge-key'));
 // S-35 attention: balanced, ranked, magnitude chips
@@ -50,7 +50,7 @@ assert.deepEqual(tabs(),['overview','portfolio']);assert(/Average per month/.tes
 await window.actualDashboard.apply(cfg());assert(/YTD achievement/i.test($('kpis').textContent));await window.actualDashboard.apply(cfg({periodMode:'selected',months:[2,5]}));assert(/Selected-period achievement/i.test($('kpis').textContent));
 // A7 · 2023: source note, bridge and recorded same-month growth
 await window.actualDashboard.apply(cfg({years:[2023],year:2023,months:[1,2,3,4,5,6,7,8,9]}));
-assert.equal($('provisional-badge').hidden,false);assert(visible().includes('bridge'));assert(/[▲▼] (Up|Down) \d/.test($('kpis').textContent));assert.deepEqual(tabs(),['overview','portfolio']);assert($('trend').querySelector('svg'),'Monthly chart is not empty');
+assert($('data-health').querySelector('.health-warning'));assert(visible().includes('bridge'));assert(/[▲▼] \d/.test($('kpis').textContent));assert.deepEqual(tabs(),['overview','portfolio']);assert($('trend').querySelector('svg'),'Monthly chart is not empty');
 // A8 · 2021–2026: multi-year
 const ALL=base.snapshot.availableYears.slice().sort((a,b)=>a-b);
 await window.actualDashboard.apply(cfg({years:ALL}));assert.deepEqual(tabs(),['overview','portfolio']);assert(visible().includes('salesByYear')&&visible().includes('monthly')&&visible().includes('bridge'));
@@ -86,7 +86,7 @@ await window.actualDashboard.apply(cfg({section:'portfolio'}));{const total=$('d
  for(const td of $('details').querySelectorAll('td'))if(td.textContent.trim()==='—')assert(td.getAttribute('title')?.length>8,'— has a reason');
  $('search').value='calci';$('search').oninput();await new Promise(r=>setTimeout(r,220));const [a,b]=$('rowcount').textContent.match(/^(\d+) of (\d+)/).slice(1).map(Number);assert(a>=1&&a<b);assert.equal($('search-clear').hidden,false);$('search').value='';$('search').oninput();await new Promise(r=>setTimeout(r,220))}
 // S-19 forecast vs FY target, required pace, cumulative path
-await window.actualDashboard.apply(cfg({section:'forecast'}));{const fy=33465000,ytd=21599730;const gaps=[...$('view-forecast').querySelectorAll('.forecast-vs-line')];assert.equal(gaps.length,2);const need=Number($('forecast-required').querySelector('[data-required]').dataset.required);assert(Math.abs(need*4-(fy-ytd))<1);for(const c of ['fc-actual','fc-runrate','fc-seasonal','fc-target'])assert($('forecast-chart').querySelector('.'+c),c)}
+await window.actualDashboard.apply(cfg({section:'forecast'}));{const fy=33465000,ytd=21599730;const gaps=[...$('view-forecast').querySelectorAll('.forecast-vs-line')];assert.equal(gaps.length,2);const need=Number($('forecast-required').querySelector('[data-required]').dataset.required);assert(Math.abs(need*4-(fy-ytd))<1);assert($('forecast-chart').querySelector('.fc-range'),'fc-range');assert($('forecast-chart').querySelector('.fc-target'),'fc-target');$('fc-path-toggle').click();for(const c of ['fc-actual','fc-runrate','fc-seasonal','fc-target'])assert($('forecast-chart').querySelector('.'+c),c);$('fc-path-toggle').click()}
 // 4.9: no targets (PHARMA) → no Required card, reason in the strip
 await window.actualDashboard.apply(cfg({section:'forecast',selection:{...none,distributor:['PHARMA']}}));assert($('fc-required').hidden);assert(/Required to hit target/.test($('forecast-not-shown').textContent));
 // S-33 data notes one click away

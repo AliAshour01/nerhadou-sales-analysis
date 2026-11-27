@@ -51,4 +51,11 @@ assert(/increase:'var\(--accent\)'/.test(mgmt) && /decrease:'var\(--decrease\)'/
 assert(!/bridge-key|axis-break/.test(mgmt.replace(/data-bridge-keyed/g, '')));
 // D-05: mix bars take no categorical colour.
 assert(!/categoryColor\(/.test(mgmt));
+
+// V81 G-05: no raw 6-digit hex colours outside comments in the four Sales JS modules.
+for (const file of ['public/management.js', 'public/chart-utils.js', 'public/app.js', 'public/products-table.js']) {
+  const stripped = fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const hexes = [...stripped.matchAll(/#[0-9a-fA-F]{6}\b/g)].map((m) => m[0]);
+  assert.deepEqual(hexes, [], file + ' has raw hex colours: ' + hexes.join(', '));
+}
 console.log('V77 design foundation checks passed.');
