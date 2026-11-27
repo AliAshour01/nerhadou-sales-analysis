@@ -11,7 +11,10 @@ const SOURCE_ALIASES=[
  [/^MELACRYST 20 FILM (OLD|NEW|N\.NEW) PRICE\s*$/i,'MELACRYST 1.5MG'], // 2023 rows without strength: 3MG had no 2023 sales, price matches 1.5MG
  [/^NERHAPEZIL 10\s*$/i,'NERHAPEZIL 10MG'], // 2024 zero row
  [/^FERROTRON FORT\s*$/i,'FERROTRON FORT'], // a separate product with its own target, not FERROTRON
+ [/^NOPYRETRON\s+125\s*MG\s+(10|20)\s+O\.?\s*D\.?\s*FILMS?\s*$/i,'NOPYRETRON 125MG'], // V76 W-04: 10 and 20 film packs are one product (owner rule: pack sizes merged)
 ];
+// V76 W-15: spellings the AI import prompt must treat as the same product. One list, so a new alias reaches the prompt.
+export const KNOWN_SPELLINGS=[['NERHAFLUX','NERHAFLUKS'],['ZOLMASONE','ZOLMSOLAN'],['FERRETRON','FERROTRON'],['TRIB GOLD','TRIBGOLD'],['HI POTENCY','HI-POTENCY'],['NERCAFIX 20/30 FILM','NERCAFIX 40MG'],['NERDECONG','NERDECONG 2.5MG'],['NOPYRETRON 125 MG 10 / 20 O.D. FILM','NOPYRETRON 125MG (one product; keep each pack as its own catalog series)']];
 export function comparisonProduct(r){
  let name=r.comparison_product||r.product;
  const src=String(r.product??'').replace(/\s*[-–—]?\s*\(?\btender\b\)?\s*$/i,'').trim();
