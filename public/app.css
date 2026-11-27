@@ -961,3 +961,19 @@ body{font-size:var(--text-body)}
 #workspace-sidebar .nav:hover:not(:disabled){background:var(--bg);color:var(--ink);transform:none!important}
 #workspace-sidebar .nav.active{background:var(--accent-soft)!important;color:var(--accent)!important;font-weight:600;border:0!important;box-shadow:none!important}
 #workspace-sidebar .nav.active::after,#workspace-sidebar .nav.active::before{display:none!important;content:none!important}
+
+/* G-23: Phone flat divider lists inside Products card, underline mix tabs, 16px padding / 12px gaps */
+@media (max-width:699px){
+  #sales .panel{padding:16px!important}
+  #sales .v69-grid{gap:12px!important}
+  #portfolio-cards{gap:0!important}
+  #portfolio-cards .portfolio-card{background:transparent!important;border:0!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;padding:12px 0!important;box-shadow:none!important;margin-bottom:0!important}
+  #portfolio-cards .portfolio-card.pinned-total{background:var(--bg)!important;padding:12px 8px!important}
+  #portfolio-cards .portfolio-card.pc-line{background:var(--bg)!important;border-top:1px solid var(--ink-3)!important;border-bottom:1px solid var(--border)!important;padding:12px 8px!important;font-weight:600;min-height:44px}
+  #portfolio-cards .portfolio-card.pc-sub{margin-left:16px!important;background:transparent!important}
+  #portfolio-cards .portfolio-card.pc-child{margin-left:0!important}
+  #portfolio-cards .portfolio-card.pc-child.pc-sub{margin-left:16px!important}
+  #sales .mix-switch{border:0!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;gap:18px;overflow-x:auto;background:transparent!important}
+  #sales .mix-switch button{flex:0 0 auto;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;color:var(--ink-2)!important;padding:8px 2px!important;min-height:44px;font-weight:500}
+  #sales .mix-switch button[aria-pressed="true"]{background:transparent!important;color:var(--ink)!important;font-weight:600;border-bottom-color:var(--accent)!important}
+}
