@@ -1,10 +1,11 @@
-import {comparisonProduct,dashboardRecords} from './compare-core.js?v=sales-review-v79';
-import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,seasonalScenario,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v79';
-import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v79';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v79';
-import {PANELS,layout} from './panel-registry.js?v=sales-review-v79';
-import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v79';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v79';
+import {comparisonProduct,dashboardRecords} from './compare-core.js?v=sales-review-v80';
+import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,seasonalScenario,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v80';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v80';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v80';
+import {PANELS,layout} from './panel-registry.js?v=sales-review-v80';
+import {productsTableData,productsTableHTML,sortOptions} from './products-table.js?v=sales-review-v80';
+import {priceVolumeSplit,pvLabel,PV_PARTS,PRICE_FIRST_YEAR,priceIncreases,monthName} from './price-core.js?v=sales-review-v80';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v80';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),
@@ -94,13 +95,14 @@ function render(){
 // V69 U-02: Overview panels live in one 12-column grid; the registry (public/panel-registry.js) decides visibility and spans.
 const PANEL_BODIES={
  attention:()=>panel('Needs attention','<p class="chart-note">Rules describe the selected data. They do not establish the cause.</p><div id="attention-list" class="attention-list"></div>'),
- bridge:()=>panel('What drove the change',`<div class="analysis-toolbar bridge-toolbar"><label>Break down by<select id="movement-dimension"></select></label><span id="bridge-years" hidden><label>From<select id="bridge-from"></select></label><label>To<select id="bridge-to"></select></label></span></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details class="bridge-numbers"><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`),
+ bridge:()=>panel('What drove the change',`<p id="movement-pct-note" class="chart-note bridge-pct-note"></p><div class="analysis-toolbar bridge-toolbar"><label>Break down by<select id="movement-dimension"></select></label><span id="bridge-years" hidden><label>From<select id="bridge-from"></select></label><label>To<select id="bridge-to"></select></label></span></div><p id="movement-context" class="analysis-context"></p><div id="movement-chart" class="wide-chart"></div><p id="movement-note" class="chart-note"></p><details id="movement-unmatched" hidden><summary>Products / groups without comparable detail</summary><div id="movement-unmatched-list"></div></details><details class="bridge-numbers"><summary>View contribution numbers</summary><div id="movement-table" class="table-wrap"></div></details>`),
  mixDistributor:()=>panel('Distributor mix','<p class="mix-context chart-note"></p><div id="distributors"></div>'),
  mixChannel:()=>panel('Sales-type mix','<p class="mix-context chart-note"></p><div id="company-channels"></div>'),
  salesByYear:()=>panel('Sales by year','<p id="years-context" class="chart-note"></p><div id="sales-by-year"></div>'),
  shareByYear:()=>panel('Share of company by year','<p class="chart-note">Product sales ÷ company sales, same months each year.</p><div id="share-by-year"></div>'),
  mixLine:()=>panel('Sales by line','<p class="mix-context chart-note"></p><div id="line-mix"></div>'),
- productFacts:()=>panel('Product facts','<ul id="product-facts" class="facts-list"></ul>')
+ productFacts:()=>panel('Product facts','<ul id="product-facts" class="facts-list"></ul>'),
+ priceChanges:()=>panel('Price increases','<p id="price-context" class="chart-note"></p><ul id="price-list" class="price-list"></ul><p class="chart-note">A price increase is when the price per unit is 5% or more above the previous 3 months and stays there the next month (one unusual month, such as a bulk order, is ignored). Units can also move for other reasons, so this does not prove the price caused it. Tap a product to see it on Overview.</p>')
 };
 const RENDERERS={
  productsTable:ctx=>renderProductsTable(ctx),
@@ -112,9 +114,10 @@ const RENDERERS={
  mixDistributor:ctx=>renderMixChart('distributors','distributor',ctx),
  mixChannel:ctx=>renderMixChart('company-channels','channel',ctx),
  mixLine:ctx=>renderLineMix(ctx),
- productFacts:ctx=>renderProductFacts(ctx)
+ productFacts:ctx=>renderProductFacts(ctx),
+ priceChanges:ctx=>renderPriceChanges(ctx)
 };
-const layoutApi={renderers:RENDERERS,attentionCount,factCount:ctx=>productFacts(ctx).length,shareYears,bridgeOptions,bridgeGap};
+const layoutApi={renderers:RENDERERS,attentionCount,factCount:ctx=>productFacts(ctx).length,shareYears,bridgeOptions,bridgeGap,priceCount:ctx=>priceRows(ctx).length};
 function mountOverviewGrid(){
  const overview=$('view-overview'),old=overview.querySelector('.chart-grid'),monthly=$('trend').closest('article');
  overview.insertAdjacentHTML('afterbegin','<div id="overview-grid" class="v69-grid"></div><details id="overview-not-shown" class="not-shown" hidden><summary></summary><ul></ul></details>');
@@ -240,11 +243,11 @@ function kpiCandidates(ctx){
   const end=chosen.length?Math.max(...chosen):0,ytd=chosen.length===end&&chosen.every((x,i)=>x===i+1),pace=ytd?end/12*100:null,gapPts=fy100!=null&&pace!=null?fy100-pace:null,paceWord=gapPts==null?null:Math.abs(gapPts)<=3?'On pace':gapPts>0?'Ahead of pace':'Behind pace',paceStatus=paceWord==null?'unknown':paceWord==='Behind pace'?(gapPts<-10?'bad':'warn'):'good',achS=achStatus(ach),gap=cur!=null&&t!=null?cur-t:null,kind=periodKind(chosen);
   C.ach=ach==null?null:()=>kpiCard('achievement',kind+' achievement',n(ach)+'%',`${progressBar(ach,achS)}<small>Target ${e(aK(t,m))} · ${gap>=0?e(aK(gap,m))+' above target':e(aK(-gap,m))+' to go'}</small><span class="status-word ${achS}">${e(statusWord(achS))}</span>`,` data-status="${achS}"`);
   // V72 R-03: full-year progress only for a contiguous Jan…n period; otherwise the next candidate fills the slot.
-  C.fy=fy100==null||!ctx.isOpenYear||!ytd?null:()=>kpiCard('fy','Full-year progress',n(fy100)+'%',`${progressBar(fy100,paceStatus,pace)}<small>FY target ${e(aK(annual,m))}${pace==null?'':' · pace '+pace.toFixed(1)+'%'}</small>${paceWord?`<span class="status-word ${paceStatus}">${paceWord==='On pace'?(Math.abs(gapPts)<.05?'On pace':`On pace (${Math.abs(gapPts).toFixed(1)} pts ${gapPts<0?'behind':'ahead'})`):`${paceWord} by ${Math.abs(gapPts).toFixed(1)} pts`}</span>`:''}`,` data-status="${paceStatus}"`);
+  C.fy=fy100==null||!ctx.isOpenYear||!ytd?null:()=>kpiCard('fy','Full-year progress',n(fy100)+'%',`${progressBar(fy100,paceStatus,pace)}<small>FY target ${e(aK(annual,m))}${pace==null?'':' · pace '+pace.toFixed(1)+'%'}</small>${paceWord?`<span class="status-word ${paceStatus}">${paceWord==='On pace'?(Math.abs(gapPts)<.05?'On pace':`On pace (${Math.abs(gapPts).toFixed(1)}% ${gapPts<0?'behind':'ahead'})`):`${paceWord} by ${Math.abs(gapPts).toFixed(1)}%`}</span>`:''}`,` data-status="${paceStatus}"`);
   const avg=cur!=null&&chosen.length>=2?cur/chosen.length:null,pAvg=prev!=null?prev/cmp.length:null,avgC=curC!=null?curC/cmp.length:null;
   C.avgMonth=avg==null?null:()=>kpiCard('avg',missing?'Average per recorded month':'Average per month',amt(avg,m),`<small>${e(pAvg!=null?(partial?likeText(avgC,pAvg,m,cyLabel,' avg'):vsText(cy,pAvg,m,cyLabel)):`${chosen.length} ${missing?'recorded ':''}months · ${unit(m)}`)}</small>${deltaChip(chg(avgC,pAvg),cy)}`);
   const company=S(fy,m,chosen,{}),share=cur!=null&&company>0&&!ctx.companyScope?cur/company*100:null,pShare=(()=>{if(cy==null||!ctx.growthOk||ctx.filterCompareGap||share==null)return null;const a=S(cy,m,cmp),b=S(cy,m,cmp,{});return a!=null&&b>0?a/b*100:null})();
-  C.share=share==null?null:()=>kpiCard('share','Share of company',share.toFixed(1)+'%',`<small>${e(pShare!=null?`${share-pShare>=0?'+':'−'}${Math.abs(share-pShare).toFixed(1)} pts vs ${cy}`:'of company '+unit(m)+' · '+label)}</small>`);
+  C.share=share==null?null:()=>kpiCard('share','Share of company',share.toFixed(1)+'%',`<small>${e(pShare!=null?`was ${pShare.toFixed(1)}% in ${cy}`:'of company '+unit(m)+' · '+label)}</small>`);
   const monthly=chosen.map(x=>({x,v:S(fy,m,[x])})).filter(r=>Number.isFinite(r.v)),best=monthly.length>=2?monthly.reduce((a,b)=>b.v>a.v?b:a):null;
   C.bestMonth=best==null?null:()=>kpiCard('best','Best month',ms[best.x-1]+' '+fy,`<small>${e(aK(best.v,m))} · ${monthly.length} months with data</small>`);
   const u=S(fy,'units'),v=S(fy,'value'),pu=S(cy,'units',cmp),pv=S(cy,'value',cmp),uC=partial?S(fy,'units',cmp):u,vC=partial?S(fy,'value',cmp):v,price=u>0&&v!=null?v/u:null,priceC=uC>0&&vC!=null?vC/uC:null,pPrice=pu>0&&pv!=null?pv/pu:null,fmtP=x=>'EGP '+(x>=100?n(x):x.toFixed(1));
@@ -264,7 +267,7 @@ function kpiCandidates(ctx){
    C.growth=cagr==null&&ppg==null?null:()=>kpiCard('growth',cagr!=null?`Avg yearly growth ${base} → ${fy}`:`Growth ${base} → ${fy}`,pct(cagr??ppg),`<small>${e((cagr!=null&&ppg!=null?`Total ${pct(ppg)} over ${yrs} years`:`${yrs} years`)+vsLast('ppg'))}</small>`,` data-range="${base}-${fy}"`);
   }else C.growth=cy==null||(ppg==null&&!unavailable)?null:()=>unavailable?kpiCard('growth',`Growth ${cy} → ${fy}`,'Not comparable',`<small>${e(unavailable)}</small>`):kpiCard('growth',`Growth ${cy} → ${fy}`,pct(ppg),`<small>${e(DIM_YEARS_NOTE(ctx))}</small>`);
   const shareOf=year=>{const a=S(year,m),b=S(year,m,chosen,{});return a!=null&&b>0?a/b*100:null},sF=one?shareOf(fy):null,sC=one&&base!=null?shareOf(base):null;
-  C.shareYears=sF==null?null:()=>kpiCard('share',`Share of company ${fy}`,sF.toFixed(1)+'%',`<small>${e(sC==null?'of company '+unit(m):unavailable?`${base}: ${sC.toFixed(1)}% · change unavailable`:`${sF-sC>=0?'+':'−'}${Math.abs(sF-sC).toFixed(1)} pts vs ${base}`)}</small>`);
+  C.shareYears=sF==null?null:()=>kpiCard('share',`Share of company ${fy}`,sF.toFixed(1)+'%',`<small>${e(sC==null?'of company '+unit(m):unavailable?`${base}: ${sC.toFixed(1)}% · change unavailable`:`was ${sC.toFixed(1)}% in ${base}`)}</small>`);
  }
  C.products=()=>kpiCard('products','Products with sales',String(ctx.productCount),`<small>${e(label)}</small>`);
  // V72 R-02: "Months selected" is never shown while some selected months are not recorded.
@@ -302,7 +305,7 @@ function drawBridge(id,result,metric,dimension='product',display=x=>x){const cap
  // V79: each bar also shows its contribution to growth in percentage points of the prior-year total (bars add up to the
  // headline growth); the end bar shows the headline growth %. Each item's own growth % is not used here (tender and
  // small products would show huge, misleading rates). Unknown when the prior total is not positive.
- const base=result.previous.value,ptsOf=b=>base>0?(b.total?(b===bars.at(-1)?(b.to/base-1)*100:null):b.delta/base*100):null,signed=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1),ptsText=b=>{const p=ptsOf(b);return p==null?'':b.total?signed(p)+'%':signed(p)+' pts'};
+ const base=result.previous.value,ptsOf=b=>base>0?(b.total?(b===bars.at(-1)?(b.to/base-1)*100:null):b.delta/base*100):null,signed=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1),ptsText=b=>{const p=ptsOf(b);return p==null?'':signed(p)+'%'};
  const amountText=b=>(!b.total&&b.delta>0?'+':'')+short(b.total?b.to:b.delta),fullText=b=>amountText(b)+(ptsText(b)?' ('+ptsText(b)+')':'');
  const W=plotWidth(id,900),mobile=isMobile(),labelW=Math.round(Math.min(mobile?120:240,W*(mobile?.36:.28))),widthOf=f=>Math.max(...bars.filter(b=>!(mobile&&b.total)).map(b=>textWidth(f(b),12)))+10;
  // Phone: when the full label leaves too little room for the bars, item bars show only the % (full value in the tooltip and table).
@@ -313,16 +316,16 @@ function drawBridge(id,result,metric,dimension='product',display=x=>x){const cap
  const ptsSpan=b=>{const t=ptsText(b),p=ptsOf(b);return t?`<tspan class="bridge-pts${p<0?' negative':p>0?' positive':''}" style="fill:var(--${p<0?'decrease':'ink-2'})">${e(t)}</tspan>`:''},valueLabel=b=>compactLabels&&!b.total&&ptsText(b)?ptsSpan(b):e(amountText(b))+(ptsText(b)?' ('+ptsSpan(b)+')':'');
  let svg=svgPlot(W,H,`Contribution bridge from ${result.a} to ${result.b}; ${metric}`);
  for(const v of axisTicks(axis))if(v>=lo-1e-9&&v<=hi+1e-9){svg+=`<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${B}" style="stroke:var(--border)"/><text class="axis-tick" data-tick="${v}" x="${X(v)}" y="${B+18}" text-anchor="middle" font-size="12" style="fill:var(--ink-3)">${tickLabel(v,axis)}</text>`}
- bars.forEach((b,i)=>{const top=tops[i],mid=top+rowH[i]/2,x0=mobile?(b.total?L:X(Math.min(0,b.delta))):X(Math.min(b.from,b.to)),x1=mobile?(b.total?L:X(Math.max(0,b.delta))):X(Math.max(b.from,b.to)),value=b.total?b.to:b.delta,tip=`${nameOf(b)}${b.total&&result.span?' '+result.span:''} · ${amt(value,metric)}${ptsText(b)?' · '+(b.total?ptsText(b)+' growth vs '+result.a:ptsText(b)+' of growth'):''}${b.residual?' · '+(b.note||'Detail unavailable; not assigned to a product'):b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month';
+ bars.forEach((b,i)=>{const top=tops[i],mid=top+rowH[i]/2,x0=mobile?(b.total?L:X(Math.min(0,b.delta))):X(Math.min(b.from,b.to)),x1=mobile?(b.total?L:X(Math.max(0,b.delta))):X(Math.max(b.from,b.to)),value=b.total?b.to:b.delta,tip=`${nameOf(b)}${b.total&&result.span?' '+result.span:''} · ${amt(value,metric)}${ptsText(b)?' · '+(b.total?ptsText(b)+' growth vs '+result.a:ptsText(b)+' of the '+result.a+' total'):''}${b.residual?' · '+(b.note||'Detail unavailable; not assigned to a product'):b.newSales?' · '+b.activity+'; prior sales = 0; PPG: New':''}`;const clickable=!b.total&&!b.residual&&!/^Other \(/.test(b.name)&&dimension!=='month'&&dimension!=='pricevolume',pvClick=dimension==='pricevolume'&&!b.total&&b.part&&b.part!=='other';
   const tone=b.total?'total':b.residual?'residual':b.delta<0?'decrease':'increase',fill={total:'var(--ink-2)',residual:'var(--context)',decrease:'var(--decrease)',increase:'var(--accent)'}[tone];
   const l=lines[i],ly=mid-(l.length-1)*7.5+4;
-  svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"${result.keyed?' data-bridge-keyed="1"':''}`:'role="img"'} data-tip="${e(tip)}" data-bridge-tone="${tone}" tabindex="0" aria-label="${e(tip)}"><rect x="0" y="${top}" width="${W}" height="${rowH[i]}" fill="transparent"/>${l.map((ln,k)=>`<text class="${b.total&&result.span&&k===1?'bridge-span':'bridge-label'}" x="${labelW}" y="${ly+k*15}" text-anchor="end" font-size="12" style="fill:var(--${b.total?'ink':'ink-2'})"${b.total?' font-weight="600"':''}>${e(ln)}</text>`).join('')}${mobile&&b.total?'':`<rect x="${x0}" y="${mid-barH/2}" width="${Math.max(3,x1-x0)}" height="${barH}" rx="2" style="fill:${fill}"/>`}<text class="bridge-value" x="${x1+6}" y="${mid+4}" font-size="12" style="fill:var(--ink)"${b.total?' font-weight="600"':''}>${valueLabel(b)}</text></g>`;
+  svg+=`<g ${clickable?`role="button" data-bridge-dim="${dimension}" data-key="${e(b.name)}"${result.keyed?' data-bridge-keyed="1"':''}`:pvClick?`role="button" data-pv-part="${b.part}"`:'role="img"'} data-tip="${e(tip)}" data-bridge-tone="${tone}" tabindex="0" aria-label="${e(tip)}"><rect x="0" y="${top}" width="${W}" height="${rowH[i]}" fill="transparent"/>${l.map((ln,k)=>`<text class="${b.total&&result.span&&k===1?'bridge-span':'bridge-label'}" x="${labelW}" y="${ly+k*15}" text-anchor="end" font-size="12" style="fill:var(--${b.total?'ink':'ink-2'})"${b.total?' font-weight="600"':''}>${e(ln)}</text>`).join('')}${mobile&&b.total?'':`<rect x="${x0}" y="${mid-barH/2}" width="${Math.max(3,x1-x0)}" height="${barH}" rx="2" style="fill:${fill}"/>`}<text class="bridge-value" x="${x1+6}" y="${mid+4}" font-size="12" style="fill:var(--ink)"${b.total?' font-weight="600"':''}>${valueLabel(b)}</text></g>`;
   if(!mobile&&i<bars.length-1){const end=X(b.total?b.to:b.to),nextTop=tops[i+1]+rowH[i+1]/2-barH/2;svg+=`<line x1="${end}" x2="${end}" y1="${mid+barH/2}" y2="${nextTop}" style="stroke:var(--context)"/>`}});
- node.innerHTML='<div class="chart-scroll bridge-fit" tabindex="0" role="region" aria-label="Contribution bridge">'+svg+'</svg></div>'+(other.length?'<details class="bridge-other-detail"><summary>Other: '+other.length+' smaller contributions</summary>'+table(['Product / group','Change','Contribution to growth'],other.map(r=>[e(dimension==='product'?display(r.name):r.name),amt(r.delta,metric),base>0?e(signed(r.delta/base*100)+' pts'):'—']))+'</details>':'');
+ node.innerHTML='<div class="chart-scroll bridge-fit" tabindex="0" role="region" aria-label="Contribution bridge">'+svg+'</svg></div>'+(other.length?'<details class="bridge-other-detail"><summary>Other: '+other.length+' smaller contributions</summary>'+table(['Product / group','Change','Contribution to growth'],other.map(r=>[e(dimension==='product'?display(r.name):r.name),amt(r.delta,metric),base>0?e(signed(r.delta/base*100)+'%'):'—']))+'</details>':'');
 }
 function table(headers,rows){return `<table><thead><tr>${headers.map(h=>`<th scope="col">${e(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>'<tr'+(row[0]==='Total'?' class="total-row"':'')+'>'+row.map(v=>`<td>${v}</td>`).join('')+'</tr>').join('')}</tbody></table>`}
 // ── V69 U-06: one 'What drove the change' panel on Overview (replaces Sales Analysis Movement and Historical Contribution to change) ──
-const DIM_LABEL={product:'Products',line:'Lines',distributor:'Distributors',channel:'Sales types',month:'Month'};
+const DIM_LABEL={product:'Products',pricevolume:'Price vs volume',line:'Lines',distributor:'Distributors',channel:'Sales types',month:'Month'};
 function bridgePair(ctx){
  if(ctx.yearMode==='single')return ctx.compareYear!=null&&ctx.growthOk?[ctx.compareYear,ctx.focusYear]:null;
  const ok=ctx.years;let b=ok.includes(ui.bridgeTo)?ui.bridgeTo:ok.includes(ctx.focusYear)?ctx.focusYear:ok.at(-1);let a=ok.includes(ui.bridgeFrom)&&ui.bridgeFrom<b?ui.bridgeFrom:ctx.compareYear!=null&&ok.includes(ctx.compareYear)&&ctx.compareYear<b?ctx.compareYear:ok.filter(y=>y<b).at(-1);
@@ -334,7 +337,7 @@ const bridgeMonths=ctx=>ctx.yearMode==='single'?ctx.compareMonths:ctx.months;
 // V73 N-01: source product names change every year before the latest two (price versions), so a single-year bridge
 // that involves such a year matches products by their reviewed comparison name, like the multi-year views.
 // V74 V-14: one product identity everywhere: single-year product / month bridges always match by comparison name.
-function bridgeKeyed(ctx,a,b,dimension){return ctx.yearMode==='single'&&(dimension==='product'||dimension==='month')}
+function bridgeKeyed(ctx,a,b,dimension){return ctx.yearMode==='single'&&(dimension==='product'||dimension==='month'||dimension==='pricevolume')}
 function bridgeInputs(ctx,a,b,dimension){if(!bridgeKeyed(ctx,a,b,dimension))return {recs:ctx.records,filters:ctx.selection,keyed:false,display:ctx.displayName||(x=>x)};const names=productDisplayNames(records());return {recs:comparisonRecords(records()),filters:{...ctx.selection,product:translateProducts(records(),ctx.selection.product,'multi')},keyed:true,display:names.multi}}
 function bridgeGap(ctx){
  const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return null;const [a,b]=pair,key=JSON.stringify(['bridgeGap',ctx.yearMode,a,b,ui.metric,bridgeMonths(ctx),ctx.selection]);
@@ -346,6 +349,8 @@ function bridgeOptions(ctx){
  const pair=bridgePair(ctx);if(!pair||!ctx.hasData)return [];
  const opts=[];
  if(ctx.productMode!=='one'&&ctx.productCount>=2)opts.push('product');
+ // V80 idea 1: how much of the EGP change came from more units and how much from higher prices.
+ opts.push('pricevolume');
  for(const k of ['line','distributor','channel'])if(ctx.dims[k].comparable&&ctx.dims[k].categories>=2&&!(k==='line'&&ctx.productMode==='one'))opts.push(k);
  if(bridgeMonths(ctx).length>=2)opts.push('month');
  return opts;
@@ -354,6 +359,11 @@ function bridgeResult(ctx,a,b,dimension,metric=ui.metric){
  const months=bridgeMonths(ctx),key=JSON.stringify(['bridge',ctx.yearMode,a,b,dimension,metric,months,ctx.selection]);if(cache.has(key))return cache.get(key);
  const {recs,filters,keyed}=bridgeInputs(ctx,a,b,dimension);
  let result;
+ if(dimension==='pricevolume'){
+  const v=movement(recs,{a,b,months,metric:'value',dimension:'product',filters}),u=movement(recs,{a,b,months,metric:'units',dimension:'product',filters}),pv=priceVolumeSplit(v,u);
+  result=pv.delta==null?{...v,delta:null,reason:pv.reason}:{...v,items:PV_PARTS.filter(k=>Math.abs(pv.sums[k])>=Math.max(.5,Math.abs(v.previous.value||0)*5e-4)).map(k=>({name:pvLabel(k,pv.sums[k]),part:k,delta:pv.sums[k]})),ordered:true,pv,keyed};
+  cache.set(key,result);return result;
+ }
  if(dimension==='month'){
   result=movement(recs,{a,b,months,metric,dimension:'product',filters});
   if(result.delta!=null){const parts=months.map(m=>({m,r:movement(recs,{a,b,months:[m],metric,dimension:'product',filters})}));
@@ -368,17 +378,37 @@ function bridgeResult(ctx,a,b,dimension,metric=ui.metric){
 function renderBridge(ctx){
  const opts=bridgeOptions(ctx),pair=bridgePair(ctx);if(!opts.length||!pair)return;
  if(!opts.includes(ui.bridgeDimension))ui.bridgeDimension=ctx.productMode==='one'?'month':opts[0];
- const [a,b]=pair,dimension=ui.bridgeDimension,metric=ui.metric,result=bridgeResult(ctx,a,b,dimension,metric);
+ const [a,b]=pair,dimension=ui.bridgeDimension,pv=dimension==='pricevolume',metric=pv?'value':ui.metric,result=bridgeResult(ctx,a,b,dimension,metric);
  $('movement-dimension').innerHTML=opts.map(o=>`<option value="${o}">${DIM_LABEL[o]}</option>`).join('');$('movement-dimension').value=dimension;
  const yearPick=$('bridge-years');yearPick.hidden=ctx.yearMode!=='multi';
  if(ctx.yearMode==='multi'){const ok=ctx.years;$('bridge-from').innerHTML=ok.filter(y=>y<b).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-from').value=String(a);$('bridge-to').innerHTML=ok.filter(y=>ok.some(x=>x<y)).map(y=>`<option value="${y}">${y}</option>`).join('');$('bridge-to').value=String(b)}
  if(result.delta==null)return {empty:result.reason||'Comparable periods unavailable.'};
+ $('movement-pct-note').textContent=result.previous.value>0?`% = share of the ${a} total`:'';
  const display=bridgeInputs(ctx,a,b,dimension).display;drawBridge('movement-chart',ctx.yearMode==='single'&&ctx.comparePartial?{...result,span:monthRange(bridgeMonths(ctx))}:result,metric,dimension,display);
  $('movement-context').textContent=`${a} → ${b} · ${ctx.yearMode==='single'&&ctx.comparePartial?monthRange(bridgeMonths(ctx)):periodNoYear(bridgeMonths(ctx))} in both years · ${metric==='value'?'EGP value':'Units'} · ${scopeText()}${result.estimated||result.approximate?` · ${[a,b].filter(y=>PROVISIONAL_YEARS.has(y)).join(', ')||'Data'} includes estimates`:''}`;
  $('movement-unmatched').hidden=!result.unmatched?.length;$('movement-unmatched-list').innerHTML=(result.unmatched||[]).map(name=>`<p>${e(name)} — a comparable amount is unavailable in one of the periods; no zero baseline is assumed.</p>`).join('');
- $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Grey: period totals. Blue: increase. Red: decrease. New: absent activity in a complete prior report counts as zero sales. Light grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.'+(result.previous.value>0?' Pts = each item’s change ÷ the '+a+' total, so they add up to the total growth.':'');
- const base=result.previous.value,pts=v=>base>0?(v>0?'+':v<0?'−':'')+Math.abs(v/base*100).toFixed(1)+' pts':'—';
+ $('movement-note').textContent=(dimension==='month'?'Each bar is one month’s contribution to the change. ':'')+'Grey: period totals. Blue: increase. Red: decrease. New: absent activity in a complete prior report counts as zero sales. Light grey: unavailable detail. Contributions reconcile to the total difference; smaller items are grouped into Other.'+(result.previous.value>0?' The % next to each bar is its change ÷ the '+a+' total, so they add up to the total growth.':'');
+ if(pv){
+  const early=Math.min(a,b)<PRICE_FIRST_YEAR;
+  $('movement-note').textContent=`Selling more / fewer units = change in units × the ${a} price. Higher / lower prices = change in price per unit × units sold in ${b}. New products, products not sold this period and tender orders are shown on their own (a tender has its own contract price). Tap a bar to list its products in “View contribution numbers”.`+(early?' Values before 2025 are estimated from average prices, so the price effect reflects price versions only.':'');
+  if(ui.metric!=='value')$('movement-context').textContent+=' · always in EGP';
+  pvState={result,display,a,b};$('movement-table').innerHTML=pvTable();return;
+ }
+ const base=result.previous.value,pts=v=>base>0?(v>0?'+':v<0?'−':'')+Math.abs(v/base*100).toFixed(1)+'%':'—';
  $('movement-table').innerHTML=table([DIM_LABEL[dimension]==='Month'?'Month':'Product / group',String(a),String(b),'Change','Contribution to growth','Growth (PPG%)'],result.items.map(r=>[e(dimension==='product'&&!r.residual?display(r.name):r.name),n(r.previous),n(r.current),n(r.delta),pts(r.delta),r.newSales?'New':pct(r.ppg)]).concat([['Total',n(base),n(result.current.value),n(result.delta),pts(result.delta),base>0?pct((result.current.value/base-1)*100):'—']]));
+}
+
+// V80 idea 1: the per-product numbers behind the price vs volume bars. A tap on a bar sorts by that part.
+let pvState=null;
+const PV_GROUP={split:'Units and price',new:'New product',stopped:'Not sold this period',tender:'Tender',other:'Other'};
+function pvTable(){
+ if(!pvState)return '';const {result,display,a,b}=pvState,sort=ui.pvSort||'delta',price=v=>v==null?'—':v.toFixed(1),signedE=v=>v==null?'—':(v>0?'+':v<0?'−':'')+short(Math.abs(v));
+ const key=r=>sort==='volume'?(r.part==='split'?Math.abs(r.volume):-1):sort==='price'?(r.part==='split'?Math.abs(r.price):-1):sort==='delta'?Math.abs(r.delta):(r.part===sort?1e18+Math.abs(r.delta):Math.abs(r.delta));
+ const rows=result.pv.products.filter(r=>Math.abs(r.delta)>=.5||r.part==='split').sort((x,y)=>key(y)-key(x)||x.name.localeCompare(y.name));
+ const head=['Product','Counted in',`Units ${a}`,`Units ${b}`,`Price ${a}`,`Price ${b}`,'From units (EGP)','From price (EGP)','Total change (EGP)'];
+ const body=rows.map(r=>[e(display(r.name)),e(PV_GROUP[r.part]),n(r.unitsBefore),n(r.unitsNow),price(r.priceBefore),price(r.priceNow),r.part==='split'?signedE(r.volume):'—',r.part==='split'?signedE(r.price):'—',signedE(r.delta)]);
+ const s=result.pv.sums;
+ return `<p class="chart-note">${e(sort==='delta'?'Sorted by total change.':sort==='volume'?'Sorted by the effect of selling more / fewer units.':sort==='price'?'Sorted by the effect of price changes.':'“'+PV_GROUP[sort]+'” products first.')}</p>`+table(head,body.concat([['Total','',n(result.pv.products.reduce((t,r)=>t+(r.unitsBefore||0),0)),n(result.pv.products.reduce((t,r)=>t+(r.unitsNow||0),0)),'','',signedE(s.volume),signedE(s.price),signedE(result.delta)]]));
 }
 
 // V69 U-07: the composition row (Distributor mix · Sales-type mix · Sales by line) for one year, in the global measure.
@@ -566,6 +596,7 @@ function wireDrilldowns(){
  document.querySelectorAll('[data-mix-focus]').forEach(b=>{b.onclick=()=>window.actualDashboard.focusFilter(b.dataset.mixFocus,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('g[data-focus-year]').forEach(b=>{b.onclick=()=>window.actualDashboard.setFocusYear?.(Number(b.dataset.focusYear));b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
  document.querySelectorAll('g[data-bridge-dim]').forEach(b=>{b.onclick=()=>b.dataset.bridgeDim==='product'?selectProduct(b.dataset.bridgeKeyed?translateProducts(records(),[b.dataset.key],'single',viewContext().focusYear):b.dataset.key):window.actualDashboard.focusFilter(b.dataset.bridgeDim,b.dataset.key);b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.onclick()}}});
+ document.querySelectorAll('g[data-pv-part]').forEach(b=>b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();b.dispatchEvent(new MouseEvent('click',{bubbles:true}))}});
  document.querySelectorAll('g[data-select-product]').forEach(b=>b.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectProduct(b.dataset.selectProduct)}});
 }
 // V69 U-02: attention items are computed once per context; the layout engine hides the panel when no rule fires.
@@ -582,13 +613,17 @@ function productFacts(ctx){
  const others={...f,product:[]},names=[...new Set(scopeRecords(ctx.records,others).filter(r=>r.dataset==='actual'&&r.year===fy&&ctx.months.includes(r.month)).map(r=>r.product))];
  if(cur!=null&&names.length>=2){const vals=names.map(x=>sum(fy,ctx.months,m,{...others,product:[x]})).filter(Number.isFinite);const rank=1+vals.filter(v=>v>cur).length;items.push({label:'Rank among products',value:`#${rank} of ${vals.length}`,note:'by '+(m==='value'?'value':'units')})}
  const company=sum(fy,ctx.months,m,{}),share=cur!=null&&company>0?cur/company*100:null;
- if(share!=null){let note='of company '+unit;if(cy!=null&&ctx.growthOk){const pc=sum(cy,ctx.months,m),pt=sum(cy,ctx.months,m,{});if(pc!=null&&pt>0){const d=share-pc/pt*100;note=`${d>=0?'+':'−'}${Math.abs(d).toFixed(1)} pts vs ${cy}`}}items.push({label:'Share of company',value:share.toFixed(1)+'%',note})}
+ if(share!=null){let note='of company '+unit;if(cy!=null&&ctx.growthOk){const pc=sum(cy,ctx.months,m),pt=sum(cy,ctx.months,m,{});if(pc!=null&&pt>0){note=`was ${(pc/pt*100).toFixed(1)}% in ${cy}`}}items.push({label:'Share of company',value:share.toFixed(1)+'%',note})}
  const u=sum(fy,ctx.months,'units'),v=sum(fy,ctx.months,'value');
  if(u>0&&v!=null){const price=v/u;let note='EGP per unit';if(cy!=null&&ctx.growthOk){const pu=sum(cy,ctx.months,'units'),pv=sum(cy,ctx.months,'value');if(pu>0&&pv!=null){const pp=pv/pu,g=(price-pp)/pp*100;note=Math.abs(g)<0.05?`same as ${cy}`:`${g>=0?'+':'−'}${Math.abs(g).toFixed(1)}% vs ${cy} (${n(pp)})`}}items.push({label:'Average price',value:'EGP '+(price>=100?n(price):price.toFixed(1)),note})}
+ // V80 idea 2: each price increase in the selected months, and what units did after it.
+ for(const r of priceRows(ctx)){const u=r.units;items.push({label:'Price increase',value:`+${r.change.toFixed(1)}% in ${monthName(r.year,r.month)}`,note:`EGP ${r.before.toFixed(1)} → ${r.after.toFixed(1)} · units since then ${u.vsLastYear==null?'not comparable':pct(u.vsLastYear)+' vs same months '+(r.year-1)} · ${n(u.perMonthBefore)} a month before, ${n(u.perMonthAfter)} since`,tone:u.vsLastYear!=null&&u.vsLastYear<=-10?'negative':''})}
  if(ctx.hasTargets){let met=0,known=0;for(const month of ctx.months){const a=sum(fy,[month],m),t=tgt(ctx,[p],m,[month]);if(a==null||!(t>0))continue;known++;if(a>=t)met++}if(known)items.push({label:'Months on or above target',value:`${met} of ${known}`,note:'monthly target, '+unit})}
  for(const key of ['distributor','channel'])if(ctx.dims[key].categories===1)items.push({label:key==='distributor'?'Distributor':'Sales type',value:'100% '+ctx.dims[key].single});
- const trivial=new Set(['Largest contribution to decline','Largest growth driver','Largest target shortfall','Biggest beat vs target','Growing, but below target','Growth driver above target','Declining and below target','Declining, but above target']);
+ const trivial=new Set(['Largest contribution to decline','Largest growth driver','Largest target shortfall','Biggest beat vs target','Growing, but below target','Growth driver above target','Declining and below target','Declining, but above target','Price up, units down']);
  for(const a of attentionItems(ctx).filter(a=>!trivial.has(a.title)))items.push({label:a.title,value:a.chip,note:a.text,tone:a.tone});
+ // V80: price increases come right after the line, so they are visible without "Show all".
+ const rises=items.filter(x=>x.label==='Price increase');if(rises.length){const rest=items.filter(x=>x.label!=='Price increase'),at=rest[0]?.label==='Line'?1:0;items.splice(0,items.length,...rest.slice(0,at),...rises,...rest.slice(at))}
  return items;
 }
 // V72 R-08: up to 6 facts are always shown in full (no Show all), so the card reaches the Monthly chart's height.
@@ -597,7 +632,7 @@ function renderProductFacts(ctx){const all=productFacts(ctx),limit=all.length<=6
 function attentionItems(ctx=viewContext()){if(attentionCache.key===ctx)return attentionCache.items;attentionCache={key:ctx,items:computeAttention()};return attentionCache.items}
 // V69 U-05: one column, impact order, then 'Show all (n)' expands in place; the panel never sets the row height.
 // V72 R-07: top 3 shown in full (no inner scroll box); "Show all (n)" expands in place. R-21: 2 on phones.
-function renderAttention(){const all=attentionItems(),limit=isMobile()?2:3,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}"${r.source?` title="Source name: ${e(r.source)}"`:''} data-impact="${r.impact}" ${r.p?`data-select-product="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>${r.p?"Show this product →":"Show distributors →"}</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
+function renderAttention(){const all=attentionItems(),limit=isMobile()?2:3,items=ui.attentionAll?all:all.slice(0,limit);$('attention-list').innerHTML=items.map(r=>`<button class="attention-item ${r.tone}" data-tone="${r.tone}"${r.source?` title="Source name: ${e(r.source)}"`:''} data-impact="${r.impact}" ${r.ps?.length>1?`data-select-products="${e(JSON.stringify(r.ps))}"`:r.p?`data-select-product="${e(r.p)}"`:'data-attention-distributors="1"'}><span class="attention-head"><b>${e(r.title)}</b><span class="attention-chip ${r.tone}">${e(r.chip)}</span></span><span>${e(r.text)}</span><small>${r.p?"Show this product →":"Show distributors →"}</small></button>`).join('')+(all.length>limit?`<button type="button" class="show-all" data-attention-all="${ui.attentionAll?'off':'on'}" aria-expanded="${!!ui.attentionAll}">${ui.attentionAll?'Show fewer':'Show all ('+all.length+')'}</button>`:'')}
 function mergeAttention(items,metric,py){
  const change=items.filter(i=>['Largest growth driver','Largest contribution to decline'].includes(i.title)),vsPlan=items.filter(i=>['Largest target shortfall','Biggest beat vs target'].includes(i.title));
  for(const c of change){const t=vsPlan.find(x=>x.p===c.p);if(!t)continue;const up=c.title==='Largest growth driver',short=t.title==='Largest target shortfall';
@@ -620,12 +655,35 @@ function computeAttention(){
  mergeAttention(items,metric,d.snapshot.year-1);
  const divergent=selectedProducts().map(p=>({product:p,u:pairs('units',{...d.selection,product:[p]}),v:pairs('value',{...d.selection,product:[p]})})).filter(r=>r.u.delta<0&&r.v.delta>0).sort((a,b)=>b.v.delta-a.v.delta)[0];if(divergent){const own=metric==='value'?divergent.v.delta:divergent.u.delta;items.push({p:divergent.product,tone:'neutral',impact:Math.abs(own),chip:signed(own),title:'Value up, units down',text:`${divergent.product}: value ${pct(divergent.v.ppg)}, units ${pct(divergent.u.ppg)}. Review price / mix; this does not establish the cause.`})}
  const end=Math.max(0,...d.months);if(end>=3&&[end-2,end-1,end].every(m=>d.months.includes(m))){const found=selectedProducts().map(p=>({p,vals:[end-2,end-1,end].map(m=>summary(d.snapshot.year,[m],metric,{...d.selection,product:[p]}).value)})).filter(x=>x.vals.every(Number.isFinite)&&x.vals[0]>x.vals[1]&&x.vals[1]>x.vals[2]).sort((a,b)=>(b.vals[0]-b.vals[2])-(a.vals[0]-a.vals[2]))[0];if(found)items.push({p:found.p,tone:'negative',impact:found.vals[0]-found.vals[2],chip:signed(found.vals[2]-found.vals[0]),title:'Three-month downward trend',text:`${found.p}: declining ${metric} in ${ms[end-3]}, ${ms[end-2]} and ${ms[end-1]}.`})}
+ // V80 idea 2: a price increase in the selected year after which units are 10% or more below the same months last year.
+ {const vc=viewContext(),disp=priceDisplay(vc);for(const r of priceRows(vc)){const u=r.units;if(u.vsLastYear==null||u.vsLastYear>-10)continue;const ps=priceSelect(vc,r.product);items.push({p:ps[0]||r.product,ps,shown:disp(r.product),tone:'negative',impact:Math.abs(metric==='value'?(u.lastYear-u.since)*r.after:u.lastYear-u.since),chip:'Units '+pct(u.vsLastYear),title:'Price up, units down',text:`${disp(r.product)}: price up ${r.change.toFixed(1)}% in ${monthName(r.year,r.month)} (EGP ${r.before.toFixed(1)} → ${r.after.toFixed(1)}); units since then ${pct(u.vsLastYear)} vs the same months of ${r.year-1}.`})}}
  // Concentration is structural, not an impact amount: it ranks after the impact rules. NOT PROVIDED is a data gap, not a distributor.
  // V72 R-10: skipped when the scope is already one distributor (a 100% share is the filter, not a finding).
  const total=summary(d.snapshot.year,d.months,metric).value;if(total>0){const groups=[...new Set(scopeRecords(records(),d.selection).filter(r=>r.year===d.snapshot.year&&r.dataset==='actual').map(r=>r.distributor))].filter(name=>name&&String(name).trim().toUpperCase()!=='NOT PROVIDED').map(name=>({name,value:summary(d.snapshot.year,d.months,metric,{...d.selection,distributor:[name]}).value})).filter(x=>x.value!=null).sort((a,b)=>b.value-a.value);if(d.selection.distributor?.length!==1&&groups.length>=2&&groups[0]?.value/total>=.6)items.push({tone:'neutral',impact:-1,chip:`${(groups[0].value/total*100).toFixed(1)}% share`,title:'Distributor concentration ≥60%',text:`${groups[0].name}: ${(groups[0].value/total*100).toFixed(1)}% of selected ${metric}. Check concentration and source coverage.`})}
  // V72 R-23: historical single-year views show the comparison display name; the source name stays in the tooltip.
- const disp=viewContext().displayName||(x=>x);for(const it of items)if(it.p){const shown=disp(it.p);if(shown!==it.p){it.text=it.text.split(it.p).join(shown);it.source=it.p}}
+ const disp=viewContext().displayName||(x=>x);for(const it of items)if(it.p&&!it.shown){const shown=disp(it.p);if(shown!==it.p){it.text=it.text.split(it.p).join(shown);it.source=it.p}}
  items.sort((a,b)=>b.impact-a.impact);return items;
+}
+
+// ── V80 idea 2: price-increase tracker (rules in public/price-core.js) ──
+// Comparison records (packs of a product together, tender separate); months up to the last selected month with data.
+function priceRows(ctx){
+ if(!ctx?.hasData||!(ctx.focusYear>=PRICE_FIRST_YEAR)||!ctx.months?.length)return [];
+ const key=JSON.stringify(['price',ctx.yearMode,ctx.focusYear,ctx.months,ctx.dataMonths,ctx.selection]);if(cache.has(key))return cache.get(key);
+ const single=ctx.yearMode==='single',recs=single?comparisonRecords(records()):ctx.records,filters=single?{...ctx.selection,product:translateProducts(records(),ctx.selection.product,'multi')}:ctx.selection;
+ const withData=(ctx.dataMonths||ctx.months).filter(m=>ctx.months.includes(m)),last=withData.length?Math.max(...withData):null;
+ const rows=last==null?[]:priceIncreases(recs,{year:ctx.focusYear,through:{year:ctx.focusYear,month:last},filters}).filter(r=>ctx.months.includes(r.month));
+ cache.set(key,rows);return rows;
+}
+function priceDisplay(ctx){return ctx.yearMode==='single'?productDisplayNames(records()).multi:ctx.displayName||(x=>x)}
+function priceSelect(ctx,product){return ctx.yearMode==='single'?translateProducts(records(),[product],'single',ctx.focusYear):[product]}
+function renderPriceChanges(ctx){
+ const rows=priceRows(ctx);if(!rows.length)return {empty:'No price increases in the selected months.'};
+ const disp=priceDisplay(ctx);
+ $('price-context').textContent=`${periodLabel(dashboard(),ctx.months,ctx.focusYear)} · regular sales (tenders excluded) · ${scopeText()}`;
+ $('price-list').innerHTML=rows.map(r=>{const u=r.units,down=u.vsLastYear!=null&&u.vsLastYear<=-10,py=r.year-1,span=u.months===1?ms[r.month-1]:`${ms[r.month-1]}–${ms[(r.month+u.months-2)%12]}`;
+  const units=u.vsLastYear==null?`Units since then: ${n(u.since)} (no ${py} sales to compare)`:`Units since then (${span}): ${pct(u.vsLastYear)} vs same months ${py}`;
+  return `<li><button type="button" class="price-item${down?' negative':''}" data-select-products="${e(JSON.stringify(priceSelect(ctx,r.product)))}"><span class="price-head"><b>${e(disp(r.product))}</b><span class="price-chip">+${r.change.toFixed(1)}%</span></span><span>Price went up in ${e(monthName(r.year,r.month))}: EGP ${r.before.toFixed(1)} → ${r.after.toFixed(1)} per unit</span><span class="price-units${down?' negative':''}">${e(units)}${down?' · units fell':''}</span><small>${n(u.perMonthBefore)} units a month in the 3 months before, ${n(u.perMonthAfter)} since</small></button></li>`}).join('');
 }
 
 function renderPlanning(){
@@ -721,6 +779,7 @@ function onClick(ev){
  const b=ev.target.closest('button,[role="button"]');if(!b)return;if(b.dataset.page==='comparison'){ev.preventDefault();openHistoricalRedirect();return}if(b.dataset.page){placeActions(b.dataset.page);document.querySelector('.manager-actions').hidden=b.dataset.page!=='sales';$('manager-status').hidden=b.dataset.page!=='sales';}
  if(b.id==='forecast-risk-export'){exportForecastRisk();return}
  if(b.dataset.mixSwitch){ui.mobileMix=b.dataset.mixSwitch;mobileMix();applyChartTables();$('panel-'+ui.mobileMix)?.querySelector(`[data-mix-switch="${ui.mobileMix}"]`)?.focus();return}
+ if(b.dataset.pvPart){ui.pvSort=b.dataset.pvPart==='split'?'delta':b.dataset.pvPart;$('movement-table').innerHTML=pvTable();const det=$('movement-table').closest('details');if(det){det.open=true;det.scrollIntoView({behavior:'smooth',block:'nearest'})}return}
  if(b.dataset.selectProduct){selectProduct(b.dataset.selectProduct);return}
  if(b.dataset.selectProducts){try{selectProduct(JSON.parse(b.dataset.selectProducts))}catch{}return}
  if(b.dataset.tabFix){const tab=b.dataset.tab;$('tab-message').hidden=true;(async()=>{if(b.dataset.tabFix==='latest-year')await window.actualDashboard.setYears([viewContext().latestYear]);else{const d=dashboard();await window.actualDashboard.apply({...capture(),selection:{...d.selection,product:[]}})}window.actualDashboard.showSection(tab)})();return}
@@ -773,7 +832,7 @@ function validConfig(config){
 async function restore(config){
  try{if(!payload||!dashboard()){restorePending=config;return}config=validConfig(config);
  if(['lines','heatmap'].includes(config.section))config={...config,section:'overview'};if(['trends','movement','analysis','breakdown'].includes(config.section))config={...config,section:'overview'};if(config.section==='products')config={...config,section:'portfolio'};const available=dashboard().snapshot.availableYears,asked=Array.isArray(config.years)?config.years:[config.year],wanted=(Array.isArray(config.years)?config.years:[config.year]).filter(y=>available.includes(y));if(!wanted.length){status(`Year ${(config.years||[config.year]).join(', ')} is no longer available. View was not applied.`);return}config={...config,years:wanted};
- if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],bridgeDimension:['product','line','distributor','channel','month'],monthlyCompare:['target','py','none']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyCumulative','monthlySplit'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
+ if(config.ui){for(const [key,allowed]of Object.entries({metric:['units','value'],bridgeDimension:['product','pricevolume','line','distributor','channel','month'],monthlyCompare:['target','py','none']}))if(allowed.includes(config.ui[key]))ui[key]=config.ui[key];for(const key of ['monthlyCumulative','monthlySplit'])if(typeof config.ui[key]==='boolean')ui[key]=config.ui[key];}
  if(config.years.length>1&&config.selection?.product?.length){const known=new Set(multiOptions('product',config.years));if(!config.selection.product.every(p=>known.has(p)))config={...config,selection:{...config.selection,product:translateProducts(records(),config.selection.product,'multi')}}}
  const requested=Object.fromEntries(['product','line','distributor','channel'].map(k=>[k,[...(config.selection?.[k]||[])]])),droppedYears=(Array.isArray(config.years)?config.years:[]).length<asked.length?asked.filter(y=>!config.years.includes(y)):[];
  await window.actualDashboard.apply(config);

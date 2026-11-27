@@ -26,6 +26,9 @@ export const PANELS = [
   { id: 'mixDistributor', tab: 'overview', row: 4, title: 'Distributor mix', span: () => 4, show: (ctx) => mixShown(ctx, 'distributor'), reason: (ctx) => (ctx.hasData ? mixReason(ctx, 'distributor', 'Distributor') : null) },
   { id: 'mixChannel', tab: 'overview', row: 4, title: 'Sales-type mix', span: () => 4, show: (ctx) => mixShown(ctx, 'channel'), reason: (ctx) => (ctx.hasData ? mixReason(ctx, 'channel', 'Sales type') : null) },
   { id: 'mixLine', tab: 'overview', row: 4, title: 'Sales by line', span: () => 4, show: (ctx) => ctx.productMode !== 'one' && mixShown(ctx, 'line'), reason: (ctx) => (ctx.hasData && ctx.productMode !== 'one' ? mixReason(ctx, 'line', 'Line') : null) },
+  // V80 idea 2: price increases in the selected months (2025 on; values before 2025 are estimated, so prices are flat).
+  // No increase is not a hidden panel, so it is not listed under "Not shown".
+  { id: 'priceChanges', tab: 'overview', row: 5, title: 'Price increases', span: () => 12, show: (ctx, api) => ctx.hasData && ctx.productMode !== 'one' && ctx.focusYear >= 2025 && (api.priceCount?.(ctx) || 0) > 0, reason: () => null },
   // ── Products ──
   { id: 'productsTable', tab: 'products', row: 1, title: 'Products', span: () => 12, show: (ctx) => ctx.productMode !== 'one' && ctx.productCount >= 2, reason: () => null },
   // ── Forecast ──
