@@ -819,3 +819,38 @@ body{font-size:var(--text-body)}
 
 /* G-09: Partial-year notice under scope line */
 #sales .scope-partial-notice{flex-basis:100%;order:4;margin:4px 0 0;font-size:var(--text-small);color:var(--warning);font-weight:500}
+
+/* G-10: Frameless single-row desktop filter bar (<=56px without chips) + Years popover */
+#sales .years-popover{position:relative}
+#sales .years-popover>summary{list-style:none;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font-size:var(--text-small);font-weight:500;cursor:pointer;white-space:nowrap}
+#sales .years-popover>summary::-webkit-details-marker{display:none}
+#sales .years-popover[open]>summary{border-color:var(--accent)}
+#sales .years-popover-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:42;min-width:280px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-pop)}
+#sales .years-popover-menu .years-row{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+#sales .years-popover-menu .years-chips{display:flex;flex-wrap:wrap;gap:6px}
+@media (min-width:700px){
+  #sales>.filters{display:flex!important;flex-wrap:wrap;align-items:center;gap:8px;padding:0!important;margin:8px 0 10px;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+  #sales>.filters>.filter-bar-title{display:none}
+  #sales>.filters>#years-field{flex:0 0 auto;flex-direction:row;align-items:center;gap:6px}
+  #sales>.filters>#years-field .field-label{font-size:var(--text-small);font-weight:500;color:var(--ink-2)}
+  #sales>.filters>label{flex:0 0 auto;display:inline-flex;flex-direction:row;align-items:center;gap:6px;min-width:0;font-size:var(--text-small);font-weight:500;color:var(--ink-2);margin:0}
+  #sales>.filters>label select{width:auto;min-width:0;min-height:36px;height:36px;margin:0;padding:0 26px 0 10px;font-size:var(--text-small);border-radius:var(--radius-control)}
+  #sales>.filters>#period-mode-field,#sales>.filters>#period-mode{min-width:0}
+  #sales>.filters>#product-filter,#sales>.filters>#months-filter{flex:0 1 185px;min-width:130px;max-width:210px;display:block}
+  #sales>.filters>#product-filter::before,#sales>.filters>#months-filter::before{display:none}
+  #sales>.filters .multi-select>summary{min-height:36px;height:36px;padding:0 28px 0 10px;display:flex;align-items:center;gap:6px;border-radius:var(--radius-control);background:var(--surface)}
+  #sales>.filters .multi-select>summary:after{top:8px;right:10px}
+  #sales>.filters .multi-select>summary>span{position:static!important;width:auto!important;height:auto!important;clip:auto!important;overflow:visible!important;margin:0;font-size:var(--text-small);color:var(--ink-2);display:none}
+  #sales>.filters .multi-select>summary>b{font-size:var(--text-small);font-weight:500;color:var(--ink);max-width:160px}
+  #sales>.filters>#measure-field{flex:0 0 auto;flex-direction:row;align-items:center;gap:6px}
+  #sales>.filters>#measure-field .measure-label{display:none}
+  #sales>.filters .control-group{padding:2px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-control);height:36px;align-items:center}
+  #sales>.filters .control-group button{min-height:30px;height:30px;padding:0 10px;font-size:var(--text-small);border-radius:var(--radius-xs)}
+  #sales>.filters>#filter-actions{flex:0 0 auto;display:contents}
+  #sales>.filters #more-filters>summary{min-height:36px;height:36px;padding:0 10px;display:inline-flex;align-items:center;gap:4px;font-size:var(--text-small);border-radius:var(--radius-control);background:var(--surface)}
+  #sales>.filters #reset{min-height:36px;height:36px;padding:0 10px;font-size:var(--text-small);border:1px solid var(--border);border-radius:var(--radius-control);color:var(--ink-2)}
+  #sales>.filters #active-filters{flex-basis:100%;margin:2px 0 0!important;padding:0!important;background:transparent!important}
+}
+@media (max-width:699px){
+  #sales .years-popover-menu{position:static;box-shadow:none;border:0;padding:8px 0 0;min-width:0}
+}
