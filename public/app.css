@@ -792,3 +792,14 @@ html{scroll-padding-top:104px}
 .forecast-legend .fl.seasonal{border-top:2px dashed var(--context-2)}
 .forecast-legend .fl.target{border-top:1.5px solid var(--ink)}
 .forecast-legend .fl.range{background:var(--accent-soft)}
+
+/* G-06: Type scale (13px small for controls/tables/subtitles, 14px body for lists/notes, 16px card titles, 12px captions only) */
+body{font-size:var(--text-body)}
+#sales button,#sales select,#sales input,#sales .filters>label,#sales .years-field .field-label,#sales .measure-field .measure-label,#sales .multi-select>summary>span,#sales .multi-select>summary>b,#sales .multi-option,#sales .advanced-filters>summary,#sales .choice,#sales .filter-chip,#sales .chart-table-toggle,#sales .data-notes-link,#sales .show-all,#sales .mix-show-all{font-size:var(--text-small)}
+#sales .panel-title h2,#sales h2{font-size:var(--text-title);font-weight:600}
+#sales .panel-title p,#sales .chart-note,#sales .analysis-context,#sales .mix-context,#sales .unknown-note{font-size:var(--text-small)}
+#sales .kpi .label,#sales .kpi small,#sales .kpi .status-word,#sales .kpi .delta-chip{font-size:var(--text-small)}
+#sales .table-wrap table,#sales .table-wrap th,#sales .table-wrap td,#sales .table-wrap th button,#sales .table-wrap td button,#sales .chart-table,#sales .chart-table th,#sales .chart-table td,#sales .forecast-risk-table,#sales .forecast-risk-table th,#sales .forecast-risk-table td{font-size:var(--text-small)}
+#sales .portfolio-card .pc-cell b,#sales .portfolio-card .pc-name{font-size:var(--text-small)}
+#sales .attention-item,#sales .attention-item b,#sales .attention-item span,#sales .price-item,#sales .facts-list .fact,#sales .facts-list .fact b,#sales .methodology p,#sales .footnote,#sales .forecast-why,#sales .forecast-method p,#sales .forecast-sentence{font-size:var(--text-body)}
+#sales .legend,#sales .series-legend,#sales .analysis-legend,#sales .forecast-legend,#sales .fc-end-row,#sales svg text{font-size:var(--text-caption)}
