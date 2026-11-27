@@ -854,3 +854,10 @@ body{font-size:var(--text-body)}
 @media (max-width:699px){
   #sales .years-popover-menu{position:static;box-shadow:none;border:0;padding:8px 0 0;min-width:0}
 }
+
+/* G-11: Single-line 13px status line under scope; no green 'Data: complete' */
+#sales>.source{display:none}
+#sales #data-health{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:0;margin:0 0 12px;border:0;background:transparent;border-radius:0;font-size:var(--text-small);line-height:1.5;color:var(--ink-2)}
+#sales #data-health .health-targets{margin-left:0}
+#sales #data-health .health-warning{color:var(--warning);font-weight:500}
+#sales #data-health .data-notes-link{font-weight:500;color:var(--accent)}
