@@ -785,3 +785,10 @@ html{scroll-padding-top:104px}
   #sales-sticky-bar .section-tabs{padding:0}
   #sales-sticky-bar .section-tabs button{min-height:44px;padding:8px 12px}
 }
+
+/* G-05: Forecast legend matches token colors (dashed accent/context-2, solid ink target) */
+.forecast-legend .fl.actual{border-top:2px solid var(--accent)}
+.forecast-legend .fl.runrate{border-top:2px dashed var(--accent)}
+.forecast-legend .fl.seasonal{border-top:2px dashed var(--context-2)}
+.forecast-legend .fl.target{border-top:1.5px solid var(--ink)}
+.forecast-legend .fl.range{background:var(--accent-soft)}
