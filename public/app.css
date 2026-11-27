@@ -894,3 +894,20 @@ body{font-size:var(--text-body)}
   #sales .section-tabs{gap:18px}
   #sales .section-tabs button{min-height:44px;padding:10px 2px!important}
 }
+
+/* G-15: Needs attention as plain divider list, no cards/left-borders/pills */
+#sales .title-help{display:inline-block;vertical-align:middle;margin-left:6px;font-weight:400}
+#sales .title-help>summary{font-size:var(--text-small);color:var(--ink-3)}
+#sales .title-help>p{position:absolute;left:0;top:calc(100% + 4px);z-index:30;width:min(320px,80vw);margin:0;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-control);box-shadow:var(--shadow-pop);font-size:var(--text-small);color:var(--ink-2)}
+#sales #panel-attention .attention-list{display:flex;flex-direction:column;gap:0!important}
+#sales #panel-attention .attention-item{background:transparent!important;border:0!important;border-bottom:1px solid var(--border)!important;border-left:0!important;border-radius:0!important;padding:12px 6px!important;gap:4px!important;box-shadow:none!important}
+#sales #panel-attention .attention-item:last-of-type{border-bottom:0!important}
+#sales #panel-attention .attention-item:hover{background:var(--accent-soft)!important;border-color:var(--border)!important}
+#sales #panel-attention .attention-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:flex-start;gap:4px 8px}
+#sales #panel-attention .attention-chip{background:transparent!important;padding:0!important;border-radius:0!important;font-size:var(--text-small);font-weight:600}
+#sales #panel-attention .attention-chip.positive{color:var(--good)}
+#sales #panel-attention .attention-chip.negative{color:var(--decrease)}
+#sales #panel-attention .attention-chip.neutral{color:var(--ink-2)}
+#sales #panel-attention .attention-product{font-size:var(--text-body);font-weight:500;color:var(--ink)}
+#sales #panel-attention .attention-fig{font-size:var(--text-small);color:var(--ink-2);line-height:1.5}
+#sales #panel-attention .show-all{margin-top:10px}
