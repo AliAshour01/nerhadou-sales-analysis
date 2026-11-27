@@ -1,11 +1,11 @@
-import {comparisonProduct,dashboardRecords} from './compare-core.js?v=sales-review-v80';
-import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,seasonalScenario,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v80';
-import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v80';
-import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v80';
-import {PANELS,layout} from './panel-registry.js?v=sales-review-v80';
-import {productsTableData,productsTableHTML,sortOptions,packShortName,isPriceVersions} from './products-table.js?v=sales-review-v80';
-import {priceVolumeSplit,pvLabel,PV_PARTS,PRICE_FIRST_YEAR,priceIncreases,monthName} from './price-core.js?v=sales-review-v80';
-import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v80';
+import {comparisonProduct,dashboardRecords} from './compare-core.js?v=sales-review-v81';
+import {comparableSummary,changeBetween,movement,movementTotals,commonAvailableMonths,productName,productKey,targetSum,portfolioTarget,scopeRecords,runRateProjection,seasonalProjection,seasonalScenario,growthAllowed,PROVISIONAL_YEARS} from './management-core.js?v=sales-review-v81';
+import {tableWorkbook} from './comparison-xlsx.js?v=sales-review-v81';
+import {resolveViewContext,knownCategory,yearSpan,comparisonRecords,translateProducts,productDisplayNames} from './view-context.js?v=sales-review-v81';
+import {PANELS,layout} from './panel-registry.js?v=sales-review-v81';
+import {productsTableData,productsTableHTML,sortOptions,packShortName,isPriceVersions} from './products-table.js?v=sales-review-v81';
+import {priceVolumeSplit,pvLabel,PV_PARTS,PRICE_FIRST_YEAR,priceIncreases,monthName} from './price-core.js?v=sales-review-v81';
+import {niceAxis,axisTicks,tickLabel,compact,achStatus,ACH_THRESHOLDS,textWidth,fitLabel} from './chart-utils.js?v=sales-review-v81';
 const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const n=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0}),pct=v=>v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`,amt=(v,m)=>v==null?'—':(m==='value'?'EGP ':'')+n(v),

@@ -61,12 +61,12 @@ assert.match($('forecast-why').textContent, /The scenarios are \d+% apart becaus
   // V74 V-08: products that miss in every scenario that can be computed come first, YTD-average-only misses after; largest gap first within each.
   const rank = (r) => ({ both: 0, unknown: 0, avg: 1 })[r.querySelector('.risk-scenario').className.split(' ').pop()];
   assert.deepEqual(rows.map(rank), rows.map(rank).sort((x, y) => x - y), 'scenario order');
-  const gaps = rows.filter((r) => rank(r) === 0).map((r) => -Number(r.children[5].textContent.replace(/[^0-9]/g, '')));
+  const gaps = rows.filter((r) => rank(r) === 0).map((r) => -Number(r.children[6].textContent.replace(/[^0-9]/g, '')));
   assert.deepEqual(gaps, [...gaps].sort((x, y) => x - y), 'largest gap first within a scenario');
   assert.equal(rows[0].dataset.riskProduct, 'Methyltechno - TENDER');
   // V74 V-02: the one-off tender has no reliable seasonal projection (only 1% of its 2025 sales came by August).
   const tender = rows.find((r) => r.dataset.riskProduct === 'Methyltechno - TENDER');
-  assert(tender && tender.children[3].textContent.trim() === '—' && /not reliable/.test(tender.children[3].title), 'tender seasonality withheld ' + rows.map((r) => r.dataset.riskProduct).join('|') + (tender ? tender.children[3].outerHTML : ''));
+  assert(tender && tender.children[4].textContent.trim() === '—' && /not reliable/.test(tender.children[4].title), 'tender seasonality withheld ' + rows.map((r) => r.dataset.riskProduct).join('|') + (tender ? tender.children[4].outerHTML : ''));
 }
 await window.actualDashboard.apply(cfg({ section: 'forecast', selection: { ...none, distributor: ['PHARMA'] } }));
 assert($('forecast-risk-wrap').hidden);
