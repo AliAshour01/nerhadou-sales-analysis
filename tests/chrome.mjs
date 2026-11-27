@@ -1,5 +1,5 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';import crypto from 'node:crypto';
-const source=fs.readFileSync('public/chrome.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/theme.css','utf8');
+const source=fs.readFileSync('public/chrome.js','utf8'),html=fs.readFileSync('public/index.html','utf8'),css=fs.readFileSync('public/app.css','utf8');
 function setup(mode='native'){
  const listeners=new Map(),classes=new Set(),nodes=new Map(),body={classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){const next=on??!classes.has(x);next?classes.add(x):classes.delete(x);return next}}};let requests=0,exits=0;
  function element(id){return {id,hidden:true,disabled:false,textContent:'',title:'',style:{},attrs:{},contains(target){return target===this||target?.parent===this},querySelectorAll(){return this.children||[]},querySelector(){return this.summary},focus(){this.focused=true;doc.activeElement=this},setAttribute(k,v){this.attrs[k]=v},addEventListener(k,fn){(this.events??={})[k]=fn},click(){this.onclick?.();this.events?.click?.()}}}

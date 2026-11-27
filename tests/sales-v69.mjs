@@ -16,13 +16,15 @@ await window.actualDashboard.apply(cfg());
 assert.deepEqual(tabs(),['overview','portfolio','forecast']);assert.deepEqual(visible(),['monthly','attention','bridge','mixDistributor','mixChannel','mixLine']);
 {const t=$('kpis').textContent;for(const v of ['21,599,730','22,310,000','97%','710,270','15,476,653','39.6%','33,465,000','65%'])assert(t.includes(v),'KPI shows '+v);assert.equal($('kpis').querySelectorAll('.kpi').length,4);assert($('kpis').querySelector('.pace-marker'))}
 assert.equal($('company-ppg-chart'),null,'PPG panel removed');assert.equal(document.querySelector('[id$="-achievement-chart"]'),null);
-{const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'#1f3555');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
-checkTicks($('movement-chart'),'#movement-chart');assert($('movement-chart').querySelector('.axis-break'));assert(/Axis starts at \d/.test($('movement-chart').textContent));
+{const marker=$('trend').querySelector('line.target-marker');assert.equal(marker.getAttribute('stroke'),'#10233F');const legend=$('panel-monthly').querySelector('.progress-legend');assert(legend.querySelector('.lg-swatch.over'))}
+checkTicks($('movement-chart'),'#movement-chart');// V77 D-03: horizontal bridge from zero: no axis break, every row has its full label.
+assert(!$('movement-chart').querySelector('.axis-break'));assert(!/Axis starts at/.test($('movement-chart').textContent));assert(!$('movement-chart').querySelector('.bridge-key'));
 // S-35 attention: balanced, ranked, magnitude chips
 {const items=[...$('attention-list').querySelectorAll('.attention-item')];assert(items.some(i=>i.dataset.tone==='positive'));assert(items.some(i=>i.dataset.tone==='negative'));const imp=items.map(i=>Number(i.dataset.impact));assert.deepEqual(imp,[...imp].sort((a,b)=>b-a));for(const i of items)assert(i.querySelector('.attention-chip').textContent.trim());assert(items.length<=4,'top 4 then Show all');assert($('view-overview').textContent.includes('do not establish the cause'))}
 // S-15 one colour per category everywhere
 // V72 R-16: mixes are horizontal bars; each bar carries its category colour.
-{const seen={};$('view-overview').querySelectorAll('#distributors [data-mix-color],#company-channels [data-mix-color]').forEach(g=>{const name=g.dataset.mixName,c=g.dataset.mixColor.toLowerCase();assert.equal(c,categoryColor(name).toLowerCase(),name);if(seen[name])assert.equal(seen[name],c);seen[name]=c});assert(Object.keys(seen).includes('PHARMA'));assert.equal(categoryColor('NOT PROVIDED'),CATEGORY_COLORS['NOT PROVIDED'])}
+// V77 D-05: a mix is one series, so every bar is the accent (grey only for Other / not provided).
+{const colors=new Set();$('view-overview').querySelectorAll('#distributors [data-mix-color],#company-channels [data-mix-color]').forEach(g=>colors.add(g.dataset.mixColor));assert(colors.size>0);for(const c of colors)assert(['var(--accent)','var(--context)','var(--decrease)'].includes(c),c);assert.equal(categoryColor('NOT PROVIDED'),CATEGORY_COLORS['NOT PROVIDED'])}
 // One global Measure toggle
 assert.equal(document.querySelectorAll('[data-measure]').length,2);assert.equal(document.querySelector('[data-manager-metric],[data-bd-metric],[data-distributor-metric]'),null,'no per-panel measure toggles');
 document.querySelector('[data-measure="value"]').click();assert(/EGP 2,033,569,691/.test($('kpis').textContent));document.querySelector('[data-measure="units"]').click();
@@ -92,7 +94,7 @@ await window.actualDashboard.apply(cfg());{const link=$('data-health').querySele
 // S-30 contrast tokens and grey text
 {const lum=h=>{const v=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4);return .2126*v[0]+.7152*v[1]+.0722*v[2]},ratio=(a,b)=>{const [x,y]=[lum(a),lum(b)].sort((p,q)=>q-p);return (x+.05)/(y+.05)},greyish=h=>{const v=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));return Math.max(...v)-Math.min(...v)<64};
  for(const f of ['app','management','products-table'])for(const m of fs.readFileSync(`public/${f}.js`,'utf8').matchAll(/<text\b[^>]*fill="(#[0-9a-fA-F]{6})"/g))if(greyish(m[1]))assert(ratio(m[1],'#ffffff')>=4.5,f+' svg text '+m[1]);
- for(const f of ['style','theme','management','polish','premium','ui06-preview'])for(const m of fs.readFileSync(`public/${f}.css`,'utf8').matchAll(/(?<![-\w])color:\s*(#[0-9a-fA-F]{6})\b/g))if(greyish(m[1])&&ratio(m[1],'#ffffff')>1.6)assert(ratio(m[1],'#eef2f7')>=4.5,f+'.css color '+m[1])}
+ for(const f of ['tokens','app'])for(const m of fs.readFileSync(`public/${f}.css`,'utf8').matchAll(/(?<![-\w])color:\s*(#[0-9a-fA-F]{6})\b/g))if(greyish(m[1])&&ratio(m[1],'#ffffff')>1.6)assert(ratio(m[1],'#eef2f7')>=4.5,f+'.css color '+m[1])}
 // S-37 / 6.3 state in the URL
 {const pushes=history.pushes;window.actualDashboard.showSection('portfolio');assert(location.search.includes('tab=products'));assert(history.pushes>pushes);await window.actualDashboard.apply(cfg({section:'portfolio',selection:{...none,distributor:['PHARMA']}}));const q=new URLSearchParams(location.search);assert(q.getAll('d').includes('PHARMA'));assert.equal(q.get('years'),String(Y));assert.equal(q.get('through'),'8')}
 // S-36 loading / error / freshness
