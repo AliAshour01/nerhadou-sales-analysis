@@ -13,7 +13,7 @@ Branch `claude/project-thread-vz304e` from `main` 8234ce3 (V75). Source plan: `b
 | W-05 tender growth | Done | Tender row whose previous same-period sales are under 25% of the previous full year → growth `—` with the reason. |
 | W-06 matched base | Done | Extra column "2024 Jan–Sep" (focus year over the compared months) when the comparison is partial; phone label "vs 2023 Jan–Sep". |
 | W-07 no target | Done | Zero target → Target/Ach./Variance `—` "No target for this product." Totals unchanged. Zero-sales rows already sort last. |
-| W-08 FERROTRON vs Ferrotron Fort | Not changed | Waiting on Ali: was Ferrotron Fort sold inside FERROTRON in 2025? |
+| W-08 FERROTRON vs Ferrotron Fort | No change needed | Owner confirmed 2026-11-27: Ferrotron Forte is a new 2026 launch and a separate product, so FERROTRON's 2026 growth is real and the two stay separate. |
 | W-09 tender data note | Done | Definitions & data notes. |
 | W-10 display names | Done | `tidyName()` in `view-context.js` (upper case, single spaces, "1.5MG", " - TENDER") for every year incl. the latest; source name subline only when the names really differ. Group toggle says "n packs" or "n price versions". |
 | W-11 phone forecast | Done | Compact scenario amounts on phones; layout test checks they do not wrap. |
