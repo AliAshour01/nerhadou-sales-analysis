@@ -50,7 +50,7 @@ assert.deepEqual(tabs(),['overview','portfolio']);assert(/Average per month/.tes
 await window.actualDashboard.apply(cfg());assert(/YTD achievement/i.test($('kpis').textContent));await window.actualDashboard.apply(cfg({periodMode:'selected',months:[2,5]}));assert(/Selected-period achievement/i.test($('kpis').textContent));
 // A7 · 2023: source note, bridge and recorded same-month growth
 await window.actualDashboard.apply(cfg({years:[2023],year:2023,months:[1,2,3,4,5,6,7,8,9]}));
-assert.equal($('provisional-badge').hidden,false);assert(visible().includes('bridge'));assert(/[▲▼] (Up|Down) \d/.test($('kpis').textContent));assert.deepEqual(tabs(),['overview','portfolio']);assert($('trend').querySelector('svg'),'Monthly chart is not empty');
+assert($('data-health').querySelector('.health-warning'));assert(visible().includes('bridge'));assert(/[▲▼] \d/.test($('kpis').textContent));assert.deepEqual(tabs(),['overview','portfolio']);assert($('trend').querySelector('svg'),'Monthly chart is not empty');
 // A8 · 2021–2026: multi-year
 const ALL=base.snapshot.availableYears.slice().sort((a,b)=>a-b);
 await window.actualDashboard.apply(cfg({years:ALL}));assert.deepEqual(tabs(),['overview','portfolio']);assert(visible().includes('salesByYear')&&visible().includes('monthly')&&visible().includes('bridge'));

@@ -27,7 +27,7 @@ assert(/2024 does not record line/.test(strip()));
 await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, periodMode: 'full' }));
 {
   const first = $('kpis').querySelector('.kpi');
-  assert.match(first.querySelector('.label').textContent, /Sales Jan–Sep 2023/);
+  assert.match(first.querySelector('.label').textContent, /Sales value, EGP Jan–Sep 2023/);
   assert(first.querySelector('.kpi-provisional'), 'Provisional chip');
   // V74 V-06: the banner says Oct–Dec are missing; the card no longer repeats it (its label already reads Jan–Sep 2023).
   assert(!/Oct–Dec not recorded/.test(first.textContent) && /Oct–Dec 2023 are not in the source/.test($('selection-status').textContent));
@@ -37,7 +37,7 @@ await window.actualDashboard.apply(cfg({ years: [2023], year: 2023, months: FY, 
 }
 // R-02 · acceptance 4: 2024 full year: KPI, monthly chart and bridge agree on vs-2023 Jan–Sep
 await window.actualDashboard.apply(cfg({ years: [2024], year: 2024, months: FY, periodMode: 'full' }));
-assert(/▲ Up|▼ Down/.test(kpiText()), 'KPI has a vs-2023 change');
+assert(/[▲▼] \d+\.\d%/.test(kpiText()), 'KPI has a vs-2023 change');
 assert(/Jan–Sep only, Oct–Dec 2023 not recorded/.test([...document.querySelectorAll('#kpis .delta-chip')].map((x) => x.title).join(' ')), 'V74: the not-recorded note lives in the chip title, not repeated on the card');
 assert(visible().includes('bridge'), 'bridge shown');
 assert(/2023 → 2024 · Jan–Sep in both years/.test($('movement-context').textContent));

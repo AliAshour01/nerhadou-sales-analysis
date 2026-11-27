@@ -68,7 +68,7 @@ $('movement-dimension').dispatchEvent(new window.Event('change', { bubbles: true
   assert(/Jan–Sep/.test($('movement-chart').querySelector('.bridge-span')?.textContent || ''), 'end bars say Jan–Sep');
   const sales = kpi('sales');
   assert(/Jan–Sep: EGP 1\.03B vs EGP 789\.9M \(2023, includes estimates\)/.test(sales), sales);
-  assert(/Up 30\.4%/.test(sales));
+  assert(/▲ 30\.4% vs/.test(sales));
   assert(/Jan–Sep avg: EGP 114\.5M vs EGP 87\.8M/.test(kpi('avg')), kpi('avg'));
 }
 // N-03: multi-year caption
@@ -76,7 +76,7 @@ await window.actualDashboard.apply(cfg({ years: [2021, 2022, 2023, 2024, 2025, 2
 assert(/2025 → 2026 · YTD Aug in both years/.test($('movement-context').textContent), $('movement-context').textContent);
 // N-12: status strip
 assert(/Jan–Aug, 2021–2026/.test($('data-health').textContent));
-assert(/2023 includes estimates/.test($('data-health').textContent));
+assert(/Some 2023 values are estimated/.test($('data-health').textContent));
 assert(!/Rev 0|No manual update recorded/.test($('data-health').textContent));
 // N-18: first and focus years labelled
 {
