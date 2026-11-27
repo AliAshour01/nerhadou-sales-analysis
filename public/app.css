@@ -911,3 +911,21 @@ body{font-size:var(--text-body)}
 #sales #panel-attention .attention-product{font-size:var(--text-body);font-weight:500;color:var(--ink)}
 #sales #panel-attention .attention-fig{font-size:var(--text-small);color:var(--ink-2);line-height:1.5}
 #sales #panel-attention .show-all{margin-top:10px}
+
+/* G-17: Products table & cards typography, plain % of target with arrows, Share bar, Group by line hierarchy */
+#view-portfolio .table-wrap thead th{font-size:var(--text-small);font-weight:500;color:var(--ink-2)}
+#view-portfolio .table-wrap td.sticky-col button{color:var(--ink);font-weight:500;text-decoration:none}
+#view-portfolio .table-wrap td.sticky-col button:hover{text-decoration:underline;text-underline-offset:2px}
+#view-portfolio .ach,#portfolio-cards .ach{background:transparent!important;padding:0!important;border-radius:0!important;font-weight:500}
+#view-portfolio .ach.ach-good,#portfolio-cards .ach.ach-good{color:var(--good)!important}
+#view-portfolio .ach.ach-warn,#portfolio-cards .ach.ach-warn{color:var(--warning)!important}
+#view-portfolio .ach.ach-bad,#portfolio-cards .ach.ach-bad{color:var(--decrease)!important}
+#view-portfolio .ach.ach-unknown,#portfolio-cards .ach.ach-unknown{color:var(--ink-2)!important}
+#view-portfolio .sales-bar{background:var(--border);height:4px}
+#view-portfolio .sales-bar i{background:var(--accent)}
+#view-portfolio tr.subtotal-row th,#view-portfolio tr.subtotal-row td{background:var(--bg);font-weight:600;border-top:1px solid var(--ink-3)}
+#details td.version-name{padding-left:24px;color:var(--ink-2)}
+#details td.version-name button{color:var(--ink-2);font-weight:400}
+@media (max-width:699px){
+  #portfolio-cards .pc-packs{width:100%;margin:0;padding:10px 0;min-height:44px;text-align:left;font-size:var(--text-small);color:var(--accent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+}
