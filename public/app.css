@@ -707,3 +707,11 @@
 /*  ---- V77 base rules (design review D-04) ----  */
 b,strong,th{font-weight:600}
 h1,#kpis .kpi strong,.projection-number{letter-spacing:-.01em}
+/* V79: Group by line tree and bridge contribution labels */
+.pt-tree-actions{display:inline-flex;gap:14px;align-items:center}.pt-tree-actions[hidden]{display:none}.pt-tree-actions .link-button{background:none;border:0;padding:4px 0;color:var(--accent);font:inherit;font-size:var(--text-small);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+#view-portfolio .pt-line-toggle{display:inline-flex;align-items:baseline;gap:6px;background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--ink);cursor:pointer;text-align:left}#view-portfolio .pt-line-toggle:focus-visible,.portfolio-card.pc-line:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pt-tree-icon{display:inline-block;width:12px;flex:none;color:var(--ink-2);font-size:var(--text-caption)}
+#view-portfolio tr.line-child>.sticky-col{padding-left:30px}#view-portfolio tr.line-child.member-row>td.sticky-col,#details tr.line-child td.version-name{padding-left:50px}
+#view-portfolio tr.subtotal-row:not(.open) th,#view-portfolio tr.subtotal-row:not(.open) td{border-bottom:1px solid var(--border)}
+.portfolio-card.pc-line{width:100%;text-align:left;font:inherit;color:inherit;background:var(--bg);cursor:pointer}.portfolio-card.pc-line .pc-name{font-weight:600}
+.portfolio-card.pc-child{margin-left:12px}.portfolio-card.pc-child.pc-sub{margin-left:28px}.portfolio-card.pc-child~.pc-packs{margin-left:16px}
